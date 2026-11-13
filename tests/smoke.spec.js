@@ -154,3 +154,64 @@ test("preview collects coins temporarily and restores the editable scene", async
   await expect(page.locator("#position-x")).toHaveValue("400");
   await expect(page.locator("#position-y")).toHaveValue("225");
 });
+
+
+test("undo and redo restore object creation and universal appearance properties", async ({ page }) => {
+  await page.locator("#add-coin").click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(3);
+
+  await page.locator("#undo-button").click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(2);
+  await page.locator("#redo-button").click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(3);
+
+  await page.locator("#object-list .object-row").first().click();
+  await page.locator("#creature-size").fill("1.6");
+  await page.locator("#creature-size").press("Tab");
+  await page.locator("#creature-color").fill("#12ab89");
+  await expect(page.locator("#creature-size")).toHaveValue("1.6");
+  await expect(page.locator("#creature-color")).toHaveValue("#12ab89");
+  await expect(page.locator("#creature-health")).toBeHidden();
+});
+
+test("project JSON can be imported safely", async ({ page }) => {
+  const project = {
+    version: 2,
+    title: "مشروع مستورد",
+    width: 800,
+    height: 450,
+    objects: [
+      { id: "foreign-1", kind: "coin", x: 0, y: 0, name: "جوهرة مستوردة", size: 1.4, color: "#33aa77" },
+      { id: "foreign-2", kind: "crate", x: 900, y: -20, name: "صندوق", locked: true }
+    ]
+  };
+  await page.locator("#import-file").setInputFiles({
+    name: "spark-project.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(project))
+  });
+  await expect(page.locator("#object-list .object-row")).toHaveCount(2);
+  await expect(page.locator("#object-name")).toHaveValue("جوهرة مستوردة");
+  await expect(page.locator("#position-x")).toHaveValue("0");
+  await expect(page.locator("#position-y")).toHaveValue("0");
+  await expect(page.locator("#save-state")).toContainText("تم استيراد المشروع");
+});
+
+test("ready-made asset combinations are added as one undoable action", async ({ page }) => {
+  await page.locator("#preset-coins").click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(6);
+  await page.locator("#undo-button").click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(2);
+});
+
+test("objects can be locked and moved between layers", async ({ page }) => {
+  await page.locator("#object-list .object-row").first().click();
+  await page.locator("#lock-object").click();
+  await expect(page.locator("#lock-object")).toContainText("فتح القفل");
+  await expect(page.locator("#object-list .object-row").first()).toContainText("🔒");
+
+  await page.locator("#undo-button").click();
+  await expect(page.locator("#lock-object")).toContainText("قفل الكائن");
+  await page.locator("#bring-forward").click();
+  await expect(page.locator("#save-state")).toContainText("تقديم الكائن");
+});
