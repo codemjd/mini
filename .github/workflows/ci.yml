@@ -26,3 +26,7 @@ jobs:
         run: npm run build
       - name: Verify production output
         run: test -s dist/index.html
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+      - name: Test desktop and mobile browser startup
+        run: npm run test:e2e
