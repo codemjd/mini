@@ -87,3 +87,15 @@ footer{height:40px;border-top:1px solid #253244;display:flex;justify-content:spa
 @media(max-width:720px){.top-actions{gap:5px}.preview-btn,.stop-preview-btn,.export-btn{font-size:9px;padding:8px 7px}.primary-btn{padding:8px 9px}.stage-tools{gap:4px}.mini-tool{padding:4px 6px;font-size:9px}.stage-size{display:none}}
 @media(max-width:420px){.export-btn{display:block;font-size:8px;padding:6px 5px}.brand{gap:7px}.brand-mark{width:30px;height:30px}.brand strong{font-size:11px}}
 @media(max-width:360px){.export-btn{display:none}}
+
+
+/* Visual polish and responsive preview state */
+.stage-shell{position:relative;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.stage-shell.is-previewing{border-color:#55c9a3;box-shadow:0 0 0 2px #55c9a333,0 18px 55px #0008,0 0 34px #48bd9630}
+.stage-shell.is-previewing #game-stage{filter:saturate(1.12) contrast(1.03)}
+.stage-shell.is-previewing:after{content:"LIVE PREVIEW";position:absolute;top:17px;right:18px;padding:4px 8px;border:1px solid #70d9b7;border-radius:20px;background:#123b3bd9;color:#caffeb;font:700 8px Arial,sans-serif;letter-spacing:1.3px;pointer-events:none}
+#game-stage canvas{touch-action:none}
+.touch-controls{padding:8px 12px;border:1px solid #304b60;border-radius:16px;background:linear-gradient(145deg,#172c3e,#101e2d);width:max-content;box-shadow:0 10px 28px #0004}
+.touch-controls button{width:49px;height:46px;border-radius:13px;font-size:18px;font-weight:800}
+.touch-controls button:focus-visible,.preview-btn:focus-visible,.stop-preview-btn:focus-visible{outline:3px solid #f5c875;outline-offset:3px}
+@media(max-width:650px){.stage-shell.is-previewing:after{top:10px;right:10px;font-size:7px}.touch-controls{margin-top:10px}.touch-controls button{width:46px;height:44px}}
