@@ -200,6 +200,8 @@ class EditorScene extends Phaser.Scene {
     this.createView(copy); this.select(copy.id); this.emitChange();
   }
 
+  setTouchDirection(x: number, y: number) { this.touchDirection = { x, y }; }
+
   setGridVisible(visible: boolean) {
     if (!this.gridGraphics) return;
     this.gridGraphics.clear();
@@ -237,7 +239,7 @@ class EditorScene extends Phaser.Scene {
     const k = this.previewKeys; const speed = Math.max(60, hero.data.speed) * delta / 1000;
     let dx = this.touchDirection.x, dy = this.touchDirection.y; if (k?.A.isDown || k?.LEFT.isDown) dx--; if (k?.D.isDown || k?.RIGHT.isDown) dx++; if (k?.W.isDown || k?.UP.isDown) dy--; if (k?.S.isDown || k?.DOWN.isDown) dy++;
     if (dx || dy) { const length = Math.hypot(dx,dy) || 1; hero.view.x = Phaser.Math.Clamp(hero.view.x + dx/length*speed, 25, 775); hero.view.y = Phaser.Math.Clamp(hero.view.y + dy/length*speed, 25, 425); hero.data.x = Math.round(hero.view.x); hero.data.y = Math.round(hero.view.y); }
-    for (const [id, item] of this.objects) { if (item.data.kind === "coin" && Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y) < 30) { item.view.destroy(); this.objects.delete(id); setStatus("جمعت عملة! ✦"); } }
+    for (const [id, item] of this.objects) { if (item.data.kind === "coin" && Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y) < 30) { item.view.destroy(); this.objects.delete(id); setStatus("جمعت عملة! ✦"); this.emitChange(); } }
   }
 
   getSelected() { return this.selectedId ? this.objects.get(this.selectedId)?.data ?? null : null; }
