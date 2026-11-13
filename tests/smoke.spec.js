@@ -68,7 +68,8 @@ test("objects can be selected and deleted", async ({ page }) => {
 });
 
 
-test("scene objects can be dragged and their coordinates update", async ({ page, isMobile }) => {\n  test.skip(isMobile, "Pointer-drag is covered by desktop; mobile uses the touch play controls.");
+test("scene objects can be dragged and their coordinates update", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Pointer-drag is covered by desktop; mobile uses the touch play controls.");
   const canvas = page.locator("#game-stage canvas");
   await expect(canvas).toHaveCount(1);
   await page.locator("#object-list .object-row").first().click();
