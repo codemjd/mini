@@ -28,7 +28,7 @@ test("workshop opens and renders the editable scene", async ({ page }) => {
   await page.locator("#position-y").press("Tab");
   await expect(page.locator("#position-y")).toHaveValue("175");
 
-  await page.locator("#object-list .object-row").first().click();
+  await page.locator("#object-list .object-row").last().click();
   await page.locator("#creature-health").fill("250");
   await page.locator("#creature-health").press("Tab");
   await page.locator("#creature-speed").fill("220");
@@ -47,10 +47,10 @@ test("workshop opens and renders the editable scene", async ({ page }) => {
 
   await page.reload();
   await expect(page.locator("#object-list .object-row")).toHaveCount(3);
-  await page.locator("#object-list .object-row").last().click();
+  await page.locator("#object-list .object-row").first().click();
   await expect(page.locator("#position-x")).toHaveValue("310");
   await expect(page.locator("#position-y")).toHaveValue("175");
-  await page.locator("#object-list .object-row").first().click();
+  await page.locator("#object-list .object-row").last().click();
   await expect(page.locator("#creature-health")).toHaveValue("250");
   await expect(page.locator("#creature-speed")).toHaveValue("220");
   await expect(page.locator("#creature-damage")).toHaveValue("44");
