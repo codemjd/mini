@@ -86,3 +86,33 @@ test("scene objects can be dragged and their coordinates update", async ({ page 
   await expect(page.locator("#position-x")).not.toHaveValue("400");
   await expect(page.locator("#position-y")).not.toHaveValue("225");
 });
+
+
+test("V1 adds scene elements, duplicates them, and exports a project", async ({ page }) => {
+  await page.locator("#add-enemy").click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(3);
+  await expect(page.locator("#selected-name")).toHaveText("عدو");
+  await page.locator("#duplicate-object").click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(4);
+  await page.locator("#add-platform").click();
+  await page.locator("#add-coin").click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(6);
+  await page.locator("#grid-toggle").click();
+  await expect(page.locator("#grid-toggle")).toHaveAttribute("aria-pressed", "false");
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#export-button").click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("spark-workshop-project.json");
+});
+
+test("V1 preview can be started and stopped on desktop and exposes touch controls", async ({ page }) => {
+  await page.locator("#preview-button").click();
+  await expect(page.locator("#stop-preview")).toBeVisible();
+  await expect(page.locator("#touch-controls")).toBeVisible();
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(120);
+  await page.keyboard.up("ArrowRight");
+  await page.locator("#stop-preview").click();
+  await expect(page.locator("#preview-button")).toBeVisible();
+  await expect(page.locator("#touch-controls")).toBeHidden();
+});
