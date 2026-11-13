@@ -21,8 +21,6 @@ app.innerHTML = `
       <button class="nav-item" disabled><span>◇</span> مكتبة الأصول <em>لاحقًا</em></button>
       <button class="nav-item" disabled><span>⌘</span> السلوكيات <em>لاحقًا</em></button>
       <div class="side-divider"></div>
-      <div class="side-heading"><span>الكائنات في المشهد</span><span class="muted" id="object-count">0</span></div>
-      <div id="object-list" class="object-list"></div>
       <div class="sidebar-note"><span>✦</span><p>أضف كائنًا، حدده، ثم اسحبه داخل ساحة اللعب. احفظ مشروعك لتعود إليه لاحقًا على هذا الجهاز.</p></div>
     </aside>
     <section class="editor">
@@ -35,6 +33,7 @@ app.innerHTML = `
         </div>
         <aside class="tools-panel">
           <div class="panel-section"><h2>إضافة كائن</h2><button class="tool-button" id="add-hero"><span class="tool-icon hero-icon">●</span><span><strong>شخصية</strong><small>شخصية اللاعب التجريبية</small></span><b>＋</b></button><button class="tool-button" id="add-crate"><span class="tool-icon crate-icon">▧</span><span><strong>صندوق</strong><small>عنصر ثابت داخل الساحة</small></span><b>＋</b></button></div>
+          <div class="panel-section object-manager"><h2>الكائنات في المشهد <span class="muted" id="object-count">0</span></h2><div id="object-list" class="object-list"></div></div>
           <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><button class="danger-button" id="delete-object">حذف الكائن</button></div></div>
         </aside>
       </div>
@@ -44,6 +43,8 @@ app.innerHTML = `
   <footer><span>ورشة الشرارات Mini</span><span>نبني الألعاب خطوة بخطوة ✦</span></footer>
 `;
 
+let editorScene: EditorScene | null = null;
+
 class EditorScene extends Phaser.Scene {
   private objects = new Map<string, { data: EditorObject; view: Phaser.GameObjects.Container }>();
   private selectedId: string | null = null;
@@ -51,6 +52,7 @@ class EditorScene extends Phaser.Scene {
   constructor() { super("EditorScene"); }
 
   create() {
+    editorScene = this;
     const { width, height } = this.scale;
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x172d43, 0x172d43, 0x244a55, 0x244a55, 1);
@@ -171,7 +173,7 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   render: { antialias: true, pixelArt: false }
 });
-const scene = game.scene.getScene("EditorScene") as EditorScene;
+
 
 function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
   const list = document.querySelector<HTMLDivElement>("#object-list")!;
@@ -188,22 +190,22 @@ function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
   }
 }
 game.events.on("editor-change", renderEditor);
-game.events.once("ready", () => renderEditor(scene.getObjects(), scene.getSelected()));
+game.events.once("ready", () => { if (editorScene) renderEditor(editorScene.getObjects(), editorScene.getSelected()); });
 
-document.querySelector("#add-hero")?.addEventListener("click", () => scene.addObject("hero"));
-document.querySelector("#add-crate")?.addEventListener("click", () => scene.addObject("crate"));
-document.querySelector("#save-button")?.addEventListener("click", () => scene.save());
-document.querySelector("#delete-object")?.addEventListener("click", () => scene.deleteSelected());
+document.querySelector("#add-hero")?.addEventListener("click", () => editorScene?.addObject("hero"));
+document.querySelector("#add-crate")?.addEventListener("click", () => editorScene?.addObject("crate"));
+document.querySelector("#save-button")?.addEventListener("click", () => editorScene?.save());
+document.querySelector("#delete-object")?.addEventListener("click", () => editorScene?.deleteSelected());
 document.querySelector("#object-list")?.addEventListener("click", event => {
   const target = (event.target as HTMLElement).closest<HTMLElement>("[data-object-id]");
-  if (target) scene.select(target.dataset.objectId ?? null);
+  if (target) editorScene?.select(target.dataset.objectId ?? null);
 });
 for (const axis of ["x", "y"] as const) {
   document.querySelector<HTMLInputElement>(`#position-${axis}`)?.addEventListener("change", event => {
     const input = event.currentTarget as HTMLInputElement;
-    const selected = scene.getSelected();
+    const selected = editorScene?.getSelected();
     if (!selected) return;
-    scene.updatePosition(axis === "x" ? Number(input.value) : selected.x, axis === "y" ? Number(input.value) : selected.y);
+    editorScene?.updatePosition(axis === "x" ? Number(input.value) : selected.x, axis === "y" ? Number(input.value) : selected.y);
   });
 }
 window.addEventListener("beforeunload", () => game.destroy(true));
