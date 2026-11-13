@@ -68,7 +68,7 @@ test("objects can be selected and deleted", async ({ page }) => {
 });
 
 
-test("scene objects can be dragged and their coordinates update", async ({ page }) => {
+test("scene objects can be dragged and their coordinates update", async ({ page, isMobile }) => {\n  test.skip(isMobile, "Pointer-drag is covered by desktop; mobile uses the touch play controls.");
   const canvas = page.locator("#game-stage canvas");
   await expect(canvas).toHaveCount(1);
   await page.locator("#object-list .object-row").first().click();
@@ -114,5 +114,16 @@ test("V1 preview can be started and stopped on desktop and exposes touch control
   await page.keyboard.up("ArrowRight");
   await page.locator("#stop-preview").click();
   await expect(page.locator("#preview-button")).toBeVisible();
+  await expect(page.locator("#touch-controls")).toBeHidden();
+});
+
+test("mobile preview controls are available and accept touch input", async ({ page }) => {
+  await page.locator("#preview-button").click();
+  const right = page.locator('#touch-controls button[data-dir="right"]');
+  await expect(right).toBeVisible();
+  await right.dispatchEvent("pointerdown", { pointerId: 1, pointerType: "touch", isPrimary: true, buttons: 1 });
+  await page.waitForTimeout(150);
+  await right.dispatchEvent("pointerup", { pointerId: 1, pointerType: "touch", isPrimary: true, buttons: 0 });
+  await page.locator("#stop-preview").click();
   await expect(page.locator("#touch-controls")).toBeHidden();
 });
