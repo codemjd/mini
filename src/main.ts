@@ -28,8 +28,8 @@ app.innerHTML = `
       <div class="editor-layout">
         <div class="scene-column">
           <div class="stage-toolbar"><span>المشهد 01 <b>/</b> ساحة التدريب</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">800 × 450</span></div></div>
-          <div class="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><button data-dir="up" aria-label="أعلى">▲</button><div><button data-dir="left" aria-label="يسار">◀</button><button data-dir="down" aria-label="أسفل">▼</button><button data-dir="right" aria-label="يمين">▶</button></div></div>
-          <div class="hint-row" id="stage-hint"><span>✦</span> اختر كائنًا أو اسحبه. اضغط «معاينة اللعبة» لتجربة تحريك الشخصية.</div>
+          <div class="stage-shell" id="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><button data-dir="up" aria-label="أعلى">▲</button><div><button data-dir="left" aria-label="يسار">◀</button><button data-dir="down" aria-label="أسفل">▼</button><button data-dir="right" aria-label="يمين">▶</button></div></div>
+          <div class="hint-row" id="stage-hint" role="status" aria-live="polite"><span>✦</span> اختر كائنًا أو اسحبه. اضغط «معاينة اللعبة» لتجربة تحريك الشخصية.</div>
         </div>
         <aside class="tools-panel">
           <div class="panel-section"><h2>إضافة عناصر</h2><button class="tool-button" id="add-hero"><span class="tool-icon hero-icon">●</span><span><strong>شخصية اللاعب</strong><small>الشخصية التي تتحكم بها</small></span><b>＋</b></button><button class="tool-button" id="add-enemy"><span class="tool-icon enemy-icon">◆</span><span><strong>عدو</strong><small>هدف للتجربة</small></span><b>＋</b></button><button class="tool-button" id="add-crate"><span class="tool-icon crate-icon">▧</span><span><strong>صندوق</strong><small>عنصر ثابت</small></span><b>＋</b></button><button class="tool-button" id="add-platform"><span class="tool-icon platform-icon">▬</span><span><strong>منصة</strong><small>سطح للمشهد</small></span><b>＋</b></button><button class="tool-button" id="add-coin"><span class="tool-icon coin-icon">●</span><span><strong>عملة</strong><small>عنصر قابل للجمع في المعاينة</small></span><b>＋</b></button></div>
@@ -51,6 +51,10 @@ class EditorScene extends Phaser.Scene {
   private previewing = false;
   private previewKeys?: Record<string, Phaser.Input.Keyboard.Key>;
   private previewHint?: Phaser.GameObjects.Text;
+  private previewScoreLabel?: Phaser.GameObjects.Text;
+  private previewSnapshot: EditorObject[] | null = null;
+  private previewScore = 0;
+  private previewCoinsTotal = 0;
   private gridGraphics?: Phaser.GameObjects.Graphics;
   private touchDirection = { x: 0, y: 0 };
   private nextId = 1;
@@ -59,16 +63,33 @@ class EditorScene extends Phaser.Scene {
   create() {
     editorScene = this;
     const { width, height } = this.scale;
-    const bg = this.add.graphics();
-    this.gridGraphics = bg;
-    bg.fillGradientStyle(0x172d43, 0x172d43, 0x244a55, 0x244a55, 1);
+    const bg = this.add.graphics().setDepth(-20);
+    bg.fillGradientStyle(0x142b40, 0x18384a, 0x23505a, 0x1a3549, 1);
     bg.fillRect(0, 0, width, height);
-    const grid = this.add.graphics();
+    bg.fillStyle(0x70c8ad, 0.055);
+    bg.fillCircle(105, 95, 105);
+    bg.fillStyle(0xf6b85e, 0.055);
+    bg.fillCircle(690, 350, 145);
+    bg.lineStyle(2, 0x9ed9c4, 0.10);
+    bg.strokeCircle(400, 225, 178);
+    bg.strokeCircle(400, 225, 212);
+    bg.lineStyle(1, 0xf3d49a, 0.09);
+    bg.strokeCircle(400, 225, 248);
+    bg.fillStyle(0xd8f2e8, 0.28);
+    for (let i = 0; i < 42; i++) {
+      const x = (i * 137 + 31) % width;
+      const y = (i * 79 + 23) % height;
+      bg.fillCircle(x, y, i % 7 === 0 ? 2 : 1);
+    }
+    const grid = this.add.graphics().setDepth(-10);
     this.gridGraphics = grid;
-    grid.lineStyle(1, 0x8bb9b0, 0.13);
+    grid.lineStyle(1, 0xa6d8c8, 0.10);
     for (let x = 0; x <= width; x += 40) grid.lineBetween(x, 0, x, height);
     for (let y = 0; y <= height; y += 40) grid.lineBetween(0, y, width, y);
-    this.add.text(16, 14, "ساحة التدريب", { fontFamily: "Tahoma, Arial", fontSize: "14px", color: "#d8f2e8", backgroundColor: "#102436", padding: { x: 9, y: 6 } });
+    const border = this.add.graphics().setDepth(-9);
+    border.lineStyle(3, 0x8ac7b7, 0.22);
+    border.strokeRoundedRect(8, 8, width - 16, height - 16, 18);
+    this.add.text(16, 14, "ساحة التدريب", { fontFamily: "Tahoma, Arial", fontSize: "14px", color: "#e4fff4", backgroundColor: "#102436", padding: { x: 9, y: 6 } }).setDepth(20);
     this.loadProject();
     if (this.objects.size === 0) {
       this.addObject("hero", 400, 225);
@@ -100,32 +121,59 @@ class EditorScene extends Phaser.Scene {
   private createView(data: EditorObject) {
     const parts: Phaser.GameObjects.GameObject[] = [];
     if (data.kind === "hero" || data.kind === "enemy") {
-      parts.push(this.add.ellipse(0, 22, 56, 18, 0x07131b, 0.35));
-      const heroColor = Phaser.Display.Color.HexStringToColor(data.color || (data.kind === "hero" ? "#ffbd59" : "#ff6b72")).color;
-      parts.push(this.add.circle(0, 0, 22, heroColor).setStrokeStyle(4, 0xffe2a2));
-      parts.push(this.add.arc(0, 0, 26, 205, 335, false, 0x8de2cf, 0.95).setStrokeStyle(3, 0x8de2cf));
-      parts.push(this.add.circle(0, -3, 10, 0x27364a));
-      parts.push(this.add.circle(-4, -5, 2, 0xffffff));
-      parts.push(this.add.circle(4, -5, 2, 0xffffff));
-      parts.push(this.add.star(0, -34, 4, 3, 7, data.kind === "hero" ? 0x8de2cf : 0xffd0d0));
+      const isHero = data.kind === "hero";
+      const bodyColor = Phaser.Display.Color.HexStringToColor(data.color || (isHero ? "#ffbd59" : "#ff6b72")).color;
+      const trimColor = isHero ? 0x8de2cf : 0xffc0b9;
+      parts.push(this.add.ellipse(0, 24, 62, 21, 0x06111a, 0.42));
+      parts.push(this.add.ellipse(0, 18, 43, 13, 0x07131b, 0.22));
+      parts.push(this.add.circle(0, 0, 27, isHero ? 0x3d8e7d : 0x9b4b56, 0.26));
+      parts.push(this.add.circle(0, 0, 23, bodyColor).setStrokeStyle(4, isHero ? 0xffe5ad : 0xffd4cd));
+      parts.push(this.add.arc(0, 0, 27, 205, 335, false, trimColor, 1).setStrokeStyle(4, trimColor));
+      parts.push(this.add.ellipse(-8, -9, 13, 7, 0xffffff, 0.22));
+      if (isHero) {
+        parts.push(this.add.star(0, -36, 5, 4, 9, 0x9cf0d5).setStrokeStyle(2, 0xe3fff2));
+        parts.push(this.add.rectangle(0, 17, 28, 7, 0x477d73).setStrokeStyle(1, 0x9be0c9));
+      } else {
+        parts.push(this.add.triangle(0, -30, -12, 0, 12, 0, 0, -17, 0xffd0c9).setStrokeStyle(2, 0xffeee9));
+        parts.push(this.add.arc(0, 3, 13, 200, 340, false, 0x4c2630).setStrokeStyle(3, 0x4c2630));
+      }
+      parts.push(this.add.ellipse(0, -2, 27, 21, 0x27364a));
+      parts.push(this.add.circle(-6, -5, 3, 0xffffff));
+      parts.push(this.add.circle(6, -5, 3, 0xffffff));
+      parts.push(this.add.circle(-5, -5, 1.2, 0x243344));
+      parts.push(this.add.circle(7, -5, 1.2, 0x243344));
+      parts.push(this.add.arc(0, 5, 7, 20, 160, false, 0x241e2b).setStrokeStyle(2, 0x241e2b));
     } else if (data.kind === "crate") {
-      parts.push(this.add.rectangle(0, 0, 48, 48, 0xc47a45).setStrokeStyle(4, 0xf0b77d));
-      parts.push(this.add.rectangle(0, 0, 8, 48, 0x8c512f));
-      parts.push(this.add.rectangle(0, 0, 48, 8, 0x8c512f));
+      parts.push(this.add.ellipse(0, 27, 64, 17, 0x07131b, 0.38));
+      parts.push(this.add.rectangle(0, 1, 53, 49, 0x8f542f).setStrokeStyle(4, 0xf4c18c));
+      parts.push(this.add.rectangle(0, -2, 43, 39, 0xc9824a).setStrokeStyle(2, 0xf7d0a1));
+      parts.push(this.add.rectangle(0, -2, 9, 39, 0x9b6038));
+      parts.push(this.add.rectangle(0, -2, 43, 8, 0x9b6038));
+      parts.push(this.add.line(0, 0, -18, -17, 18, 17, 0xf0b77d, 0.9).setLineWidth(3));
+      parts.push(this.add.line(0, 0, 18, -17, -18, 17, 0xf0b77d, 0.9).setLineWidth(3));
     } else if (data.kind === "coin") {
-      parts.push(this.add.circle(0, 0, 17, 0xffd34e).setStrokeStyle(4, 0xfff0a6));
-      parts.push(this.add.text(0, 0, "★", { fontSize: "17px", color: "#8d5c16" }).setOrigin(0.5));
+      parts.push(this.add.circle(0, 2, 23, 0xffd34e, 0.16));
+      parts.push(this.add.ellipse(0, 23, 40, 12, 0x07131b, 0.34));
+      parts.push(this.add.circle(0, 0, 18, 0xe99b27).setStrokeStyle(5, 0xffef9b));
+      parts.push(this.add.circle(0, 0, 12, 0xffd34e).setStrokeStyle(2, 0xfff8ca));
+      parts.push(this.add.star(0, 0, 5, 3, 8, 0x9a681d));
+      parts.push(this.add.circle(-6, -7, 3, 0xffffff, 0.65));
     } else {
       const platformColor = Phaser.Display.Color.HexStringToColor(data.color).color;
-      parts.push(this.add.rectangle(0, 0, data.kind === "platform" ? 104 : 48, data.kind === "platform" ? 22 : 44, platformColor).setStrokeStyle(3, 0xd4e6ef));
-      if (data.kind === "platform") parts.push(this.add.rectangle(0, 8, 100, 5, 0x294d5c));
+      parts.push(this.add.ellipse(0, 15, data.kind === "platform" ? 116 : 58, 15, 0x07131b, 0.30));
+      parts.push(this.add.rectangle(0, 0, data.kind === "platform" ? 112 : 52, data.kind === "platform" ? 30 : 48, 0x203b4c).setStrokeStyle(3, 0xd4e6ef));
+      parts.push(this.add.rectangle(0, -4, data.kind === "platform" ? 108 : 46, data.kind === "platform" ? 20 : 42, platformColor).setStrokeStyle(2, 0xa9d8e7));
+      if (data.kind === "platform") {
+        parts.push(this.add.rectangle(0, 7, 100, 4, 0x294d5c));
+        for (let x = -42; x <= 42; x += 28) parts.push(this.add.circle(x, -4, 3, 0xd8f3f7, 0.8));
+      }
     }
-    const label = this.add.text(0, data.kind === "hero" || data.kind === "enemy" ? 38 : 37, data.name || data.kind, { fontFamily: "Tahoma, Arial", fontSize: "11px", color: "#ffffff", stroke: "#102030", strokeThickness: 3 }).setOrigin(0.5);
+    const label = this.add.text(0, data.kind === "hero" || data.kind === "enemy" ? 43 : 40, data.name || data.kind, { fontFamily: "Tahoma, Arial", fontSize: "11px", fontStyle: "bold", color: "#ffffff", stroke: "#102030", strokeThickness: 4, shadow: { offsetX: 0, offsetY: 2, color: "#000000", blur: 5, fill: true } }).setOrigin(0.5);
     parts.push(label);
     const view = this.add.container(data.x, data.y, parts);
-    view.setSize(62, 82);
+    view.setSize(70, 90);
     view.setScale(data.size || 1);
-    view.setInteractive(new Phaser.Geom.Rectangle(-54, -44, 108, 88), Phaser.Geom.Rectangle.Contains);
+    view.setInteractive(new Phaser.Geom.Rectangle(-58, -48, 116, 96), Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(view);
     view.on("pointerdown", () => this.select(data.id));
     this.objects.set(data.id, { data, view });
@@ -210,26 +258,42 @@ class EditorScene extends Phaser.Scene {
 
   startPreview() {
     if (this.previewing) return;
+    this.previewSnapshot = this.getObjects().map(item => ({ ...item }));
+    this.previewCoinsTotal = this.previewSnapshot.filter(item => item.kind === "coin").length;
+    this.previewScore = 0;
     this.previewing = true; this.selectedId = null;
     for (const item of this.objects.values()) { item.view.disableInteractive(); item.view.setAlpha(1); }
     if (this.input.keyboard) this.previewKeys = this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT") as Record<string, Phaser.Input.Keyboard.Key>;
     document.querySelector("#touch-controls")?.removeAttribute("hidden");
-    this.previewHint = this.add.text(400, 22, "وضع المعاينة — حرّك الشخصية بالأسهم أو WASD", { fontFamily: "Tahoma, Arial", fontSize: "13px", color: "#ffffff", backgroundColor: "#102436", padding: {x:12,y:8} }).setOrigin(0.5,0);
-    setStatus("المعاينة تعمل — اضغط إيقاف للعودة للمحرر");
+    document.querySelector("#stage-shell")?.classList.add("is-previewing");
+    this.previewHint = this.add.text(400, 18, "وضع المعاينة  •  حرّك بطلك", { fontFamily: "Tahoma, Arial", fontSize: "14px", fontStyle: "bold", color: "#ffffff", backgroundColor: "#123b3b", padding: {x:15,y:8} }).setOrigin(0.5,0).setDepth(30);
+    this.previewScoreLabel = this.add.text(400, 56, `العملات: 0 / ${this.previewCoinsTotal}`, { fontFamily: "Tahoma, Arial", fontSize: "12px", color: "#ffe7a8", backgroundColor: "#3c3020", padding: {x:10,y:5} }).setOrigin(0.5,0).setDepth(30);
+    setStatus("المعاينة تعمل — يمكنك تجربة الحركة وجمع العملات");
     document.querySelector("#preview-button")?.setAttribute("hidden", "true");
     document.querySelector("#stop-preview")?.removeAttribute("hidden");
-    document.querySelector("#stage-hint")!.textContent = "وضع المعاينة نشط: استخدم الأسهم أو WASD لتحريك الشخصية.";
+    document.querySelector("#stage-hint")!.textContent = "المعاينة نشطة: تحرّك بالأسهم أو WASD، واجمع العملات. إيقاف المعاينة يعيد المشهد كما كان.";
+    this.emitChange();
   }
 
   stopPreview() {
     if (!this.previewing) return;
-    this.previewing = false; this.previewHint?.destroy(); this.previewHint = undefined; this.touchDirection = { x: 0, y: 0 };
+    this.previewing = false;
+    this.previewHint?.destroy(); this.previewHint = undefined;
+    this.previewScoreLabel?.destroy(); this.previewScoreLabel = undefined;
+    this.touchDirection = { x: 0, y: 0 };
     document.querySelector("#touch-controls")?.setAttribute("hidden", "true");
-    for (const item of this.objects.values()) { item.view.setInteractive(new Phaser.Geom.Rectangle(-54,-44,108,88), Phaser.Geom.Rectangle.Contains); this.input.setDraggable(item.view); }
+    document.querySelector("#stage-shell")?.classList.remove("is-previewing");
+    if (this.previewSnapshot) {
+      for (const item of this.objects.values()) item.view.destroy();
+      this.objects.clear();
+      for (const data of this.previewSnapshot) this.createView({ ...data });
+      this.previewSnapshot = null;
+    }
     document.querySelector("#preview-button")?.removeAttribute("hidden");
     document.querySelector("#stop-preview")?.setAttribute("hidden", "true");
     document.querySelector("#stage-hint")!.textContent = "اختر كائنًا أو اسحبه. اضغط «معاينة اللعبة» لتجربة تحريك الشخصية.";
-    setStatus("عدت إلى وضع التحرير"); this.emitChange();
+    setStatus("انتهت المعاينة — تمت استعادة المشهد الأصلي");
+    this.emitChange();
   }
 
   update(_time: number, delta: number) {
@@ -239,7 +303,16 @@ class EditorScene extends Phaser.Scene {
     const k = this.previewKeys; const speed = Math.max(60, hero.data.speed) * delta / 1000;
     let dx = this.touchDirection.x, dy = this.touchDirection.y; if (k?.A.isDown || k?.LEFT.isDown) dx--; if (k?.D.isDown || k?.RIGHT.isDown) dx++; if (k?.W.isDown || k?.UP.isDown) dy--; if (k?.S.isDown || k?.DOWN.isDown) dy++;
     if (dx || dy) { const length = Math.hypot(dx,dy) || 1; hero.view.x = Phaser.Math.Clamp(hero.view.x + dx/length*speed, 25, 775); hero.view.y = Phaser.Math.Clamp(hero.view.y + dy/length*speed, 25, 425); hero.data.x = Math.round(hero.view.x); hero.data.y = Math.round(hero.view.y); }
-    for (const [id, item] of this.objects) { if (item.data.kind === "coin" && Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y) < 30) { item.view.destroy(); this.objects.delete(id); setStatus("جمعت عملة! ✦"); this.emitChange(); } }
+    for (const [id, item] of this.objects) {
+      if (item.data.kind === "coin" && Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y) < 34) {
+        item.view.destroy();
+        this.objects.delete(id);
+        this.previewScore += 1;
+        this.previewScoreLabel?.setText(`العملات: ${this.previewScore} / ${this.previewCoinsTotal}`);
+        setStatus("أحسنت! جمعت عملة ✦");
+        this.emitChange();
+      }
+    }
   }
 
   getSelected() { return this.selectedId ? this.objects.get(this.selectedId)?.data ?? null : null; }
