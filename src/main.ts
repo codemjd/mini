@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import "./style.css";
 
 type ObjectKind = "hero" | "crate";
-type EditorObject = { id: string; kind: ObjectKind; x: number; y: number };
+type EditorObject = { id: string; kind: ObjectKind; x: number; y: number; name: string; health: number; speed: number; damage: number; size: number; color: string };
 
 const STORAGE_KEY = "spark-workshop-mini-project-v1";
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -34,7 +34,7 @@ app.innerHTML = `
         <aside class="tools-panel">
           <div class="panel-section"><h2>إضافة كائن</h2><button class="tool-button" id="add-hero"><span class="tool-icon hero-icon">●</span><span><strong>شخصية</strong><small>شخصية اللاعب التجريبية</small></span><b>＋</b></button><button class="tool-button" id="add-crate"><span class="tool-icon crate-icon">▧</span><span><strong>صندوق</strong><small>عنصر ثابت داخل الساحة</small></span><b>＋</b></button></div>
           <div class="panel-section object-manager"><h2>الكائنات في المشهد <span class="muted" id="object-count">0</span></h2><div id="object-list" class="object-list"></div></div>
-          <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><button class="danger-button" id="delete-object">حذف الكائن</button></div></div>
+          <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>اسم الكائن<input id="object-name" type="text" maxlength="24"></label><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><div id="creature-properties"><div class="inspector-subtitle">خصائص الشخصية — تتغير مباشرة</div><label>الصحة (HP)<input id="creature-health" type="number" min="1" max="1000"></label><label>السرعة<input id="creature-speed" type="number" min="1" max="1000"></label><label>الضرر<input id="creature-damage" type="number" min="1" max="500"></label><label>الحجم<input id="creature-size" type="number" min="0.5" max="2.5" step="0.1"></label><label>لون الشخصية<input id="creature-color" type="color"></label></div><button class="danger-button" id="delete-object">حذف الكائن</button></div></div>
         </aside>
       </div>
       <section class="welcome-panel"><div class="welcome-icon">✧</div><div><strong>أول أدوات التحرير أصبحت جاهزة</strong><p>يمكنك الآن إضافة شخصية وصندوق، تحديدهما وتحريكهما، تعديل موضعهما، وحفظ المشهد محليًا. سنوسع المحرر تدريجيًا.</p></div></section>
@@ -80,7 +80,7 @@ class EditorScene extends Phaser.Scene {
 
   addObject(kind: ObjectKind, x?: number, y?: number) {
     const id = `object-${this.nextId++}`;
-    const data: EditorObject = { id, kind, x: x ?? Phaser.Math.Between(150, 650), y: y ?? Phaser.Math.Between(110, 340) };
+    const data: EditorObject = { id, kind, x: x ?? Phaser.Math.Between(150, 650), y: y ?? Phaser.Math.Between(110, 340), name: kind === "hero" ? "بطلي" : "صندوق", health: 100, speed: 180, damage: 20, size: 1, color: "#ffbd59" };
     this.createView(data);
     this.select(id);
     this.emitChange();
@@ -90,7 +90,7 @@ class EditorScene extends Phaser.Scene {
     const parts: Phaser.GameObjects.GameObject[] = [];
     if (data.kind === "hero") {
       parts.push(this.add.ellipse(0, 22, 56, 18, 0x07131b, 0.35));
-      parts.push(this.add.circle(0, 0, 22, 0xffbd59).setStrokeStyle(4, 0xffe2a2));
+      const heroColor = Phaser.Display.Color.HexStringToColor(data.color || "#ffbd59").color;\n      parts.push(this.add.circle(0, 0, 22, heroColor).setStrokeStyle(4, 0xffe2a2));\n      parts.push(this.add.arc(0, 0, 26, 205, 335, false, 0x8de2cf, 0.95).setStrokeStyle(3, 0x8de2cf));
       parts.push(this.add.circle(0, -3, 10, 0x27364a));
       parts.push(this.add.circle(-4, -5, 2, 0xffffff));
       parts.push(this.add.circle(4, -5, 2, 0xffffff));
@@ -100,10 +100,10 @@ class EditorScene extends Phaser.Scene {
       parts.push(this.add.rectangle(0, 0, 8, 48, 0x8c512f));
       parts.push(this.add.rectangle(0, 0, 48, 8, 0x8c512f));
     }
-    const label = this.add.text(0, data.kind === "hero" ? 38 : 37, data.kind === "hero" ? "لاعب" : "صندوق", { fontFamily: "Tahoma, Arial", fontSize: "11px", color: "#ffffff", stroke: "#102030", strokeThickness: 3 }).setOrigin(0.5);
+    const label = this.add.text(0, data.kind === "hero" ? 38 : 37, data.name || (data.kind === "hero" ? "لاعب" : "صندوق"), { fontFamily: "Tahoma, Arial", fontSize: "11px", color: "#ffffff", stroke: "#102030", strokeThickness: 3 }).setOrigin(0.5);
     parts.push(label);
     const view = this.add.container(data.x, data.y, parts);
-    view.setSize(62, 82);
+    view.setSize(62, 82);\n    view.setScale(data.size || 1);
     view.setInteractive(new Phaser.Geom.Rectangle(-31, -41, 62, 82), Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(view);
     view.on("pointerdown", () => this.select(data.id));
@@ -113,7 +113,7 @@ class EditorScene extends Phaser.Scene {
   select(id: string | null) {
     this.selectedId = id;
     for (const [key, item] of this.objects) {
-      item.view.setScale(key === id ? 1.06 : 1);
+      item.view.setScale((item.data.size || 1) * (key === id ? 1.06 : 1));
       item.view.setAlpha(key === id ? 1 : 0.9);
     }
     this.emitChange();
@@ -137,7 +137,7 @@ class EditorScene extends Phaser.Scene {
     this.emitChange();
   }
 
-  save() {
+  updateProperties(changes: Partial<EditorObject>) {\n    const item = this.selectedId ? this.objects.get(this.selectedId) : undefined;\n    if (!item) return;\n    Object.assign(item.data, changes);\n    const wasSelected = this.selectedId === item.data.id;\n    item.view.destroy();\n    this.objects.delete(item.data.id);\n    this.createView(item.data);\n    if (wasSelected) this.select(item.data.id);\n    this.emitChange();\n  }\n\n  save() {
     const payload = [...this.objects.values()].map(item => item.data);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, objects: payload }));
     setStatus("تم حفظ المشروع على هذا الجهاز");
@@ -151,7 +151,7 @@ class EditorScene extends Phaser.Scene {
       if (parsed.version !== 1 || !Array.isArray(parsed.objects)) return;
       for (const item of parsed.objects) {
         if (!item || (item.kind !== "hero" && item.kind !== "crate") || typeof item.x !== "number" || typeof item.y !== "number") continue;
-        const data = { id: `object-${this.nextId++}`, kind: item.kind, x: Phaser.Math.Clamp(item.x, 0, 800), y: Phaser.Math.Clamp(item.y, 0, 450) } as EditorObject;
+        const data: EditorObject = { id: `object-${this.nextId++}`, kind: item.kind, x: Phaser.Math.Clamp(item.x, 0, 800), y: Phaser.Math.Clamp(item.y, 0, 450), name: typeof item.name === "string" ? item.name : (item.kind === "hero" ? "بطلي" : "صندوق"), health: Number(item.health) || 100, speed: Number(item.speed) || 180, damage: Number(item.damage) || 20, size: Number(item.size) || 1, color: typeof item.color === "string" ? item.color : "#ffbd59" };
         this.createView(data);
       }
     } catch { setStatus("تعذر قراءة الحفظ السابق"); }
@@ -186,7 +186,7 @@ function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
   if (selected) {
     document.querySelector("#selected-name")!.textContent = selected.kind === "hero" ? "شخصية اللاعب" : "صندوق";
     (document.querySelector<HTMLInputElement>("#position-x")!).value = String(selected.x);
-    (document.querySelector<HTMLInputElement>("#position-y")!).value = String(selected.y);
+    (document.querySelector<HTMLInputElement>("#position-y")!).value = String(selected.y);\n    (document.querySelector<HTMLInputElement>("#object-name")!).value = selected.name;\n    const creature = document.querySelector<HTMLElement>("#creature-properties")!;\n    creature.hidden = selected.kind !== "hero";\n    if (selected.kind === "hero") {\n      (document.querySelector<HTMLInputElement>("#creature-health")!).value = String(selected.health);\n      (document.querySelector<HTMLInputElement>("#creature-speed")!).value = String(selected.speed);\n      (document.querySelector<HTMLInputElement>("#creature-damage")!).value = String(selected.damage);\n      (document.querySelector<HTMLInputElement>("#creature-size")!).value = String(selected.size);\n      (document.querySelector<HTMLInputElement>("#creature-color")!).value = selected.color;\n    }
   }
 }
 game.events.on("editor-change", renderEditor);
@@ -200,7 +200,7 @@ document.querySelector("#object-list")?.addEventListener("click", event => {
   const target = (event.target as HTMLElement).closest<HTMLElement>("[data-object-id]");
   if (target) editorScene?.select(target.dataset.objectId ?? null);
 });
-for (const axis of ["x", "y"] as const) {
+document.querySelector<HTMLInputElement>("#object-name")?.addEventListener("change", event => { const value = (event.currentTarget as HTMLInputElement).value.trim(); if (value) editorScene?.updateProperties({ name: value }); });\nfor (const prop of ["health", "speed", "damage", "size"] as const) {\n  document.querySelector<HTMLInputElement>(`#creature-${prop}`)?.addEventListener("change", event => {\n    const input = event.currentTarget as HTMLInputElement;\n    const limits = prop === "size" ? [0.5, 2.5] : prop === "damage" ? [1, 500] : [1, 1000];\n    const value = Phaser.Math.Clamp(Number(input.value) || limits[0], limits[0], limits[1]);\n    input.value = String(value);\n    editorScene?.updateProperties({ [prop]: value });\n  });\n}\ndocument.querySelector<HTMLInputElement>("#creature-color")?.addEventListener("input", event => editorScene?.updateProperties({ color: (event.currentTarget as HTMLInputElement).value }));\nfor (const axis of ["x", "y"] as const) {
   document.querySelector<HTMLInputElement>(`#position-${axis}`)?.addEventListener("change", event => {
     const input = event.currentTarget as HTMLInputElement;
     const selected = editorScene?.getSelected();
