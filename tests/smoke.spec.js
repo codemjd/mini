@@ -211,6 +211,7 @@ test("objects can be locked and moved between layers", async ({ page }) => {
   await expect(page.locator("#object-list .object-row").first()).toContainText("🔒");
 
   await page.locator("#undo-button").click();
+  await page.locator("#object-list .object-row").last().click();
   await expect(page.locator("#lock-object")).toContainText("قفل الكائن");
   await page.locator("#bring-forward").click();
   await expect(page.locator("#save-state")).toContainText("تقديم الكائن");
