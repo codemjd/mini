@@ -99,3 +99,36 @@ footer{height:40px;border-top:1px solid #253244;display:flex;justify-content:spa
 .touch-controls button{width:49px;height:46px;border-radius:13px;font-size:18px;font-weight:800}
 .touch-controls button:focus-visible,.preview-btn:focus-visible,.stop-preview-btn:focus-visible{outline:3px solid #f5c875;outline-offset:3px}
 @media(max-width:650px){.stage-shell.is-previewing:after{top:10px;right:10px;font-size:7px}.touch-controls{margin-top:10px}.touch-controls button{width:46px;height:44px}}
+
+
+/* Workshop 0.3 — editing tools, quick assets and compact mobile toolbar */
+.history-btn{width:34px;height:34px;border:1px solid #40566b;border-radius:9px;background:#1a2d40;color:#e1edf7;font-size:19px;cursor:pointer}
+.history-btn:disabled{opacity:.32;cursor:not-allowed}
+.preset-button{width:100%;display:flex;align-items:center;gap:10px;margin:7px 0;padding:9px;border:1px solid #35495e;border-radius:9px;background:linear-gradient(110deg,#20364a,#1b2c3e);color:#edf3fa;text-align:right;cursor:pointer}
+.preset-button:hover{border-color:#d8a75f;background:#29445a}
+.preset-button>span:first-child{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:#344b5d;color:#ffcf83;font-size:19px;flex:none}
+.preset-button strong,.preset-button small{display:block}
+.preset-button strong{font-size:10px}
+.preset-button small{margin-top:3px;color:#91a4b8;font-size:8px}
+.inspector-layer-actions{grid-template-columns:1fr 1fr}
+.inspector-layer-actions button:last-child{grid-column:1/-1}
+.object-row{min-width:0}
+.object-row small{white-space:nowrap}
+.mini-tool[aria-pressed="true"]{border-color:#4c9c83;color:#baf2d9}
+button:focus-visible,input:focus-visible{outline:2px solid #f2c476;outline-offset:2px}
+@media(max-width:720px){
+  .topbar{height:auto;min-height:66px;flex-wrap:wrap;gap:7px;padding:8px 12px}
+  .top-actions{width:100%;justify-content:flex-end;flex-wrap:wrap;gap:5px}
+  .history-btn{width:31px;height:31px;font-size:17px}
+  .preview-btn,.stop-preview-btn,.export-btn{font-size:9px;padding:7px 7px}
+  .primary-btn{font-size:9px;padding:7px 8px}
+  .asset-library{grid-column:1/-1;border-top:1px solid #344456!important;border-right:0!important;margin-top:2px!important;padding-top:12px!important;padding-right:0!important}
+  .asset-library .preset-button{display:inline-flex;width:calc(33.333% - 6px);vertical-align:top;min-height:58px;padding:6px;gap:5px}
+  .asset-library .preset-button>span:first-child{width:27px;height:27px;font-size:15px}
+  .asset-library .preset-button strong{font-size:9px}
+  .asset-library .preset-button small{font-size:7px;line-height:1.4}
+}
+@media(max-width:380px){
+  .asset-library .preset-button{width:100%;min-height:44px}
+  .asset-library .preset-button>span:first-child{width:30px;height:30px}
+}
