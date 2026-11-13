@@ -89,7 +89,7 @@ test("scene objects can be dragged and their coordinates update", async ({ page 
 });
 
 
-test("V1 adds scene elements, duplicates them, and exports a project", async ({ page }) => {
+test("V1 adds scene elements, duplicates them, and exports a project", async ({ page }, testInfo) => {
   await page.locator("#add-enemy").click();
   await expect(page.locator("#object-list .object-row")).toHaveCount(3);
   await expect(page.locator("#selected-name")).toHaveText("عدو");
