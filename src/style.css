@@ -55,3 +55,10 @@ footer{height:40px;border-top:1px solid #253244;display:flex;justify-content:spa
 .object-manager .object-list{max-height:180px;overflow:auto}
 .object-manager h2 .muted{float:left;font-size:10px}
 @media(max-width:650px){.object-manager{grid-column:1/-1;border-top:1px solid #344456!important;border-right:0!important;margin-top:2px!important;padding-top:12px!important;padding-right:0!important}.object-manager .object-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:180px}}
+
+/* Character inspector: readable, touch-friendly live controls */
+.inspector-subtitle{margin:14px 0 8px;padding-top:10px;border-top:1px solid #3a4d61;color:#f3c77e;font-size:10px;font-weight:800}
+#creature-properties label{margin:8px 0}
+#creature-color{height:36px;padding:3px!important;cursor:pointer}
+#object-name{font-family:"Cairo",Tahoma,sans-serif!important}
+@media(max-width:650px){#creature-properties{grid-column:1/-1}.inspector{grid-column:1/-1}.inspector-subtitle{margin-top:8px}}
