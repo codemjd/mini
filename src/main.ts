@@ -24,7 +24,7 @@ app.innerHTML = `
       <div class="sidebar-note"><span>✦</span><p>أضف كائنًا، حدده، ثم اسحبه داخل ساحة اللعب. احفظ مشروعك لتعود إليه لاحقًا على هذا الجهاز.</p></div>
     </aside>
     <section class="editor">
-      <div class="editor-heading"><div><span class="eyebrow">محرر الألعاب</span><h1>محرر المشهد</h1><p>أضف العناصر إلى لعبتك ورتّبها مباشرة داخل الساحة.</p></div><span class="version-tag">نسخة تأسيسية 0.2</span></div>
+      <div class="editor-heading"><div><span class="eyebrow">محرر الألعاب</span><h1>محرر المشهد</h1><p>أضف العناصر إلى لعبتك ورتّبها مباشرة داخل الساحة.</p></div><span class="version-tag">الإصدار 0.3 — أدوات متقدمة</span></div>
       <div class="editor-layout">
         <div class="scene-column">
           <div class="stage-toolbar"><span>المشهد 01 <b>/</b> ساحة التدريب</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">800 × 450</span></div></div>
@@ -38,7 +38,7 @@ app.innerHTML = `
           <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>اسم الكائن<input id="object-name" type="text" maxlength="24"></label><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><div id="appearance-properties"><div class="inspector-subtitle">المظهر</div><label>الحجم<input id="creature-size" type="number" min="0.5" max="2.5" step="0.1"></label><label>لون العنصر<input id="creature-color" type="color"></label></div><div id="creature-properties"><div class="inspector-subtitle">خصائص الشخصية</div><label>الصحة (HP)<input id="creature-health" type="number" min="1" max="1000"></label><label>السرعة<input id="creature-speed" type="number" min="1" max="1000"></label><label>الضرر<input id="creature-damage" type="number" min="1" max="500"></label></div><div class="inspector-actions inspector-layer-actions"><button class="secondary-button" id="lock-object">قفل الكائن</button><button class="secondary-button" id="bring-forward">للأمام ↑</button><button class="secondary-button" id="send-backward">للخلف ↓</button></div><div class="inspector-actions"><button class="secondary-button" id="duplicate-object">نسخ الكائن</button><button class="danger-button" id="delete-object">حذف الكائن</button></div></div></div>
         </aside>
       </div>
-      <section class="welcome-panel"><div class="welcome-icon">✧</div><div><strong>أول أدوات التحرير أصبحت جاهزة</strong><p>يمكنك الآن إضافة شخصية وصندوق، تحديدهما وتحريكهما، تعديل موضعهما، وحفظ المشهد محليًا. سنوسع المحرر تدريجيًا.</p></div></section>
+      <section class="welcome-panel"><div class="welcome-icon">✧</div><div><strong>مساحة صناعة ألعاب تتوسع باستمرار</strong><p>جرّب الأصول الجاهزة، عدّل مظهر كل عنصر، رتّب الطبقات، واستخدم التراجع والاستيراد والتصدير لحماية عملك.</p></div></section>
     </section>
   </main>
   <footer><span>ورشة الشرارات Mini</span><span>نبني الألعاب خطوة بخطوة ✦</span></footer>
@@ -148,7 +148,7 @@ class EditorScene extends Phaser.Scene {
     this.recordHistory();
     const id = `object-${this.nextId++}`;
     const defaults: Record<ObjectKind, { name: string; color: string }> = { hero: { name: "بطلي", color: "#ffbd59" }, enemy: { name: "عدو", color: "#ff6b72" }, crate: { name: "صندوق", color: "#c47a45" }, platform: { name: "منصة", color: "#5d91a8" }, coin: { name: "عملة", color: "#ffd34e" } };
-    const data: EditorObject = { id, kind, x: x ?? Phaser.Math.Between(150, 650), y: y ?? Phaser.Math.Between(110, 340), name: defaults[kind].name, health: 100, speed: 180, damage: 20, size: 1, color: defaults[kind].color, ...overrides, id };
+    const data: EditorObject = { kind, x: x ?? Phaser.Math.Between(150, 650), y: y ?? Phaser.Math.Between(110, 340), name: defaults[kind].name, health: 100, speed: 180, damage: 20, size: 1, color: defaults[kind].color, ...overrides, id };
     this.createView(data);
     this.select(id);
     this.emitChange();
@@ -406,8 +406,8 @@ class EditorScene extends Phaser.Scene {
         const data: EditorObject = {
           id: `object-${this.nextId++}`,
           kind: candidate.kind as ObjectKind,
-          x: Phaser.Math.Clamp(Number(candidate.x) || 400, 0, 800),
-          y: Phaser.Math.Clamp(Number(candidate.y) || 225, 0, 450),
+          x: Phaser.Math.Clamp(typeof candidate.x === "number" && Number.isFinite(candidate.x) ? candidate.x : 400, 0, 800),
+          y: Phaser.Math.Clamp(typeof candidate.y === "number" && Number.isFinite(candidate.y) ? candidate.y : 225, 0, 450),
           name: typeof candidate.name === "string" ? candidate.name.slice(0, 24) : String(candidate.kind),
           health: Phaser.Math.Clamp(Number(candidate.health) || 100, 1, 1000),
           speed: Phaser.Math.Clamp(Number(candidate.speed) || 180, 1, 1000),
