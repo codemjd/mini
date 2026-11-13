@@ -216,3 +216,14 @@ test("objects can be locked and moved between layers", async ({ page }) => {
   await page.locator("#bring-forward").click();
   await expect(page.locator("#save-state")).toContainText("تقديم الكائن");
 });
+
+
+test("invalid project JSON is rejected without replacing the current scene", async ({ page }) => {
+  await page.locator("#import-file").setInputFiles({
+    name: "broken.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{ definitely not json")
+  });
+  await expect(page.locator("#save-state")).toContainText("تعذر استيراد الملف");
+  await expect(page.locator("#object-list .object-row")).toHaveCount(2);
+});
