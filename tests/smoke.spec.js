@@ -50,6 +50,11 @@ test("workshop opens and renders the editable scene", async ({ page }) => {
   await page.locator("#object-list .object-row").last().click();
   await expect(page.locator("#position-x")).toHaveValue("310");
   await expect(page.locator("#position-y")).toHaveValue("175");
+  await page.locator("#object-list .object-row").first().click();
+  await expect(page.locator("#creature-health")).toHaveValue("250");
+  await expect(page.locator("#creature-speed")).toHaveValue("220");
+  await expect(page.locator("#creature-damage")).toHaveValue("44");
+  await expect(page.locator("#creature-size")).toHaveValue("1.4");
   await expect(pageErrors).toEqual([]);
 });
 
