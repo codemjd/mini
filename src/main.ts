@@ -120,7 +120,7 @@ class EditorScene extends Phaser.Scene {
   deleteSelected() {
     if (!this.selectedId) return;
     const item = this.objects.get(this.selectedId);
-    if (item) item.view.destroy(true);
+    if (item) item.view.destroy();
     this.objects.delete(this.selectedId);
     this.selectedId = null;
     this.emitChange();
