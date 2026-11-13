@@ -133,3 +133,24 @@ test("mobile preview controls are available and accept touch input", async ({ pa
   await page.locator("#stop-preview").click();
   await expect(page.locator("#touch-controls")).toBeHidden();
 });
+
+
+test("preview collects coins temporarily and restores the editable scene", async ({ page }) => {
+  await page.locator("#add-coin").click();
+  await page.locator("#position-x").fill("400");
+  await page.locator("#position-x").press("Tab");
+  await page.locator("#position-y").fill("225");
+  await page.locator("#position-y").press("Tab");
+  await expect(page.locator("#object-list .object-row")).toHaveCount(3);
+
+  await page.locator("#preview-button").click();
+  await expect(page.locator("#stage-shell")).toHaveClass(/is-previewing/);
+  await expect(page.locator("#stop-preview")).toBeVisible();
+  await expect.poll(async () => page.locator("#object-list .object-row").count()).toBe(2);
+
+  await page.locator("#stop-preview").click();
+  await expect(page.locator("#stage-shell")).not.toHaveClass(/is-previewing/);
+  await expect(page.locator("#object-list .object-row")).toHaveCount(3);
+  await expect(page.locator("#position-x")).toHaveValue("400");
+  await expect(page.locator("#position-y")).toHaveValue("225");
+});
