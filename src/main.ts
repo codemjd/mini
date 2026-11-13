@@ -384,6 +384,7 @@ class EditorScene extends Phaser.Scene {
       }
       this.recordHistory();
       this.restoreObjects(imported);
+      if (imported.length) this.select(imported[0].id);
       this.save();
       setStatus(`تم استيراد المشروع — ${imported.length} عنصر`);
       return true;
