@@ -62,3 +62,27 @@ footer{height:40px;border-top:1px solid #253244;display:flex;justify-content:spa
 #creature-color{height:36px;padding:3px!important;cursor:pointer}
 #object-name{font-family:"Cairo",Tahoma,sans-serif!important}
 @media(max-width:650px){#creature-properties{grid-column:1/-1}.inspector{grid-column:1/-1}.inspector-subtitle{margin-top:8px}}
+
+
+/* Version 1 controls and preview mode */
+.stage-tools{display:flex;align-items:center;gap:7px}
+.mini-tool{border:1px solid #40566b;border-radius:7px;background:#1b3043;color:#b8c9d9;padding:5px 9px;font:10px "Cairo",Tahoma,sans-serif;cursor:pointer}
+.mini-tool[aria-pressed="false"]{color:#75899d;background:#121e2b}
+.preview-btn,.stop-preview-btn,.export-btn{border:1px solid #486078;border-radius:9px;padding:9px 12px;background:#20394e;color:#dff6ee;font:700 11px "Cairo",Tahoma,sans-serif;cursor:pointer}
+.preview-btn{background:linear-gradient(135deg,#2e826d,#25665d);border-color:#4ca58c;color:#f0fff9}
+.stop-preview-btn{background:#542d37;border-color:#8c4b59;color:#ffd9dc}
+.export-btn{background:#243349;color:#c8d9ed}
+.top-actions{gap:8px}
+.enemy-icon{background:#4c3038;color:#ff8d95}
+.platform-icon{background:#2d4858;color:#9ed6e9}
+.coin-icon{background:#514629;color:#ffdb69}
+.inspector-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.secondary-button{padding:8px;border:1px solid #486078;border-radius:8px;background:#26394c;color:#c9d8e7;font:10px "Cairo",Tahoma,sans-serif;cursor:pointer}
+.inspector-actions .danger-button{margin:0}
+.touch-controls{display:flex;flex-direction:column;align-items:center;gap:5px;margin:12px auto 0;touch-action:none;user-select:none}
+.touch-controls>div{display:flex;gap:6px}
+.touch-controls button{width:45px;height:42px;border:1px solid #6c879b;border-radius:11px;background:#1b3549;color:#e6f6ff;font-size:16px;box-shadow:0 4px 12px #0005;touch-action:none}
+.touch-controls button:active{background:#397b78}
+[hidden]{display:none!important}
+@media(max-width:720px){.top-actions{gap:5px}.preview-btn,.stop-preview-btn,.export-btn{font-size:9px;padding:8px 7px}.primary-btn{padding:8px 9px}.stage-tools{gap:4px}.mini-tool{padding:4px 6px;font-size:9px}.stage-size{display:none}}
+@media(max-width:420px){.export-btn{display:none}.brand{gap:7px}.brand-mark{width:30px;height:30px}.brand strong{font-size:11px}}
