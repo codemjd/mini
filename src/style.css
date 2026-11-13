@@ -85,4 +85,4 @@ footer{height:40px;border-top:1px solid #253244;display:flex;justify-content:spa
 .touch-controls button:active{background:#397b78}
 [hidden]{display:none!important}
 @media(max-width:720px){.top-actions{gap:5px}.preview-btn,.stop-preview-btn,.export-btn{font-size:9px;padding:8px 7px}.primary-btn{padding:8px 9px}.stage-tools{gap:4px}.mini-tool{padding:4px 6px;font-size:9px}.stage-size{display:none}}
-@media(max-width:420px){.export-btn{display:none}.brand{gap:7px}.brand-mark{width:30px;height:30px}.brand strong{font-size:11px}}
+@media(max-width:420px){.export-btn{display:block;font-size:8px;padding:6px 5px}.brand{gap:7px}.brand-mark{width:30px;height:30px}.brand strong{font-size:11px}}\n@media(max-width:360px){.export-btn{display:none}}
