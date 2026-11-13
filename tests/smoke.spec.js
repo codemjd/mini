@@ -47,3 +47,23 @@ test("objects can be selected and deleted", async ({ page }) => {
   await expect(page.locator("#object-list .object-row")).toHaveCount(1);
   await expect(page.locator("#object-count")).toHaveText("1");
 });
+
+
+test("scene objects can be dragged and their coordinates update", async ({ page }) => {
+  const canvas = page.locator("#game-stage canvas");
+  await expect(canvas).toHaveCount(1);
+  await page.locator("#object-list .object-row").first().click();
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+
+  const startX = bounds.x + bounds.width / 2;
+  const startY = bounds.y + bounds.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + bounds.width * 0.12, startY + bounds.height * 0.10, { steps: 8 });
+  await page.mouse.up();
+
+  await expect(page.locator("#inspector-content")).toBeVisible();
+  await expect(page.locator("#position-x")).not.toHaveValue("400");
+  await expect(page.locator("#position-y")).not.toHaveValue("225");
+});
