@@ -33,6 +33,7 @@ app.innerHTML = `
         </div>
         <aside class="tools-panel">
           <div class="panel-section"><h2>إضافة عناصر</h2><button class="tool-button" id="add-hero"><span class="tool-icon hero-icon">●</span><span><strong>شخصية اللاعب</strong><small>الشخصية التي تتحكم بها</small></span><b>＋</b></button><button class="tool-button" id="add-enemy"><span class="tool-icon enemy-icon">◆</span><span><strong>عدو</strong><small>هدف للتجربة</small></span><b>＋</b></button><button class="tool-button" id="add-crate"><span class="tool-icon crate-icon">▧</span><span><strong>صندوق</strong><small>عنصر ثابت</small></span><b>＋</b></button><button class="tool-button" id="add-platform"><span class="tool-icon platform-icon">▬</span><span><strong>منصة</strong><small>سطح للمشهد</small></span><b>＋</b></button><button class="tool-button" id="add-coin"><span class="tool-icon coin-icon">●</span><span><strong>عملة</strong><small>عنصر قابل للجمع في المعاينة</small></span><b>＋</b></button></div>
+          <div class="panel-section asset-library"><h2>تركيبات جاهزة</h2><button class="preset-button" id="preset-coins"><span>✦</span><span><strong>طريق العملات</strong><small>أربع عملات قابلة للجمع</small></span></button><button class="preset-button" id="preset-barricade"><span>▤</span><span><strong>حاجز خشبي</strong><small>منصة وصندوقان</small></span></button><button class="preset-button" id="preset-rival"><span>⚔</span><span><strong>خصم للتحدي</strong><small>عدو بخصائص محسّنة</small></span></button></div>
           <div class="panel-section object-manager"><h2>الكائنات في المشهد <span class="muted" id="object-count">0</span></h2><div id="object-list" class="object-list"></div></div>
           <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>اسم الكائن<input id="object-name" type="text" maxlength="24"></label><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><div id="appearance-properties"><div class="inspector-subtitle">المظهر</div><label>الحجم<input id="creature-size" type="number" min="0.5" max="2.5" step="0.1"></label><label>لون العنصر<input id="creature-color" type="color"></label></div><div id="creature-properties"><div class="inspector-subtitle">خصائص الشخصية</div><label>الصحة (HP)<input id="creature-health" type="number" min="1" max="1000"></label><label>السرعة<input id="creature-speed" type="number" min="1" max="1000"></label><label>الضرر<input id="creature-damage" type="number" min="1" max="500"></label></div><div class="inspector-actions inspector-layer-actions"><button class="secondary-button" id="lock-object">قفل الكائن</button><button class="secondary-button" id="bring-forward">للأمام ↑</button><button class="secondary-button" id="send-backward">للخلف ↓</button></div><div class="inspector-actions"><button class="secondary-button" id="duplicate-object">نسخ الكائن</button><button class="danger-button" id="delete-object">حذف الكائن</button></div></div></div>
         </aside>
@@ -117,6 +118,31 @@ class EditorScene extends Phaser.Scene {
     this.input.on("dragend", () => this.emitChange());
   }
 
+  addPreset(preset: "coins" | "barricade" | "rival") {
+    if (this.previewing) this.stopPreview();
+    const presets: Record<typeof preset, Array<{ kind: ObjectKind; x: number; y: number; overrides?: Partial<EditorObject> }>> = {
+      coins: [260, 350, 440, 530].map(x => ({ kind: "coin", x, y: 225 })),
+      barricade: [
+        { kind: "platform", x: 400, y: 280, overrides: { name: "حاجز حجري", color: "#5d91a8", size: 1.25 } },
+        { kind: "crate", x: 350, y: 280, overrides: { name: "صندوق الحاجز" } },
+        { kind: "crate", x: 450, y: 280, overrides: { name: "صندوق الحاجز" } }
+      ],
+      rival: [{ kind: "enemy", x: 560, y: 225, overrides: { name: "حارس الساحة", health: 180, speed: 145, damage: 32, color: "#e65d72", size: 1.15 } }]
+    };
+    const items = presets[preset];
+    this.recordHistory();
+    let lastId: string | null = null;
+    for (const entry of items) {
+      const defaults: Record<ObjectKind, { name: string; color: string }> = { hero: { name: "بطلي", color: "#ffbd59" }, enemy: { name: "عدو", color: "#ff6b72" }, crate: { name: "صندوق", color: "#c47a45" }, platform: { name: "منصة", color: "#5d91a8" }, coin: { name: "عملة", color: "#ffd34e" } };
+      const data: EditorObject = { id: `object-${this.nextId++}`, kind: entry.kind, x: entry.x, y: entry.y, name: defaults[entry.kind].name, health: 100, speed: 180, damage: 20, size: 1, color: defaults[entry.kind].color, ...entry.overrides };
+      this.createView(data);
+      lastId = data.id;
+    }
+    if (lastId) this.select(lastId);
+    this.emitChange();
+    setStatus("تمت إضافة التركيبة الجاهزة — يمكنك تعديل كل عنصر");
+  }
+
   addObject(kind: ObjectKind, x?: number, y?: number, overrides: Partial<EditorObject> = {}) {
     if (this.previewing) this.stopPreview();
     this.recordHistory();
@@ -192,7 +218,7 @@ class EditorScene extends Phaser.Scene {
 
   private refreshDepths() {
     let depth = 0;
-    for (const item of this.objects.values()) item.view.setDepth(depth++);
+    for (const item of this.objects.values()) item.view.setDepth(depth++ / 1000);
   }
 
   private recordHistory() {
@@ -521,6 +547,9 @@ function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
 game.events.on("editor-change", renderEditor);
 game.events.once("ready", () => { if (editorScene) renderEditor(editorScene.getObjects(), editorScene.getSelected()); });
 
+document.querySelector("#preset-coins")?.addEventListener("click", () => editorScene?.addPreset("coins"));
+document.querySelector("#preset-barricade")?.addEventListener("click", () => editorScene?.addPreset("barricade"));
+document.querySelector("#preset-rival")?.addEventListener("click", () => editorScene?.addPreset("rival"));
 document.querySelector("#add-hero")?.addEventListener("click", () => editorScene?.addObject("hero"));
 document.querySelector("#add-crate")?.addEventListener("click", () => editorScene?.addObject("crate"));
 document.querySelector("#save-button")?.addEventListener("click", () => editorScene?.save());
