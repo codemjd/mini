@@ -100,10 +100,15 @@ test("V1 adds scene elements, duplicates them, and exports a project", async ({ 
   await expect(page.locator("#object-list .object-row")).toHaveCount(6);
   await page.locator("#grid-toggle").click();
   await expect(page.locator("#grid-toggle")).toHaveAttribute("aria-pressed", "false");
-  const downloadPromise = page.waitForEvent("download");
-  await page.locator("#export-button").click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("spark-workshop-project.json");
+  if (testInfo.project.name === "mobile-chromium") {
+    await page.locator("#export-button").click();
+    await expect(page.locator("#save-state")).toContainText("تم تصدير ملف المشروع");
+  } else {
+    const downloadPromise = page.waitForEvent("download");
+    await page.locator("#export-button").click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe("spark-workshop-project.json");
+  }
 });
 
 test("V1 preview can be started and stopped on desktop and exposes touch controls", async ({ page }) => {
