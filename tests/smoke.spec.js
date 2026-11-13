@@ -28,7 +28,21 @@ test("workshop opens and renders the editable scene", async ({ page }) => {
   await page.locator("#position-y").press("Tab");
   await expect(page.locator("#position-y")).toHaveValue("175");
 
-  await page.locator("#object-list .object-row").first().click();\n  await page.locator("#creature-health").fill("250");\n  await page.locator("#creature-health").press("Tab");\n  await page.locator("#creature-speed").fill("220");\n  await page.locator("#creature-speed").press("Tab");\n  await page.locator("#creature-damage").fill("44");\n  await page.locator("#creature-damage").press("Tab");\n  await page.locator("#creature-size").fill("1.4");\n  await page.locator("#creature-size").press("Tab");\n  await expect(page.locator("#creature-health")).toHaveValue("250");\n  await expect(page.locator("#creature-speed")).toHaveValue("220");\n  await expect(page.locator("#creature-damage")).toHaveValue("44");\n  await expect(page.locator("#creature-size")).toHaveValue("1.4");\n\n  await page.locator("#save-button").click();
+  await page.locator("#object-list .object-row").first().click();
+  await page.locator("#creature-health").fill("250");
+  await page.locator("#creature-health").press("Tab");
+  await page.locator("#creature-speed").fill("220");
+  await page.locator("#creature-speed").press("Tab");
+  await page.locator("#creature-damage").fill("44");
+  await page.locator("#creature-damage").press("Tab");
+  await page.locator("#creature-size").fill("1.4");
+  await page.locator("#creature-size").press("Tab");
+  await expect(page.locator("#creature-health")).toHaveValue("250");
+  await expect(page.locator("#creature-speed")).toHaveValue("220");
+  await expect(page.locator("#creature-damage")).toHaveValue("44");
+  await expect(page.locator("#creature-size")).toHaveValue("1.4");
+
+  await page.locator("#save-button").click();
   await expect(page.locator("#save-state")).toContainText("تم حفظ المشروع");
 
   await page.reload();
