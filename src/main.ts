@@ -28,7 +28,7 @@ app.innerHTML = `
       <div class="editor-layout">
         <div class="scene-column">
           <div class="stage-toolbar"><span>المشهد 01 <b>/</b> ساحة التدريب</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">800 × 450</span></div></div>
-          <div class="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div>
+          <div class="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><button data-dir="up" aria-label="أعلى">▲</button><div><button data-dir="left" aria-label="يسار">◀</button><button data-dir="down" aria-label="أسفل">▼</button><button data-dir="right" aria-label="يمين">▶</button></div></div>
           <div class="hint-row" id="stage-hint"><span>✦</span> اختر كائنًا أو اسحبه. اضغط «معاينة اللعبة» لتجربة تحريك الشخصية.</div>
         </div>
         <aside class="tools-panel">
@@ -52,6 +52,7 @@ class EditorScene extends Phaser.Scene {
   private previewKeys?: Record<string, Phaser.Input.Keyboard.Key>;
   private previewHint?: Phaser.GameObjects.Text;
   private gridGraphics?: Phaser.GameObjects.Graphics;
+  private touchDirection = { x: 0, y: 0 };
   private nextId = 1;
   constructor() { super("EditorScene"); }
 
@@ -62,9 +63,11 @@ class EditorScene extends Phaser.Scene {
     this.gridGraphics = bg;
     bg.fillGradientStyle(0x172d43, 0x172d43, 0x244a55, 0x244a55, 1);
     bg.fillRect(0, 0, width, height);
-    bg.lineStyle(1, 0x8bb9b0, 0.13);
-    for (let x = 0; x <= width; x += 40) bg.lineBetween(x, 0, x, height);
-    for (let y = 0; y <= height; y += 40) bg.lineBetween(0, y, width, y);
+    const grid = this.add.graphics();
+    this.gridGraphics = grid;
+    grid.lineStyle(1, 0x8bb9b0, 0.13);
+    for (let x = 0; x <= width; x += 40) grid.lineBetween(x, 0, x, height);
+    for (let y = 0; y <= height; y += 40) grid.lineBetween(0, y, width, y);
     this.add.text(16, 14, "ساحة التدريب", { fontFamily: "Tahoma, Arial", fontSize: "14px", color: "#d8f2e8", backgroundColor: "#102436", padding: { x: 9, y: 6 } });
     this.loadProject();
     if (this.objects.size === 0) {
@@ -208,6 +211,7 @@ class EditorScene extends Phaser.Scene {
     this.previewing = true; this.selectedId = null;
     for (const item of this.objects.values()) { item.view.disableInteractive(); item.view.setAlpha(1); }
     if (this.input.keyboard) this.previewKeys = this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT") as Record<string, Phaser.Input.Keyboard.Key>;
+    document.querySelector("#touch-controls")?.removeAttribute("hidden");
     this.previewHint = this.add.text(400, 22, "وضع المعاينة — حرّك الشخصية بالأسهم أو WASD", { fontFamily: "Tahoma, Arial", fontSize: "13px", color: "#ffffff", backgroundColor: "#102436", padding: {x:12,y:8} }).setOrigin(0.5,0);
     setStatus("المعاينة تعمل — اضغط إيقاف للعودة للمحرر");
     document.querySelector("#preview-button")?.setAttribute("hidden", "true");
@@ -217,7 +221,8 @@ class EditorScene extends Phaser.Scene {
 
   stopPreview() {
     if (!this.previewing) return;
-    this.previewing = false; this.previewHint?.destroy(); this.previewHint = undefined;
+    this.previewing = false; this.previewHint?.destroy(); this.previewHint = undefined; this.touchDirection = { x: 0, y: 0 };
+    document.querySelector("#touch-controls")?.setAttribute("hidden", "true");
     for (const item of this.objects.values()) { item.view.setInteractive(new Phaser.Geom.Rectangle(-54,-44,108,88), Phaser.Geom.Rectangle.Contains); this.input.setDraggable(item.view); }
     document.querySelector("#preview-button")?.removeAttribute("hidden");
     document.querySelector("#stop-preview")?.setAttribute("hidden", "true");
@@ -226,12 +231,13 @@ class EditorScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number) {
-    if (!this.previewing || !this.previewKeys) return;
+    if (!this.previewing) return;
     const hero = [...this.objects.values()].find(item => item.data.kind === "hero");
     if (!hero) return;
     const k = this.previewKeys; const speed = Math.max(60, hero.data.speed) * delta / 1000;
-    let dx = 0, dy = 0; if (k.A.isDown || k.LEFT.isDown) dx--; if (k.D.isDown || k.RIGHT.isDown) dx++; if (k.W.isDown || k.UP.isDown) dy--; if (k.S.isDown || k.DOWN.isDown) dy++;
+    let dx = this.touchDirection.x, dy = this.touchDirection.y; if (k?.A.isDown || k?.LEFT.isDown) dx--; if (k?.D.isDown || k?.RIGHT.isDown) dx++; if (k?.W.isDown || k?.UP.isDown) dy--; if (k?.S.isDown || k?.DOWN.isDown) dy++;
     if (dx || dy) { const length = Math.hypot(dx,dy) || 1; hero.view.x = Phaser.Math.Clamp(hero.view.x + dx/length*speed, 25, 775); hero.view.y = Phaser.Math.Clamp(hero.view.y + dy/length*speed, 25, 425); hero.data.x = Math.round(hero.view.x); hero.data.y = Math.round(hero.view.y); }
+    for (const [id, item] of this.objects) { if (item.data.kind === "coin" && Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y) < 30) { item.view.destroy(); this.objects.delete(id); setStatus("جمعت عملة! ✦"); } }
   }
 
   getSelected() { return this.selectedId ? this.objects.get(this.selectedId)?.data ?? null : null; }
@@ -292,6 +298,12 @@ document.querySelector("#export-button")?.addEventListener("click", () => { cons
 document.querySelector("#add-enemy")?.addEventListener("click", () => editorScene?.addObject("enemy"));
 document.querySelector("#add-platform")?.addEventListener("click", () => editorScene?.addObject("platform"));
 document.querySelector("#add-coin")?.addEventListener("click", () => editorScene?.addObject("coin"));
+const touchVectors: Record<string, {x:number;y:number}> = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+document.querySelectorAll<HTMLButtonElement>("#touch-controls button").forEach(button => {
+  const start = (event: Event) => { event.preventDefault(); const direction = touchVectors[button.dataset.dir ?? ""]; if (direction) editorScene?.setTouchDirection(direction.x, direction.y); };
+  const stop = () => editorScene?.setTouchDirection(0, 0);
+  button.addEventListener("pointerdown", start); button.addEventListener("pointerup", stop); button.addEventListener("pointerleave", stop); button.addEventListener("pointercancel", stop);
+});
 document.querySelector("#object-list")?.addEventListener("click", event => {
   const target = (event.target as HTMLElement).closest<HTMLElement>("[data-object-id]");
   if (target) editorScene?.select(target.dataset.objectId ?? null);
