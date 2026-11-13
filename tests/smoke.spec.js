@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("workshop opens and renders the game preview", async ({ page }) => {
+test("workshop opens and renders the editable scene", async ({ page }) => {
   const pageErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
 
@@ -8,16 +8,29 @@ test("workshop opens and renders the game preview", async ({ page }) => {
   await expect(page).toHaveTitle("ورشة الشرارات Mini");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.getByRole("heading", { name: "محرر المشهد" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /معاينة اللعبة/ })).toBeVisible();
+  await expect(page.locator("#game-stage canvas")).toHaveCount(1);
+  await expect(page.locator("#object-list .object-row")).toHaveCount(2);
 
-  const canvas = page.locator("#game-stage canvas");
-  await expect(canvas).toHaveCount(1);
-  await expect.poll(async () => {
-    const box = await canvas.boundingBox();
-    return box ? box.width * box.height : 0;
-  }).toBeGreaterThan(10000);
+  await page.getByRole("button", { name: /صندوق/ }).first().click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(3);
+  await expect(page.locator("#inspector-content")).toBeVisible();
 
-  await page.getByRole("button", { name: /معاينة اللعبة/ }).click();
-  await expect(canvas).toBeVisible();
-  expect(pageErrors).toEqual([]);
+  await page.locator("#position-x").fill("310");
+  await page.locator("#position-x").press("Tab");
+  await expect(page.locator("#position-x")).toHaveValue("310");
+
+  await page.getByRole("button", { name: "حفظ المشروع" }).click();
+  await expect(page.locator("#save-state")).toContainText("تم حفظ المشروع");
+
+  await page.reload();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(3);
+  await expect(pageErrors).toEqual([]);
+});
+
+test("objects can be selected and deleted", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#object-list .object-row").first().click();
+  await expect(page.locator("#inspector-content")).toBeVisible();
+  await page.getByRole("button", { name: "حذف الكائن" }).click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(1);
 });
