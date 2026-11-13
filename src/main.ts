@@ -145,9 +145,12 @@ class EditorScene extends Phaser.Scene {
     if (!item) return;
     Object.assign(item.data, changes);
     const wasSelected = this.selectedId === item.data.id;
+    const originalOrder = [...this.objects.keys()];
     item.view.destroy();
     this.objects.delete(item.data.id);
     this.createView(item.data);
+    const refreshed = this.objects.get(item.data.id)!;
+    this.objects = new Map(originalOrder.map(key => [key, key === item.data.id ? refreshed : this.objects.get(key)!]));
     if (wasSelected) this.select(item.data.id);
     this.emitChange();
   }
