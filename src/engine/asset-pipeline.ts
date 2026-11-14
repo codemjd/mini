@@ -11,7 +11,9 @@ export function createSparkAnimatedSprite(
  x:number,y:number,atlasJsonKey:string,atlasImageKey:string,
  animations:SparkAtlasAnimations,initialAnimation:string,frameDelayMs=100
 ):Sprite{
- const atlas=new TextureAtlas(loader.getJSON(atlasJsonKey),loader.getImage(atlasImageKey));
+ const image=loader.getImage(atlasImageKey);
+ if(!image)throw new Error("Spark atlas image is not loaded: "+atlasImageKey);
+ const atlas=new TextureAtlas(loader.getJSON(atlasJsonKey),image);
  const frames=[...new Set(Object.values(animations).flat())];
  if(frames.length===0)throw new Error("Spark atlas animation list is empty");
  const settings=atlas.getAnimationSettings(frames);
