@@ -145,3 +145,20 @@ test("object motion and enemy AI settings persist across reloads", async ({ page
   await expect(page.locator("#object-motion")).toHaveValue("float");
   await expect(page.locator("#enemy-ai-mode")).toHaveValue("guard");
 });
+test("scene backgrounds are isolated and persist with their scene", async ({ page }) => {
+  await page.locator("#background-theme").selectOption("sunset-ruins");
+  await page.once("dialog", dialog => dialog.accept("كهف الجليد"));
+  await page.locator("#scene-new").click();
+  await expect(page.locator("#background-theme")).toHaveValue("crystal-garden");
+  await page.locator("#background-theme").selectOption("frost-cavern");
+
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v4") || "{}"));
+  expect(saved.scenes[0].background).toBe("sunset-ruins");
+  expect(saved.scenes[1].background).toBe("frost-cavern");
+
+  await page.locator(".scene-tab").first().click();
+  await expect(page.locator("#background-theme")).toHaveValue("sunset-ruins");
+  await page.locator("#save-button").click();
+  await page.reload();
+  await expect(page.locator("#background-theme")).toHaveValue("sunset-ruins");
+});
