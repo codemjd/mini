@@ -65,9 +65,9 @@ npm run test:e2e
 
 ## الحدود الحالية
 
-هذه بداية صغيرة وليست محرك ألعاب مكتملًا. ما زال ينقصها محرر أحداث مرئي، ومكتبة أصول فنية حقيقية قابلة للاستعراض، ومشاهد متعددة، وأنظمة تصادم ومنصات متقدمة، وتصدير HTML5/ZIP وAPK. الرسومات الحالية مرسومة برمجيًا داخل المشهد وليست حزمة رسومات تجارية أو مولّدة. المساعد يعمل بقائمة أوامر محددة، وليس ذكاءً اصطناعيًا حرًا.
+هذه بداية صغيرة وليست محرك ألعاب مكتملًا. ما زال ينقصها محرر أحداث مرئي، ومكتبة أصول فنية حقيقية قابلة للاستعراض، ومشاهد متعددة، وتحديد متعدد، وأنظمة تصادم ومنصات متقدمة، وتصدير HTML5/ZIP وإصدار APK موقّع للنشر. يوجد الآن مسار CI يُنتج APK تجريبيًا (Debug)، لكنه لم يُعتمد بعد بعد اختبار التثبيت والتشغيل على جهاز Android فعلي. الرسومات الحالية مرسومة برمجيًا داخل المشهد وليست حزمة رسومات تجارية أو مولّدة. المساعد يعمل بقائمة أوامر محددة، وليس ذكاءً اصطناعيًا حرًا.
 
-ملف JSON يحفظ بيانات المشروع، ولا يمثل تطبيقًا قابلًا للتثبيت. لن نعلن جاهزية HTML5 أو APK قبل بناء حقيقي واختبار مستقل.
+ملف JSON يحفظ بيانات المشروع ولا يمثل تطبيقًا قابلًا للتثبيت. بناء APK التجريبي متاح عبر GitHub Actions؛ أما اعتماد إصدار قابل للتوزيع فيتطلب اختبارًا على جهاز فعلي وإعداد توقيع إصدار مناسب.
 
 
 ## Spark Engine preview foundation (0.7.0)
@@ -81,7 +81,7 @@ See [the extraction notes](docs/ENGINE-EXTRACTION.md) and [third-party notices](
 
 The play preview uses **melonJS 20.15.1**. The scene editor uses Spark-owned Canvas 2D rendering and input, with a renderer-independent project document schema. Spark keeps its own behavior systems and deterministic local assistant.
 
-The first selected official add-on is the Tiled Inflate plugin for compressed Tiled maps. Physics adapters, Spine animation, virtual gamepad, debugging tools, and Capacitor are staged separately after compatibility and device checks.
+Official integrations currently include Tiled Inflate, the Gamepad plugin, the optional Debug Panel, and Capacitor lifecycle support. Spine is intentionally excluded pending a separate runtime license review; more advanced physics adapters remain deferred until a game requires them.
 
 
 ## melonJS runtime integration — 0.7.0
@@ -96,7 +96,7 @@ The preview runtime now uses melonJS 20.15.1 with:
 
 Android packaging is configured through Capacitor 8. CI scaffolds a clean Android project, builds a debug APK and uploads it as an artifact. This does not replace testing on a physical Android device.
 
-The native Canvas 2D editor renderer is now in place. The remaining editor migration work is feature parity, multi-scene editing, richer asset workflows, and physical-device validation.
+The editor is now split into a dedicated Canvas 2D renderer and `SparkEditorController`; project storage is versioned as v3 with automatic v2 migration. Remaining product work includes multi-scene editing, multi-select, richer asset workflows, and physical-device validation.
 
 
 ## Optional professional editing — Spark Script
