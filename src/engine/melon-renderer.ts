@@ -7,18 +7,25 @@ type MelonRenderer = Parameters<Renderable["draw"]>[0];
 type MelonWorld = Application["world"];
 
 class SparkBackground extends Renderable {
-  constructor(width:number,height:number) {
+  constructor(width:number,height:number,private readonly theme:SparkSceneDefinition["background"]) {
     super(0,0,width,height); this.anchorPoint.set(0,0); this.name="spark-background";
   }
   draw(renderer:MelonRenderer):void {
     const x=this.pos.x,y=this.pos.y;
+    const palettes:Record<SparkSceneDefinition["background"],string[]> = {
+      "crystal-garden":["#102f3b","#1a4650","#1c514a","#245c4d","#2b6a58","#347765"],
+      "sunset-ruins":["#33263e","#62394f","#8c4d4c","#985b49","#b66a4b","#d28c59"],
+      "frost-cavern":["#10253f","#183e62","#23577b","#2b6a8c","#357b9c","#4a9bb0"],
+      "desert-dunes":["#4a382c","#75513a","#98704a","#a47d4c","#b78c54","#c99e60"]
+    };
+    const colors=palettes[this.theme];
     renderer.save();
-    renderer.setColor("#102f3b"); renderer.fillRect(x,y,this.width,this.height);
-    renderer.setColor("#1a4650"); renderer.fillEllipse(x+145,y+90,220,110);
-    renderer.setColor("#1c514a"); renderer.fillEllipse(x+640,y+355,260,125);
-    renderer.setColor("#245c4d"); renderer.fillEllipse(x+400,y+225,310,155);
-    renderer.setColor("#2b6a58"); renderer.fillEllipse(x+120,y+390,145,75);
-    renderer.setColor("#347765"); renderer.fillEllipse(x+730,y+85,115,60);
+    renderer.setColor(colors[0]); renderer.fillRect(x,y,this.width,this.height);
+    renderer.setColor(colors[1]); renderer.fillEllipse(x+145,y+90,220,110);
+    renderer.setColor(colors[2]); renderer.fillEllipse(x+640,y+355,260,125);
+    renderer.setColor(colors[3]); renderer.fillEllipse(x+400,y+225,310,155);
+    renderer.setColor(colors[4]); renderer.fillEllipse(x+120,y+390,145,75);
+    renderer.setColor(colors[5]); renderer.fillEllipse(x+730,y+85,115,60);
     renderer.setColor("rgba(255,255,255,0.07)");
     for(let i=0;i<13;i++){
       const sx=x+36+(i*67)%Math.max(1,this.width-72);
@@ -150,7 +157,7 @@ export class SparkMelonRenderer {
     Object.assign(app.canvas.style,{position:"absolute",inset:"0",width:"100%",height:"100%",zIndex:"4",pointerEvents:"auto",touchAction:"none"});
     this.host.dataset.sparkInput="melonjs-gamepad-plugin";
     app.world.sortOn="z";
-    app.world.addChild(new SparkBackground(this.scene.width,this.scene.height),0);
+    app.world.addChild(new SparkBackground(this.scene.width,this.scene.height,this.scene.background),0);
     this.title=new Text(this.scene.width/2,13,{font:"Tahoma, Arial, sans-serif",size:18,fillStyle:"#fff3d2",strokeStyle:"#173b3d",lineWidth:4,textAlign:"center",textBaseline:"top",text:"✦  رحلة البلورات  ✦"});
     app.world.addChild(this.title,1000);
     const hud=new Text(18,17,{font:"Tahoma, Arial, sans-serif",size:15,fillStyle:"#fff3d2",strokeStyle:"#173b3d",lineWidth:3,textAlign:"left",textBaseline:"top",text:"البلورات  0 / "+this.world.totalCollectibles});
