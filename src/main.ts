@@ -1,4 +1,4 @@
-import { createSparkProjectDocument } from "./editor/project-document";
+import { createSparkProjectDocument, type SparkBackgroundKind } from "./editor/project-document";
 import { SPARK_ASSETS, findSparkAsset, type SparkAssetCategory } from "./editor/asset-catalog";
 import { DEFAULT_SPARK_SCRIPT } from "./scripting/spark-script";
 import { SparkEditorController, type EditorObject, type ObjectKind } from "./editor/editor-controller";
@@ -302,7 +302,7 @@ document.querySelector("#scene-tabs")?.addEventListener("click", event => {
   const target = (event.target as HTMLElement).closest<HTMLElement>("[data-scene-id]");
   if (target?.dataset.sceneId) editorScene?.switchScene(target.dataset.sceneId);
 });
-document.querySelector<HTMLSelectElement>("#background-theme")?.addEventListener("change", event => editorScene?.setBackground((event.currentTarget as HTMLSelectElement).value as NonNullable<EditorObject["motion"]> extends never ? never : "crystal-garden" | "sunset-ruins" | "frost-cavern" | "desert-dunes"));
+document.querySelector<HTMLSelectElement>("#background-theme")?.addEventListener("change", event => editorScene?.setBackground((event.currentTarget as HTMLSelectElement).value as SparkBackgroundKind));
 document.querySelector("#nav-assets")?.addEventListener("click", () => { document.querySelector("#asset-grid")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.querySelector<HTMLInputElement>("#asset-search")?.focus(); });
 document.querySelector<HTMLSelectElement>("#object-motion")?.addEventListener("change", event => {
   const motion = (event.currentTarget as HTMLSelectElement).value as NonNullable<EditorObject["motion"]>;
