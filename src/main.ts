@@ -698,7 +698,6 @@ class EditorScene extends Phaser.Scene {
     this.previewing = false;
     this.runtime?.destroy();
     this.runtime = null;
-    this.touchDirection = { x: 0, y: 0 };
     const host = document.querySelector<HTMLElement>("#game-stage");
     const editorCanvas = host?.querySelector<HTMLCanvasElement>("canvas:not(.spark-preview-canvas)");
     if (editorCanvas) editorCanvas.style.visibility = "";
