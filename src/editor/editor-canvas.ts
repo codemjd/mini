@@ -1,4 +1,4 @@
-import type { SparkEditorObject } from "./project-document";
+import type { SparkEditorObject, SparkBackgroundKind } from "./project-document";
 
 export class EditorCanvasObjectView {
   x: number;
@@ -68,6 +68,7 @@ export class SparkEditorCanvas {
   private objects: SparkEditorObject[] = [];
   private selectedId: string | null = null;
   private gridVisible = true;
+  private background: SparkBackgroundKind = "crystal-garden";
   private frame = 0;
   private draggingId: string | null = null;
   private dragOffsetX = 0;
@@ -102,6 +103,8 @@ export class SparkEditorCanvas {
     this.frame = requestAnimationFrame(loop);
     return canvas;
   }
+
+  setBackground(background: SparkBackgroundKind): void { this.background = background; }
 
   setScene(objects: SparkEditorObject[], selectedId: string | null, gridVisible: boolean): void {
     this.objects = objects;
@@ -181,16 +184,23 @@ export class SparkEditorCanvas {
   }
 
   private drawBackground(ctx: CanvasRenderingContext2D): void {
+    const palettes: Record<SparkBackgroundKind, { sky: string; mid: string; deep: string; pathTop: string; pathMid: string; pathDeep: string; bushLight: string; bushMid: string; bushDark: string; glow: string }> = {
+      "crystal-garden": { sky: "#153b43", mid: "#285b50", deep: "#173b3f", pathTop: "#c4b58e", pathMid: "#a99c7b", pathDeep: "#817e66", bushLight: "#65a96d", bushMid: "#347c57", bushDark: "#164638", glow: "#9ce9c5" },
+      "sunset-ruins": { sky: "#492f4b", mid: "#98604f", deep: "#332b48", pathTop: "#e8c18e", pathMid: "#c58b65", pathDeep: "#79534c", bushLight: "#c58a63", bushMid: "#84545a", bushDark: "#44364c", glow: "#ffd18a" },
+      "frost-cavern": { sky: "#142e4e", mid: "#326486", deep: "#192d50", pathTop: "#c4e2e7", pathMid: "#8ebbcf", pathDeep: "#537c9c", bushLight: "#a0d3dc", bushMid: "#4f839e", bushDark: "#244b70", glow: "#a5eaff" },
+      "desert-dunes": { sky: "#67472f", mid: "#a87948", deep: "#4e4439", pathTop: "#efd59b", pathMid: "#d2ad70", pathDeep: "#9a754c", bushLight: "#c5a56b", bushMid: "#8c8054", bushDark: "#4f6146", glow: "#ffe0a0" }
+    };
+    const palette = palettes[this.background];
     const background = ctx.createLinearGradient(0, 0, 800, 450);
-    background.addColorStop(0, "#153b43");
-    background.addColorStop(0.48, "#285b50");
-    background.addColorStop(1, "#173b3f");
+    background.addColorStop(0, palette.sky);
+    background.addColorStop(0.48, palette.mid);
+    background.addColorStop(1, palette.deep);
     ctx.fillStyle = background;
     ctx.fillRect(0, 0, 800, 450);
 
     const glow = ctx.createRadialGradient(150, 95, 8, 150, 95, 160);
-    glow.addColorStop(0, "#9ce9c533");
-    glow.addColorStop(1, "#9ce9c500");
+    glow.addColorStop(0, palette.glow + "55");
+    glow.addColorStop(1, palette.glow + "00");
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, 330, 260);
 
@@ -214,9 +224,9 @@ export class SparkEditorCanvas {
     ctx.restore();
 
     const path = ctx.createLinearGradient(0, 165, 0, 285);
-    path.addColorStop(0, "#c4b58e");
-    path.addColorStop(0.45, "#a99c7b");
-    path.addColorStop(1, "#817e66");
+    path.addColorStop(0, palette.pathTop);
+    path.addColorStop(0.45, palette.pathMid);
+    path.addColorStop(1, palette.pathDeep);
     ctx.fillStyle = path;
     roundedRect(ctx, 39, 165, 722, 120, 57); ctx.fill();
     ctx.strokeStyle = "#f0e0b4";
@@ -240,8 +250,8 @@ export class SparkEditorCanvas {
       const upperY = 30 + (i * 17) % 42;
       const lowerY = 402 + (i * 13) % 32;
       const radius = 21 + (i % 4) * 5;
-      this.drawBush(ctx, x, upperY, radius);
-      this.drawBush(ctx, x, lowerY, radius);
+      this.drawBush(ctx, x, upperY, radius, palette);
+      this.drawBush(ctx, x, lowerY, radius, palette);
     }
 
     ctx.save();
@@ -278,13 +288,13 @@ export class SparkEditorCanvas {
     ctx.globalAlpha = 1;
   }
 
-  private drawBush(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number): void {
+  private drawBush(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, palette: { bushLight: string; bushMid: string; bushDark: string }): void {
     ctx.fillStyle = "#102f2e";
     ellipse(ctx, x + 3, y + 6, radius + 3, radius + 2); ctx.fill();
     const leaves = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.45, 2, x, y, radius * 1.35);
-    leaves.addColorStop(0, "#65a96d");
-    leaves.addColorStop(0.5, "#347c57");
-    leaves.addColorStop(1, "#164638");
+    leaves.addColorStop(0, palette.bushLight);
+    leaves.addColorStop(0.5, palette.bushMid);
+    leaves.addColorStop(1, palette.bushDark);
     ctx.fillStyle = leaves;
     ellipse(ctx, x, y, radius, radius * 0.88); ctx.fill();
     ctx.fillStyle = "#c5efad";
