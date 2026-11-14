@@ -77,3 +77,20 @@ The preview now runs through melonJS 20.15.1. Phaser remains only as the tempora
 The built-in melonJS SAT physics is the default candidate for simple 2D collisions. Matter, Planck, or Rapier adapters are not bundled yet: select one only after a real project requirement and a device-size/performance comparison. Spine integration is deferred until its package peer compatibility with melonJS 20.x is verified.
 
 This is a runtime migration milestone, not a finished editor migration. The editor still uses Phaser, and no APK or real-device validation is claimed.
+
+
+## Phase 3 — official melonJS systems
+
+- Built-in SAT sensor bodies are attached declaratively to Spark runtime actors. melonJS owns the broadphase and collision lifecycle; Spark receives contact state without letting the physics solver overwrite the authoritative Spark positions.
+- Combat and collectible systems consult melonJS contact state and retain bounded distance checks as a deterministic fallback during initial integration.
+- Touch controls use the official GamepadPlugin. Keyboard, virtual touch controls and physical gamepads feed the same melonJS input bindings.
+- DebugPanelPlugin loads only when ?debug=1 is present; F1 toggles it.
+- Tiled Inflate is registered once per page for compressed Tiled maps.
+- The asset pipeline exposes melonJS loader + TextureAtlas + Sprite helpers for TexturePacker/Aseprite exports.
+- Capacitor 8 and the official melonJS Capacitor lifecycle plugin are loaded only in native runtime contexts. A separate Android CI workflow scaffolds a native project and creates a debug APK artifact.
+
+Physics choice: keep melonJS built-in SAT for the current top-down arcade runtime. Planck/Box2D or Matter remain optional adapters only if a future game needs joints, stacking, continuous collision detection or more elaborate rigid-body dynamics.
+
+Spine is deliberately not installed: its plugin package has MIT terms, but the underlying Spine runtime has separate licensing conditions. Native Sprite/TextureAtlas animation remains the default.
+
+The editor is still Phaser-based. This phase upgrades the runtime and platform pipeline; it does not claim a complete editor migration or a physical-device test.
