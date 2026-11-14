@@ -84,20 +84,20 @@ class SparkActorRenderable extends Renderable {
       renderer.setColor("rgba(0,0,0,0.25)");
       renderer.fillEllipse(cx,cy+r*0.72,r*0.95,5);
       renderer.setColor("#754b38");
-      renderer.fillRect(cx-r*0.85,cy-r*0.72,r*1.7,r*1.45,7);
+      renderer.fillRect(cx-r*0.85,cy-r*0.72,r*1.7,r*1.45);
       renderer.setColor(a.color);
-      renderer.fillRoundRect(cx-r*0.72,cy-r*0.62,r*1.44,r*1.25,5);
+      renderer.fillRect(cx-r*0.72,cy-r*0.62,r*1.44,r*1.25);
       renderer.setColor("#f5c58b");
       renderer.strokeRect(cx-r*0.55,cy-r*0.45,r*1.1,r*0.9);
       renderer.strokeLine(cx-r*0.55,cy-r*0.45,cx+r*0.55,cy+r*0.45);
       renderer.strokeLine(cx+r*0.55,cy-r*0.45,cx-r*0.55,cy+r*0.45);
     } else if(a.kind==="platform"){
       renderer.setColor("rgba(0,0,0,0.22)");
-      renderer.fillRoundRect(cx-r,cy-r*0.2,r*2,r*0.85,8);
+      renderer.fillRect(cx-r,cy-r*0.2,r*2,r*0.85);
       renderer.setColor("#31596a");
-      renderer.fillRoundRect(cx-r,cy-r*0.35,r*2,r*0.7,8);
+      renderer.fillRect(cx-r,cy-r*0.35,r*2,r*0.7);
       renderer.setColor(a.color);
-      renderer.fillRoundRect(cx-r*0.9,cy-r*0.42,r*1.8,r*0.38,6);
+      renderer.fillRect(cx-r*0.9,cy-r*0.42,r*1.8,r*0.38);
       renderer.setColor("rgba(255,255,255,0.3)");
       renderer.strokeLine(cx-r*0.65,cy-r*0.18,cx+r*0.65,cy-r*0.18);
     } else {
@@ -123,9 +123,9 @@ class SparkActorRenderable extends Renderable {
       if(a.kind==="enemy" || a.kind==="hero"){
         const ratio=Math.max(0,Math.min(1,a.health/Math.max(1,a.maximumHealth)));
         renderer.setColor("rgba(7,20,25,0.8)");
-        renderer.fillRoundRect(cx-r,cy-r-13,r*2,5,3);
+        renderer.fillRect(cx-r,cy-r-13,r*2,5);
         renderer.setColor(ratio>0.55?"#63e6a3":ratio>0.25?"#f4c65c":"#f47768");
-        renderer.fillRoundRect(cx-r+1,cy-r-12,(r*2-2)*ratio,3,2);
+        renderer.fillRect(cx-r+1,cy-r-12,(r*2-2)*ratio,3);
       }
     }
     renderer.restore();
