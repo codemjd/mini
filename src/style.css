@@ -372,3 +372,6 @@ button:disabled{cursor:not-allowed}
 #script-output{font-size:10px;color:#a8c4d5;min-width:140px;flex:1}
 .code-workbench-footnote{font-size:9px;line-height:1.8;color:#8297ab;margin:10px 2px 0}
 @media(max-width:650px){.code-workbench{padding:12px}.code-workbench-heading{flex-direction:column}.spark-script-editor{min-height:126px;font-size:11px}.code-workbench-actions{align-items:stretch}.run-script-button,.reset-script-button{flex:1}}
+
+/* Native Spark editor renderer; touch coordinates are handled by the canvas adapter. */
+#game-stage canvas.spark-editor-canvas{display:block;width:100%!important;height:100%!important;object-fit:fill;touch-action:none;user-select:none;-webkit-user-select:none}
