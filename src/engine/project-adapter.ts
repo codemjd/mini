@@ -1,4 +1,4 @@
-import type { SparkBehavior, SparkObjectDefinition, SparkObjectKind, SparkSceneDefinition } from "./model";
+import type { SparkBehavior, SparkObjectDefinition, SparkObjectKind, SparkSceneDefinition, SparkSceneBackground } from "./model";
 
 export interface LegacyEditorObject {
   id: string;
@@ -38,7 +38,7 @@ function behaviorsFor(kind: SparkObjectKind, item: LegacyEditorObject): SparkBeh
 }
 
 /** Converts the editor object format into the versioned Spark runtime model. */
-export function createRuntimeSceneFromObjects(objects: LegacyEditorObject[]): SparkSceneDefinition {
+export function createRuntimeSceneFromObjects(objects: LegacyEditorObject[], background: SparkSceneBackground = "crystal-garden"): SparkSceneDefinition {
   const safeObjects: SparkObjectDefinition[] = objects.map((item) => {
     const safeNumber = (value: number, fallback: number, min: number, max: number) =>
       Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
@@ -73,7 +73,7 @@ export function createRuntimeSceneFromObjects(objects: LegacyEditorObject[]): Sp
     name: "جزيرة البلورات",
     width: 800,
     height: 450,
-    background: "crystal-garden",
+    background,
     objects: safeObjects
   };
 }
