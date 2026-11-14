@@ -104,28 +104,31 @@ test("canvas pointer editing moves objects and undo restores the prior position"
 });
 
 test("legacy v2 local projects migrate to schema v3 without losing objects or script", async ({ page }) => {
-  await page.evaluate(() => {
-    localStorage.setItem("spark-workshop-mini-project-v2", JSON.stringify({
-      version: 2,
-      title: "Old project",
-      width: 800,
-      height: 450,
-      objects: [{
-        id: "saved-hero",
-        kind: "hero",
-        x: 210,
-        y: 190,
-        name: "Legacy hero",
-        health: 120,
-        speed: 240,
-        damage: 30,
-        size: 1,
-        color: "#55aaff"
-      }],
-      scriptSource: 'note("migrated");'
-    }));
-  });
-  await page.reload();
+  const legacyProject = {
+    version: 2,
+    title: "Old project",
+    width: 800,
+    height: 450,
+    objects: [{
+      id: "saved-hero",
+      kind: "hero",
+      x: 210,
+      y: 190,
+      name: "Legacy hero",
+      health: 120,
+      speed: 240,
+      damage: 30,
+      size: 1,
+      color: "#55aaff"
+    }],
+    scriptSource: 'note("migrated");'
+  };
+  await page.goto("about:blank");
+  await page.addInitScript(project => {
+    localStorage.clear();
+    localStorage.setItem("spark-workshop-mini-project-v2", JSON.stringify(project));
+  }, legacyProject);
+  await page.goto("/");
   await expect(page.locator("#object-count")).toHaveText("1");
   await expect(page.locator("#object-name")).toHaveValue("Legacy hero");
   await expect(page.locator("#spark-script")).toHaveValue('note("migrated");');
