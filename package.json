@@ -1,7 +1,7 @@
 {
   "name": "spark-workshop-mini",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -11,7 +11,8 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "pixi.js": "7.4.2"
   },
   "devDependencies": {
     "typescript": "~5.7.2",

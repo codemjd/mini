@@ -30,10 +30,14 @@ test("the local assistant adds crystals and tunes the hero", async ({ page }) =>
 test("preview enables touch controls and restores the editable scene", async ({ page }) => {
   await page.locator("#preview-button").click();
   await expect(page.locator("#touch-controls")).toBeVisible();
+  await expect(page.locator("#game-stage canvas.spark-preview-canvas")).toHaveCount(1);
+  await expect(page.locator("#game-stage canvas")).toHaveCount(2);
   await expect(page.locator("#stop-preview")).toBeVisible();
 
   await page.locator("#stop-preview").click();
   await expect(page.locator("#touch-controls")).toBeHidden();
+  await expect(page.locator("#game-stage canvas.spark-preview-canvas")).toHaveCount(0);
+  await expect(page.locator("#game-stage canvas")).toHaveCount(1);
   await expect(page.locator("#object-count")).toHaveText("6");
 });
 

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { SparkGameRuntime, createRuntimeSceneFromObjects } from "./engine";
 import { resolveLocalCommand, type LocalAssistantAction } from "./local-assistant";
 import "./style.css";
 
@@ -71,15 +72,7 @@ class EditorScene extends Phaser.Scene {
   private objects = new Map<string, { data: EditorObject; view: Phaser.GameObjects.Container }>();
   private selectedId: string | null = null;
   private previewing = false;
-  private previewKeys?: Record<string, Phaser.Input.Keyboard.Key>;
-  private previewHint?: Phaser.GameObjects.Text;
-  private previewScoreLabel?: Phaser.GameObjects.Text;
-  private previewSnapshot: EditorObject[] | null = null;
-  private previewScore = 0;
-  private previewCoinsTotal = 0;
-  private attackCooldown = 0;
-  private enemyAttackCooldown = 0;
-  private attackRequested = false;
+  private runtime: SparkGameRuntime | null = null;
   private autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
   private gridGraphics?: Phaser.GameObjects.Graphics;
   private touchDirection = { x: 0, y: 0 };
@@ -636,7 +629,7 @@ class EditorScene extends Phaser.Scene {
     this.createView(copy); this.select(copy.id); this.emitChange();
   }
 
-  setTouchDirection(x: number, y: number) { this.touchDirection = { x, y }; }
+  setTouchDirection(x: number, y: number) { this.touchDirection = { x, y }; this.runtime?.setTouchMovement(x, y); }
 
   setGridVisible(visible: boolean) {
     if (!this.gridGraphics) return;
@@ -646,155 +639,76 @@ class EditorScene extends Phaser.Scene {
 
   startPreview() {
     if (this.previewing) return;
-    this.previewSnapshot = this.getObjects().map(item => ({ ...item }));
-    this.previewCoinsTotal = this.previewSnapshot.filter(item => item.kind === "coin").length;
-    this.previewScore = 0;
-    this.previewing = true; this.selectedId = null;
-    for (const item of this.objects.values()) {
-      this.tweens.killTweensOf(item.view);
-      item.view.disableInteractive();
-      item.view.setAlpha(1);
-      item.view.setAngle(0);
-      item.view.setScale(item.data.size || 1);
+    const host = document.querySelector<HTMLElement>("#game-stage");
+    if (!host) {
+      setStatus("تعذر العثور على مساحة تشغيل اللعبة");
+      return;
     }
-    if (this.input.keyboard) this.previewKeys = this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE") as Record<string, Phaser.Input.Keyboard.Key>;
-    this.attackCooldown = 0;
-    this.enemyAttackCooldown = 0;
-    this.attackRequested = false;
+    const editorCanvas = host.querySelector<HTMLCanvasElement>("canvas:not(.spark-preview-canvas)");
+    this.previewing = true;
+    this.selectedId = null;
+    this.touchDirection = { x: 0, y: 0 };
+    if (editorCanvas) editorCanvas.style.visibility = "hidden";
+
+    try {
+      const runtimeScene = createRuntimeSceneFromObjects(this.getObjects());
+      this.runtime = new SparkGameRuntime(host, runtimeScene, {
+        onStatus: (message) => {
+          setStatus(message);
+          const hint = document.querySelector<HTMLElement>("#stage-hint");
+          if (hint) hint.textContent = message;
+        },
+        onScore: (score, total) => {
+          const hint = document.querySelector<HTMLElement>("#stage-hint");
+          if (hint) hint.textContent = "البلورات التي جمعتها: " + score + " / " + total;
+        },
+        onComplete: () => {
+          const hint = document.querySelector<HTMLElement>("#stage-hint");
+          if (hint) hint.textContent = "أكملت رحلة البلورات بنجاح! ✦";
+        }
+      });
+      this.runtime.start();
+    } catch (error) {
+      this.runtime?.destroy();
+      this.runtime = null;
+      this.previewing = false;
+      if (editorCanvas) editorCanvas.style.visibility = "";
+      setStatus("تعذر تشغيل محرك المعاينة: " + (error instanceof Error ? error.message : "خطأ غير معروف"));
+      return;
+    }
+
     document.querySelector("#touch-controls")?.removeAttribute("hidden");
     document.querySelector("#stage-shell")?.classList.add("is-previewing");
-    this.previewHint = this.add.text(400, 18, "وضع المعاينة  •  حرّك بطلك", { fontFamily: "Tahoma, Arial", fontSize: "14px", fontStyle: "bold", color: "#ffffff", backgroundColor: "#123b3b", padding: {x:15,y:8} }).setOrigin(0.5,0).setDepth(30);
-    this.previewScoreLabel = this.add.text(400, 56, "البلورات: 0 / " + this.previewCoinsTotal, { fontFamily: "Tahoma, Arial", fontSize: "12px", color: "#ffe7a8", backgroundColor: "#3c3020", padding: {x:10,y:5} }).setOrigin(0.5,0).setDepth(30);
-    setStatus("المعاينة تعمل — يمكنك تجربة الحركة وجمع البلورات");
+    setStatus("محرك Spark يعمل — حركة ثابتة وسلوكيات مستقلة");
     document.querySelector("#preview-button")?.setAttribute("hidden", "true");
     document.querySelector("#stop-preview")?.removeAttribute("hidden");
-    document.querySelector("#stage-hint")!.textContent = "المعاينة نشطة: تحرّك بالأسهم أو WASD، واجمع البلورات. إيقاف المعاينة يعيد المشهد كما كان.";
+    const hint = document.querySelector<HTMLElement>("#stage-hint");
+    if (hint) hint.textContent = "المعاينة تعمل بمحرك Spark الجديد: تحرّك بالأسهم أو WASD، واجمع البلورات، واضغط الهجوم لمواجهة الحارس.";
     this.emitChange();
   }
 
   stopPreview() {
     if (!this.previewing) return;
     this.previewing = false;
-    this.attackRequested = false;
-    this.previewHint?.destroy(); this.previewHint = undefined;
-    this.previewScoreLabel?.destroy(); this.previewScoreLabel = undefined;
+    this.runtime?.destroy();
+    this.runtime = null;
     this.touchDirection = { x: 0, y: 0 };
+    const host = document.querySelector<HTMLElement>("#game-stage");
+    const editorCanvas = host?.querySelector<HTMLCanvasElement>("canvas:not(.spark-preview-canvas)");
+    if (editorCanvas) editorCanvas.style.visibility = "";
     document.querySelector("#touch-controls")?.setAttribute("hidden", "true");
     document.querySelector("#stage-shell")?.classList.remove("is-previewing");
-    if (this.previewSnapshot) {
-      for (const item of this.objects.values()) item.view.destroy();
-      this.objects.clear();
-      for (const data of this.previewSnapshot) this.createView({ ...data });
-      this.previewSnapshot = null;
-    }
     document.querySelector("#preview-button")?.removeAttribute("hidden");
     document.querySelector("#stop-preview")?.setAttribute("hidden", "true");
-    document.querySelector("#stage-hint")!.textContent = "اجمع البلورات الأربع، واحذر حارس الوحل. هذه ساحة جاهزة للتعديل واللعب.";
-    setStatus("انتهت المعاينة — تمت استعادة المشهد الأصلي");
+    const hint = document.querySelector<HTMLElement>("#stage-hint");
+    if (hint) hint.textContent = "اجمع البلورات الأربع، واحذر حارس الوحل. هذه ساحة جاهزة للتعديل واللعب.";
+    setStatus("انتهت المعاينة — تمت استعادة المحرر دون تغيير بيانات المشروع");
     this.emitChange();
   }
 
-  update(_time: number, delta: number) {
-    if (!this.previewing) return;
-    const hero = [...this.objects.values()].find(item => item.data.kind === "hero");
-    if (!hero) return;
-    const k = this.previewKeys; const speed = Math.max(60, hero.data.speed) * delta / 1000;
-    this.attackCooldown = Math.max(0, this.attackCooldown - delta);
-    this.enemyAttackCooldown = Math.max(0, this.enemyAttackCooldown - delta);
-    if (Phaser.Input.Keyboard.JustDown(k?.SPACE as Phaser.Input.Keyboard.Key) || this.attackRequested) { this.attackRequested = false; this.performAttack(hero); }
-    let dx = this.touchDirection.x, dy = this.touchDirection.y; if (k?.A.isDown || k?.LEFT.isDown) dx--; if (k?.D.isDown || k?.RIGHT.isDown) dx++; if (k?.W.isDown || k?.UP.isDown) dy--; if (k?.S.isDown || k?.DOWN.isDown) dy++;
-    if (dx || dy) {
-      const length = Math.hypot(dx,dy) || 1;
-      hero.view.x = Phaser.Math.Clamp(hero.view.x + dx/length*speed, 25, 775);
-      hero.view.y = Phaser.Math.Clamp(hero.view.y + dy/length*speed, 25, 425);
-      hero.data.x = Math.round(hero.view.x);
-      hero.data.y = Math.round(hero.view.y);
-      hero.view.setAngle(Phaser.Math.Clamp(dx * 3, -7, 7));
-      hero.view.setScale((hero.data.size || 1) * (1 + Math.sin(_time / 42) * 0.025));
-    } else {
-      hero.view.setAngle(0);
-      hero.view.setScale((hero.data.size || 1) * (1 + Math.sin(_time / 310) * 0.012));
-    }
-    for (const [id, item] of this.objects) {
-      if (item.data.kind === "enemy") {
-        const distance = Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y);
-        if (distance > 42) {
-          const step = Math.min(distance - 42, Math.max(35, item.data.speed) * delta / 1000);
-          const moveX = (hero.view.x - item.view.x) / distance * step;
-          const moveY = (hero.view.y - item.view.y) / distance * step;
-          item.view.x += moveX;
-          item.view.y += moveY;
-          item.view.setAngle(Phaser.Math.Clamp(moveX * 2.5, -8, 8));
-          item.view.setScale((item.data.size || 1) * (1 + Math.sin(_time / 48) * 0.025));
-          item.data.x = Math.round(item.view.x); item.data.y = Math.round(item.view.y);
-        } else if (this.enemyAttackCooldown <= 0) {
-          hero.data.health = Math.max(0, hero.data.health - Math.max(1, item.data.damage));
-          this.enemyAttackCooldown = 850;
-          setStatus(`تلقى بطلك ضربة! الصحة ${hero.data.health}`);
-          if (hero.data.health <= 0) { hero.data.health = 100; hero.view.setPosition(400, 225); hero.data.x = 400; hero.data.y = 225; setStatus("سقط بطلك وعاد إلى الساحة — انتبه لصحتك!"); }
-        }
-      }
-      if (item.data.kind === "coin" && Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y) < 34) {
-        item.view.destroy();
-        this.objects.delete(id);
-        this.previewScore += 1;
-        this.previewScoreLabel?.setText("البلورات: " + this.previewScore + " / " + this.previewCoinsTotal);
-        const burstX = item.view.x;
-        const burstY = item.view.y;
-        for (let particle = 0; particle < 10; particle++) {
-          const angle = (Math.PI * 2 * particle) / 10;
-          const distance = Phaser.Math.Between(24, 48);
-          const sparkle = this.add.star(burstX, burstY, 4, 2, 7, particle % 2 ? 0xfff3b0 : 0x73fff0).setDepth(35);
-          this.tweens.add({
-            targets: sparkle,
-            x: burstX + Math.cos(angle) * distance,
-            y: burstY + Math.sin(angle) * distance,
-            alpha: 0,
-            scale: 0.15,
-            angle: Phaser.Math.Between(-150, 150),
-            duration: Phaser.Math.Between(260, 430),
-            ease: "Cubic.Out",
-            onComplete: () => sparkle.destroy()
-          });
-        }
-        const ring = this.add.circle(burstX, burstY, 10, 0xffffff, 0).setStrokeStyle(3, 0x9effe9, 0.95).setDepth(34);
-        this.tweens.add({ targets: ring, scale: 3.8, alpha: 0, duration: 380, ease: "Cubic.Out", onComplete: () => ring.destroy() });
-        if (this.previewScore >= this.previewCoinsTotal && this.previewCoinsTotal > 0) {
-          this.previewHint?.setText("أكملت رحلة البلورات! ✦");
-          setStatus("رائع! جمعت كل البلورات الأربع — اكتمل التحدي");
-          this.tweens.add({ targets: hero.view, scale: 1.22, yoyo: true, repeat: 2, duration: 150 });
-        } else {
-          setStatus("أحسنت! جمعت بلورة ✦");
-        }
-        this.emitChange();
-      }
-    }
-  }
+  update(_time: number, _delta: number) {}
 
-  requestAttack() { this.attackRequested = true; }
-
-  private performAttack(hero: { data: EditorObject; view: Phaser.GameObjects.Container }) {
-    if (this.attackCooldown > 0) return;
-    this.attackCooldown = 420;
-    let hit = false;
-    for (const [id, enemy] of this.objects) {
-      if (enemy.data.kind !== "enemy") continue;
-      if (Phaser.Math.Distance.Between(hero.view.x, hero.view.y, enemy.view.x, enemy.view.y) > 92) continue;
-      enemy.data.health = Math.max(0, enemy.data.health - Math.max(1, hero.data.damage));
-      enemy.view.setAlpha(0.55);
-      this.cameras.main.shake(85, 0.0035);
-      const impact = this.add.circle(enemy.view.x, enemy.view.y - 8, 12, 0xfff0b0, 0.75).setDepth(40);
-      this.tweens.add({ targets: impact, scale: 3.1, alpha: 0, duration: 220, ease: "Cubic.Out", onComplete: () => impact.destroy() });
-      this.tweens.add({ targets: enemy.view, x: enemy.view.x + 7, yoyo: true, repeat: 3, duration: 34, onComplete: () => { if (enemy.view.active) enemy.view.setPosition(enemy.data.x, enemy.data.y); } });
-      this.time.delayedCall(110, () => { if (enemy.view.active) enemy.view.setAlpha(1); });
-      hit = true;
-      if (enemy.data.health <= 0) { enemy.view.destroy(); this.objects.delete(id); setStatus("هُزم العدو! ✦"); }
-      else setStatus(`أصبت العدو — صحته ${enemy.data.health}`);
-      break;
-    }
-    if (!hit) setStatus("لا يوجد عدو قريب — اقترب منه ثم هاجم");
-    this.emitChange();
-  }
+  requestAttack() { this.runtime?.requestAttack(); }
 
   getSelected() { return this.selectedId ? this.objects.get(this.selectedId)?.data ?? null : null; }
   getObjects() { return [...this.objects.values()].map(item => item.data); }
