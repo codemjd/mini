@@ -60,6 +60,53 @@ test("built-in scene compositions add reusable objects and support undo", async 
   await expect(page.locator("#object-list")).toContainText("بلورة");
 });
 
+test("multiple scenes stay isolated and switch without losing edits", async ({ page }) => {
+  await page.locator("#object-name").fill("بطل الجزيرة");
+  await page.locator("#object-name").dispatchEvent("change");
+  await page.locator("#scene-new").click();
+  await expect(page.locator("#scene-count")).toContainText("2");
+  await expect(page.locator("#object-count")).toHaveText("0");
+  await page.locator("#add-coin").click();
+  await expect(page.locator("#object-count")).toHaveText("1");
+
+  await page.locator(".scene-tab").first().click();
+  await expect(page.locator("#object-count")).toHaveText("6");
+  await expect(page.locator("#object-name")).toHaveValue("بطل الجزيرة");
+  await page.locator(".scene-tab").last().click();
+  await expect(page.locator("#object-count")).toHaveText("1");
+});
+
+test("scenes can be duplicated, renamed, and deleted while preserving one scene", async ({ page }) => {
+  await page.locator("#scene-duplicate").click();
+  await expect(page.locator("#scene-count")).toContainText("2");
+  await expect(page.locator("#object-count")).toHaveText("6");
+
+  page.on("dialog", dialog => dialog.accept("ممر الغابة"));
+  await page.locator("#scene-rename").click();
+  await expect(page.locator(".scene-tab.active")).toContainText("ممر الغابة");
+
+  page.on("dialog", dialog => dialog.accept());
+  await page.locator("#scene-delete").click();
+  await expect(page.locator("#scene-count")).toContainText("1");
+  await expect(page.locator("#object-count")).toHaveText("6");
+  await page.locator("#scene-delete").click();
+  await expect(page.locator("#scene-count")).toContainText("1");
+});
+
+test("multi-scene project exports as v4 and reloads the active scene", async ({ page }) => {
+  await page.locator("#scene-new").click();
+  await page.locator("#add-enemy").click();
+  await page.locator("#save-button").click();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v3") || "{}"));
+  expect(stored.version).toBe(4);
+  expect(stored.scenes).toHaveLength(2);
+  expect(stored.scenes.find((scene: { id: string }) => scene.id === stored.activeSceneId).objects).toHaveLength(1);
+
+  await page.reload();
+  await expect(page.locator("#scene-count")).toContainText("2");
+  await expect(page.locator("#object-count")).toHaveText("1");
+});
+
 test("the workshop stays within a phone-sized viewport", async ({ page }) => {
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
