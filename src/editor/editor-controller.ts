@@ -4,7 +4,8 @@ import {
   parseSparkProjectDocument,
   type SparkEditorObject,
   type SparkEditorObjectKind,
-  type SparkSceneDocument
+  type SparkSceneDocument,
+  type SparkBackgroundKind
 } from "./project-document";
 import { executeSparkScript } from "../scripting/spark-script";
 import { EditorCanvasObjectView, SparkEditorCanvas } from "./editor-canvas";
@@ -33,6 +34,7 @@ export class SparkEditorController {
   private objects = new Map<string, { data: EditorObject; view: EditorCanvasObjectView }>();
   private scenes: SparkSceneDocument[] = [];
   private activeSceneId = "scene-1";
+  private background: SparkBackgroundKind = "crystal-garden";
   private canvasRenderer: SparkEditorCanvas | null = null;
   private listeners = new Set<(objects: EditorObject[], selected: EditorObject | null) => void>();
   private gridVisible = true;
@@ -71,7 +73,8 @@ export class SparkEditorController {
     this.canvasRenderer.mount(host);
     this.loadProject();
     if (this.objects.size === 0) this.createStarterLevel();
-    if (this.scenes.length === 0) this.scenes = [{ id: this.activeSceneId, name: "المشهد الأول", objects: this.getObjects(), scriptSource: this.options.getScriptSource() }];
+    if (this.scenes.length === 0) this.scenes = [{ id: this.activeSceneId, name: "المشهد الأول", objects: this.getObjects(), scriptSource: this.options.getScriptSource(), background: this.background }];
+    this.canvasRenderer.setBackground(this.background);
     if (!this.selectedId) this.select(this.objects.keys().next().value ?? null);
     this.emitChange();
   }
@@ -382,7 +385,7 @@ export class SparkEditorController {
 
   private captureActiveScene() {
     const active = this.scenes.find(scene => scene.id === this.activeSceneId);
-    const snapshot = { id: this.activeSceneId, name: active?.name ?? "المشهد الأول", objects: this.getObjects().map(item => ({ ...item })), scriptSource: this.options.getScriptSource() };
+    const snapshot = { id: this.activeSceneId, name: active?.name ?? "المشهد الأول", objects: this.getObjects().map(item => ({ ...item })), scriptSource: this.options.getScriptSource(), background: this.background };
     const index = this.scenes.findIndex(scene => scene.id === this.activeSceneId);
     if (index >= 0) this.scenes[index] = snapshot;
     else this.scenes.push(snapshot);
@@ -409,7 +412,7 @@ export class SparkEditorController {
     const base = name.trim().slice(0, 40) || "مشهد جديد";
     let candidate = base, suffix = 2;
     while (this.scenes.some(scene => scene.name === candidate)) candidate = base.slice(0, 32) + " " + suffix++;
-    const scene: SparkSceneDocument = { id: "scene-" + Date.now().toString(36) + "-" + (this.scenes.length + 1), name: candidate, objects: [], scriptSource: "" };
+    const scene: SparkSceneDocument = { id: "scene-" + Date.now().toString(36) + "-" + (this.scenes.length + 1), name: candidate, objects: [], scriptSource: "", background: "crystal-garden" };
     this.scenes.push(scene);
     this.activateScene(scene);
     this.options.setStatus("تم إنشاء " + candidate);
@@ -426,7 +429,8 @@ export class SparkEditorController {
       id: "scene-" + Date.now().toString(36) + "-" + (this.scenes.length + 1),
       name: (source.name + " نسخة").slice(0, 40),
       objects: source.objects.map(item => ({ ...item, id: "object-" + this.nextId++ })),
-      scriptSource: source.scriptSource
+      scriptSource: source.scriptSource,
+      background: source.background ?? "crystal-garden"
     };
     this.scenes.push(copy);
     this.activateScene(copy);
@@ -475,6 +479,8 @@ export class SparkEditorController {
 
   private activateScene(scene: SparkSceneDocument) {
     this.activeSceneId = scene.id;
+    this.background = scene.background ?? "crystal-garden";
+    this.canvasRenderer?.setBackground(this.background);
     this.undoStack = [];
     this.redoStack = [];
     this.restoreObjects(scene.objects.map(item => ({ ...item })));
@@ -535,6 +541,8 @@ export class SparkEditorController {
       }));
       const active = this.scenes.find(scene => scene.id === parsed.document.activeSceneId) ?? this.scenes[0];
       this.activeSceneId = active.id;
+      this.background = active.background ?? "crystal-garden";
+      this.canvasRenderer?.setBackground(this.background);
       this.options.setScriptSource(active.scriptSource);
       for (const item of active.objects) this.createView({ ...item });
       if (!currentRaw) {
@@ -555,6 +563,18 @@ export class SparkEditorController {
     this.createView(copy); this.select(copy.id); this.emitChange();
   }
 
+  getBackground(): SparkBackgroundKind { return this.background; }
+
+  setBackground(background: SparkBackgroundKind): void {
+    const allowed: SparkBackgroundKind[] = ["crystal-garden", "sunset-ruins", "frost-cavern", "desert-dunes"];
+    if (!allowed.includes(background) || this.previewing || background === this.background) return;
+    this.background = background;
+    this.canvasRenderer?.setBackground(background);
+    this.captureActiveScene();
+    this.emitChange();
+    this.options.setStatus("تم تغيير خلفية المشهد وحفظ الاختيار");
+  }
+
   setGridVisible(visible: boolean) {
     this.gridVisible = visible;
     this.emitChange();
@@ -573,7 +593,7 @@ export class SparkEditorController {
     if (editorCanvas) editorCanvas.style.visibility = "hidden";
 
     try {
-      const runtimeScene = createRuntimeSceneFromObjects(this.getObjects());
+      const runtimeScene = createRuntimeSceneFromObjects(this.getObjects(), this.background);
       this.runtime = new SparkGameRuntime(host, runtimeScene, {
         onStatus: (message) => {
           this.options.setStatus(message);
