@@ -439,3 +439,11 @@ button:disabled{cursor:not-allowed}
 .asset-empty{grid-column:1/-1;text-align:center;padding:8px}
 @media(max-width:720px){.vector-assets{grid-column:1/-1;border-top:1px solid #344456;margin-top:3px;padding-top:12px}.asset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.asset-card{min-height:88px;padding:6px}.asset-card strong{font-size:9px}.asset-card small{font-size:8px}}
 @media(max-width:380px){.asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Motion and AI inspector controls */
+#motion-properties,#enemy-ai-properties{margin-top:13px;padding:11px;border:1px solid #344d57;border-radius:10px;background:#112932}
+#motion-properties label,#enemy-ai-properties label{display:grid;gap:5px;margin-top:9px;color:#b8cdca;font-size:11px}
+#object-motion,#enemy-ai-mode{width:100%;min-height:36px;border:1px solid #3b5a61;border-radius:8px;background:#0e222a;color:#eff8f3;padding:6px 9px;font:inherit;font-size:12px}
+#object-motion:focus,#enemy-ai-mode:focus{outline:2px solid #82dfc0;outline-offset:2px}
+.field-help{margin:7px 0 0;color:#91aaad;font-size:10px;line-height:1.65}
