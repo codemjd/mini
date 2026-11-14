@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("workshop renders the current six-object starter scene", async ({ page }) => {
-  const pageErrors: string[] = [];
+  const pageErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
 
   await expect(page).toHaveTitle("ورشة الشرارات Mini");
