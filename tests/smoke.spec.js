@@ -227,3 +227,28 @@ test("invalid project JSON is rejected without replacing the current scene", asy
   await expect(page.locator("#save-state")).toContainText("تعذر استيراد الملف");
   await expect(page.locator("#object-list .object-row")).toHaveCount(2);
 });
+
+
+test("preview combat lets the hero defeat a nearby enemy", async ({ page }) => {
+  await page.locator("#object-list .object-row").first().click();
+  await page.locator("#creature-damage").fill("100");
+  await page.locator("#creature-damage").press("Tab");
+  await page.locator("#add-enemy").click();
+  await page.locator("#position-x").fill("450");
+  await page.locator("#position-x").press("Tab");
+  await page.locator("#position-y").fill("225");
+  await page.locator("#position-y").press("Tab");
+  await page.locator("#preview-button").click();
+  await page.keyboard.press("Space");
+  await expect(page.locator("#object-list .object-row")).toHaveCount(2);
+  await expect(page.locator("#save-state")).toContainText("هُزم العدو");
+  await page.locator("#stop-preview").click();
+});
+
+test("scene changes are saved automatically without pressing save", async ({ page }) => {
+  await page.locator("#add-coin").click();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(3);
+  await page.waitForTimeout(850);
+  await page.reload();
+  await expect(page.locator("#object-list .object-row")).toHaveCount(3);
+});
