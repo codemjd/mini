@@ -1,7 +1,7 @@
-import Phaser from "phaser";
 import { SparkGameRuntime, createRuntimeSceneFromObjects } from "./engine";
 import { createSparkProjectDocument, parseSparkProjectDocument } from "./editor/project-document";
 import { DEFAULT_SPARK_SCRIPT, executeSparkScript } from "./scripting/spark-script";
+import { EditorCanvasObjectView, SparkEditorCanvas } from "./editor/editor-canvas";
 import { resolveLocalCommand, type LocalAssistantAction } from "./local-assistant";
 import "./style.css";
 
@@ -9,6 +9,9 @@ type ObjectKind = "hero" | "crate" | "enemy" | "coin" | "platform";
 type EditorObject = { id: string; kind: ObjectKind; x: number; y: number; name: string; health: number; speed: number; damage: number; size: number; color: string; locked?: boolean };
 
 const STORAGE_KEY = "spark-workshop-mini-project-v2";
+
+function clampNumber(value: number, min: number, max: number): number { return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min)); }
+function randomBetween(min: number, max: number): number { return Math.floor(Math.random() * (max - min + 1)) + min; }
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("تعذر العثور على مساحة التطبيق");
 
@@ -83,130 +86,51 @@ note(&quot;تم تجهيز تحدٍ أسرع مع بلورة إضافية&quot;)
 
 let editorScene: EditorScene | null = null;
 
-class EditorScene extends Phaser.Scene {
-  private objects = new Map<string, { data: EditorObject; view: Phaser.GameObjects.Container }>();
+class EditorScene {
+  private objects = new Map<string, { data: EditorObject; view: EditorCanvasObjectView }>();
+  private canvasRenderer: SparkEditorCanvas | null = null;
+  private listeners = new Set<(objects: EditorObject[], selected: EditorObject | null) => void>();
+  private gridVisible = true;
   private selectedId: string | null = null;
   private previewing = false;
   private runtime: SparkGameRuntime | null = null;
   private autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
-  private gridGraphics?: Phaser.GameObjects.Graphics;
   private nextId = 1;
   private snapToGrid = true;
   private undoStack: EditorObject[][] = [];
   private redoStack: EditorObject[][] = [];
   private readonly historyLimit = 60;
-  constructor() { super("EditorScene"); }
+  constructor() {}
 
   create() {
     editorScene = this;
-    const { width, height } = this.scale;
-    this.createWorldBackground(width, height);
-    const grid = this.add.graphics().setDepth(-10);
-    this.gridGraphics = grid;
-    grid.lineStyle(1, 0xa6d8c8, 0.10);
-    for (let x = 0; x <= width; x += 40) grid.lineBetween(x, 0, x, height);
-    for (let y = 0; y <= height; y += 40) grid.lineBetween(0, y, width, y);
-    const border = this.add.graphics().setDepth(-9);
-    border.lineStyle(3, 0x8ac7b7, 0.22);
-    border.strokeRoundedRect(8, 8, width - 16, height - 16, 18);
-    this.add.text(16, 14, "جزيرة البلورات", { fontFamily: "Tahoma, Arial", fontSize: "14px", color: "#e4fff4", backgroundColor: "#102436", padding: { x: 9, y: 6 } }).setDepth(20);
+    const host = document.querySelector<HTMLElement>("#game-stage");
+    if (!host) throw new Error("تعذر العثور على مساحة محرر المشهد");
+    this.canvasRenderer = new SparkEditorCanvas({
+      onSelect: (id) => this.select(id),
+      onDragStart: (id) => {
+        const item = this.objects.get(id);
+        if (!this.previewing && item && !item.data.locked) this.recordHistory();
+      },
+      onDrag: (id, dragX, dragY) => {
+        if (this.previewing) return;
+        const item = this.objects.get(id);
+        if (!item || item.data.locked) return;
+        const snap = (value: number) => this.snapToGrid ? Math.round(value / 20) * 20 : value;
+        item.view.setPosition(clampNumber(snap(dragX), 28, 772), clampNumber(snap(dragY), 28, 422));
+        item.data.x = Math.round(item.view.x);
+        item.data.y = Math.round(item.view.y);
+        this.emitChange();
+      },
+      onDragEnd: () => this.emitChange()
+    });
+    this.canvasRenderer.mount(host);
     this.loadProject();
     if (this.objects.size === 0) this.createStarterLevel();
-    this.input.on("dragstart", (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
-      const item = [...this.objects.values()].find(entry => entry.view === gameObject);
-      if (!this.previewing && item && !item.data.locked) this.recordHistory();
-    });
-    this.input.on("drag", (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject, dragX: number, dragY: number) => {
-      if (this.previewing) return;
-      const item = [...this.objects.values()].find(entry => entry.view === gameObject);
-      if (!item || item.data.locked) return;
-      const snap = (value: number) => this.snapToGrid ? Math.round(value / 20) * 20 : value;
-      item.view.x = Phaser.Math.Clamp(snap(dragX), 28, width - 28);
-      item.view.y = Phaser.Math.Clamp(snap(dragY), 28, height - 28);
-      item.data.x = Math.round(item.view.x);
-      item.data.y = Math.round(item.view.y);
-      this.emitChange();
-    });
-    this.input.on("dragend", () => this.emitChange());
+    this.emitChange();
   }
 
-  private createWorldBackground(width: number, height: number) {
-    const g = this.add.graphics().setDepth(-30);
-    g.fillGradientStyle(0x153b43, 0x285b50, 0x37684c, 0x173b3f, 1);
-    g.fillRect(0, 0, width, height);
-    g.fillStyle(0x8bd5a6, 0.08);
-    g.fillCircle(145, 105, 118);
-    g.fillCircle(650, 350, 150);
-    g.fillStyle(0x102f34, 0.22);
-    g.fillEllipse(400, 30, 620, 105);
-    g.fillEllipse(400, 430, 700, 90);
-    g.fillStyle(0x183c3b, 0.82);
-    g.fillRoundedRect(34, 164, 732, 122, 58);
-    g.fillStyle(0x837f64, 0.96);
-    g.fillRoundedRect(39, 169, 722, 112, 54);
-    g.fillStyle(0xb6a982, 0.98);
-    g.fillRoundedRect(46, 175, 708, 100, 48);
-    g.fillStyle(0xe3d4a6, 0.16);
-    g.fillRoundedRect(54, 181, 692, 11, 6);
-    g.fillStyle(0x696f5a, 0.22);
-    for (let x = 70; x < 750; x += 68) g.fillRoundedRect(x, 190 + ((x / 68) % 2) * 7, 34, 70, 13);
-    g.fillStyle(0xefe0b5, 0.20);
-    for (let i = 0; i < 46; i++) {
-      const x = 58 + (i * 137) % 685;
-      const y = 184 + (i * 47) % 84;
-      g.fillCircle(x, y, i % 5 === 0 ? 2 : 1);
-    }
-    for (let i = 0; i < 22; i++) {
-      const x = 22 + (i * 79) % 756;
-      const topY = 34 + (i * 17) % 43;
-      const bottomY = 397 + (i * 13) % 35;
-      const radius = 23 + (i % 4) * 5;
-      g.fillStyle(0x143a35, 0.90);
-      g.fillCircle(x + 3, topY + 5, radius + 3);
-      g.fillCircle(x + 3, bottomY + 5, radius + 3);
-      g.fillStyle(i % 2 ? 0x2d7654 : 0x36815d, 0.96);
-      g.fillCircle(x, topY, radius);
-      g.fillCircle(x, bottomY, radius);
-      g.fillStyle(0xa5d989, 0.18);
-      g.fillEllipse(x - 5, topY - 6, radius, 10);
-      g.fillEllipse(x - 5, bottomY - 6, radius, 10);
-    }
-    for (const x of [58, 142, 658, 742]) {
-      const y = x < 400 ? 112 : 337;
-      g.fillStyle(0x3b4938, 0.95);
-      g.fillRoundedRect(x - 6, y - 3, 13, 40, 6);
-      g.fillStyle(0x194637, 0.98);
-      g.fillCircle(x, y - 13, 31);
-      g.fillStyle(0x347b56, 0.98);
-      g.fillCircle(x - 12, y - 22, 20);
-      g.fillCircle(x + 13, y - 19, 19);
-      g.fillStyle(0x9bd783, 0.36);
-      g.fillCircle(x - 8, y - 29, 7);
-    }
-    g.fillStyle(0x8fe9df, 0.12);
-    g.fillCircle(400, 92, 70);
-    g.fillStyle(0x8df5e6, 0.78);
-    g.fillTriangle(384, 105, 400, 71, 416, 105);
-    g.fillStyle(0xd9fff7, 0.9);
-    g.fillTriangle(400, 71, 407, 97, 400, 105);
-    g.fillStyle(0x9ee7ee, 0.13);
-    g.fillCircle(205, 350, 34);
-    g.fillStyle(0x70d5db, 0.8);
-    g.fillTriangle(194, 358, 205, 330, 216, 358);
-    g.fillStyle(0xd9ffff, 0.9);
-    g.fillTriangle(205, 330, 211, 351, 205, 358);
-    g.lineStyle(2, 0xa4d78d, 0.45);
-    for (let i = 0; i < 34; i++) {
-      const x = 18 + (i * 53) % 764;
-      const y = i % 2 ? 132 + (i * 19) % 24 : 294 + (i * 23) % 30;
-      g.lineBetween(x, y + 7, x - 3, y);
-      g.lineBetween(x, y + 7, x + 5, y - 1);
-    }
-    g.lineStyle(3, 0xb1e4ba, 0.22);
-    g.strokeRoundedRect(8, 8, width - 16, height - 16, 20);
-  }
-
-  private createStarterLevel() {
+  private createStarterLevel() {  private createStarterLevel() {
     const entries: Array<{ kind: ObjectKind; x: number; y: number; overrides?: Partial<EditorObject> }> = [
       { kind: "hero", x: 122, y: 223, overrides: { name: "حارس البلورات", health: 130, speed: 220, damage: 34, size: 1.12, color: "#f1b94f" } },
       { kind: "enemy", x: 674, y: 223, overrides: { name: "حارس الوحل", health: 90, speed: 96, damage: 8, size: 1.08, color: "#78c99d" } },
@@ -286,7 +210,7 @@ class EditorScene extends Phaser.Scene {
 
   addCoins(count: number) {
     if (this.previewing) this.stopPreview();
-    const safeCount = Phaser.Math.Clamp(Math.floor(count), 1, 20);
+    const safeCount = clampNumber(Math.floor(count), 1, 20);
     this.recordHistory();
     for (let i = 0; i < safeCount; i++) {
       const x = 128 + (i % 9) * 66;
@@ -352,113 +276,20 @@ class EditorScene extends Phaser.Scene {
     this.recordHistory();
     const id = `object-${this.nextId++}`;
     const defaults: Record<ObjectKind, { name: string; color: string }> = { hero: { name: "بطلي", color: "#ffbd59" }, enemy: { name: "عدو", color: "#ff6b72" }, crate: { name: "صندوق", color: "#c47a45" }, platform: { name: "منصة", color: "#5d91a8" }, coin: { name: "عملة", color: "#ffd34e" } };
-    const data: EditorObject = { kind, x: x ?? Phaser.Math.Between(150, 650), y: y ?? Phaser.Math.Between(110, 340), name: defaults[kind].name, health: 100, speed: 180, damage: 20, size: 1, color: defaults[kind].color, ...overrides, id };
+    const data: EditorObject = { kind, x: x ?? randomBetween(150, 650), y: y ?? randomBetween(110, 340), name: defaults[kind].name, health: 100, speed: 180, damage: 20, size: 1, color: defaults[kind].color, ...overrides, id };
     this.createView(data);
     this.select(id);
     this.emitChange();
   }
 
   private createView(data: EditorObject) {
-    const parts: Phaser.GameObjects.GameObject[] = [];
-    const isCreature = data.kind === "hero" || data.kind === "enemy";
-    const bodyColor = Phaser.Display.Color.HexStringToColor(data.color || "#f1b94f").color;
-
-    if (isCreature) {
-      const isHero = data.kind === "hero";
-      parts.push(this.add.ellipse(0, 34, 76, 20, 0x071b1b, 0.40));
-      parts.push(this.add.ellipse(0, 31, 50, 12, 0x061414, 0.28));
-      if (isHero) {
-        parts.push(this.add.triangle(0, 13, -22, -13, 22, -13, 0, 43, 0x397f73).setStrokeStyle(3, 0x9ce3c7));
-        parts.push(this.add.ellipse(-10, 27, 16, 19, 0x33485b));
-        parts.push(this.add.ellipse(10, 27, 16, 19, 0x33485b));
-        parts.push(this.add.ellipse(-11, 35, 21, 10, 0x26394b).setStrokeStyle(2, 0x829cab));
-        parts.push(this.add.ellipse(11, 35, 21, 10, 0x26394b).setStrokeStyle(2, 0x829cab));
-        parts.push(this.add.ellipse(-24, 10, 15, 24, 0x398c7d).setStrokeStyle(2, 0x9fe6cc));
-        parts.push(this.add.ellipse(24, 10, 15, 24, 0x398c7d).setStrokeStyle(2, 0x9fe6cc));
-        parts.push(this.add.circle(-29, 20, 8, 0xf1b94f).setStrokeStyle(2, 0xffe6a1));
-        parts.push(this.add.circle(29, 20, 8, 0xf1b94f).setStrokeStyle(2, 0xffe6a1));
-        parts.push(this.add.ellipse(0, 16, 39, 36, 0x2e796e).setStrokeStyle(4, 0xa3e9ce));
-        parts.push(this.add.ellipse(0, 8, 23, 12, 0x78c9ab, 0.8));
-        parts.push(this.add.rectangle(0, 28, 29, 6, 0x9c6840).setStrokeStyle(1, 0xf1cf8c));
-        parts.push(this.add.circle(0, -10, 26, bodyColor).setStrokeStyle(4, 0xffe5a1));
-        parts.push(this.add.arc(0, -11, 27, 195, 345, false, 0x8d653e, 1).setStrokeStyle(6, 0xffdf91));
-        parts.push(this.add.ellipse(-8, -18, 13, 7, 0xffffff, 0.55));
-        parts.push(this.add.circle(-8, -7, 5, 0xffffff));
-        parts.push(this.add.circle(8, -7, 5, 0xffffff));
-        parts.push(this.add.circle(-7, -6, 2.2, 0x26374a));
-        parts.push(this.add.circle(9, -6, 2.2, 0x26374a));
-        parts.push(this.add.arc(0, 3, 8, 20, 160, false, 0x5b3a32).setStrokeStyle(2, 0x5b3a32));
-        parts.push(this.add.star(0, -39, 5, 5, 10, 0x8ce6d0).setStrokeStyle(2, 0xe0fff5));
-        parts.push(this.add.rectangle(35, 5, 7, 30, 0xdaf5ef).setStrokeStyle(2, 0x6ca6a0).setAngle(25));
-        parts.push(this.add.rectangle(31, 18, 17, 5, 0x9c6840).setAngle(25));
-        parts.push(this.add.circle(37, -12, 4, 0xffffff, 0.8));
-      } else {
-        parts.push(this.add.ellipse(0, 14, 61, 48, bodyColor).setStrokeStyle(4, 0xd2f5c4));
-        parts.push(this.add.triangle(-18, -11, -9, 8, 9, 8, 0, -13, 0x4b9b7b).setStrokeStyle(2, 0xc5f6d1));
-        parts.push(this.add.triangle(18, -11, -9, 8, 9, 8, 0, -13, 0x4b9b7b).setStrokeStyle(2, 0xc5f6d1));
-        parts.push(this.add.ellipse(-17, 18, 11, 8, 0x5cae8b, 0.8));
-        parts.push(this.add.ellipse(17, 18, 11, 8, 0x5cae8b, 0.8));
-        parts.push(this.add.ellipse(-9, 8, 12, 17, 0xffffff));
-        parts.push(this.add.ellipse(9, 8, 12, 17, 0xffffff));
-        parts.push(this.add.circle(-7, 10, 3.5, 0x213e3b));
-        parts.push(this.add.circle(11, 10, 3.5, 0x213e3b));
-        parts.push(this.add.arc(1, 26, 9, 15, 165, false, 0x31534a).setStrokeStyle(3, 0x31534a));
-        parts.push(this.add.circle(-19, -1, 3, 0xe5fff0, 0.8));
-        parts.push(this.add.circle(20, -3, 4, 0xe5fff0, 0.75));
-        parts.push(this.add.star(0, -30, 5, 3, 7, 0xe6f9b2).setStrokeStyle(1, 0xffffff));
-      }
-    } else if (data.kind === "crate") {
-      parts.push(this.add.ellipse(0, 28, 66, 17, 0x07131b, 0.36));
-      parts.push(this.add.rectangle(0, 1, 55, 51, 0x80502f).setStrokeStyle(4, 0xf1c18e));
-      parts.push(this.add.rectangle(0, -2, 45, 39, bodyColor).setStrokeStyle(2, 0xffd7a2));
-      parts.push(this.add.rectangle(0, -2, 9, 39, 0x98613a));
-      parts.push(this.add.rectangle(0, -2, 44, 7, 0x98613a));
-      parts.push(this.add.line(0, 0, -18, -17, 18, 17, 0xffd4a0, 0.95).setLineWidth(4));
-      parts.push(this.add.line(0, 0, 18, -17, -18, 17, 0xffd4a0, 0.95).setLineWidth(4));
-      for (const x of [-20, 20]) for (const y of [-17, 17]) parts.push(this.add.circle(x, y, 2.5, 0xffe5b9));
-    } else if (data.kind === "coin") {
-      parts.push(this.add.circle(0, 1, 29, 0xffd95b, 0.12));
-      parts.push(this.add.ellipse(0, 24, 42, 13, 0x07131b, 0.32));
-      parts.push(this.add.circle(0, 0, 20, 0xb97824).setStrokeStyle(5, 0xffe68c));
-      parts.push(this.add.circle(0, -2, 15, bodyColor).setStrokeStyle(2, 0xfff8d6));
-      parts.push(this.add.star(0, -2, 5, 3, 9, 0xfff0a5).setStrokeStyle(1, 0xfffbe0));
-      parts.push(this.add.circle(-7, -10, 4, 0xffffff, 0.75));
-      parts.push(this.add.circle(7, 9, 2, 0xfff9d5, 0.8));
-    } else {
-      parts.push(this.add.ellipse(0, 18, 124, 17, 0x07131b, 0.28));
-      parts.push(this.add.rectangle(0, 1, 116, 34, 0x354e58).setStrokeStyle(3, 0xb7d5d7));
-      parts.push(this.add.rectangle(0, -4, 108, 25, bodyColor).setStrokeStyle(2, 0xe4f6ed));
-      parts.push(this.add.rectangle(0, 8, 98, 4, 0x315363));
-      for (let x = -42; x <= 42; x += 28) parts.push(this.add.circle(x, -5, 3, 0xe4fff7, 0.85));
-    }
-
-    const label = this.add.text(0, isCreature ? 53 : 43, data.name || data.kind, {
-      fontFamily: "Tahoma, Arial",
-      fontSize: "11px",
-      fontStyle: "bold",
-      color: "#ffffff",
-      stroke: "#17302f",
-      strokeThickness: 4,
-      shadow: { offsetX: 0, offsetY: 2, color: "#000000", blur: 5, fill: true }
-    }).setOrigin(0.5);
-    parts.push(label);
-    const view = this.add.container(data.x, data.y, parts);
-    view.setSize(isCreature ? 88 : 76, isCreature ? 112 : 84);
-    if (isCreature) {
-      this.tweens.add({ targets: view, y: data.y - 3, duration: 920, yoyo: true, repeat: -1, ease: "Sine.InOut" });
-    } else if (data.kind === "coin") {
-      this.tweens.add({ targets: view, angle: 360, duration: 2600, repeat: -1, ease: "Linear" });
-      this.tweens.add({ targets: view, scaleX: (data.size || 1) * 1.12, scaleY: (data.size || 1) * 0.94, duration: 720, yoyo: true, repeat: -1, ease: "Sine.InOut" });
-    }
+    const view = new EditorCanvasObjectView(data);
     view.setScale(data.size || 1);
-    view.setInteractive(new Phaser.Geom.Rectangle(-58, -48, 116, 105), Phaser.Geom.Rectangle.Contains);
-    this.input.setDraggable(view);
-    view.on("pointerdown", () => this.select(data.id));
     this.objects.set(data.id, { data, view });
     this.refreshDepths();
   }
 
-  private refreshDepths() {
+    private refreshDepths() {
     let depth = 0;
     for (const item of this.objects.values()) item.view.setDepth(depth++ / 1000);
   }
@@ -551,8 +382,8 @@ class EditorScene extends Phaser.Scene {
   updatePosition(x: number, y: number) {
     const item = this.selectedId ? this.objects.get(this.selectedId) : undefined;
     if (!item || item.data.locked || !Number.isFinite(x) || !Number.isFinite(y)) return;
-    const nextX = Phaser.Math.Clamp(Math.round(x), 0, 800);
-    const nextY = Phaser.Math.Clamp(Math.round(y), 0, 450);
+    const nextX = clampNumber(Math.round(x), 0, 800);
+    const nextY = clampNumber(Math.round(y), 0, 450);
     if (item.data.x === nextX && item.data.y === nextY) return;
     this.recordHistory();
     item.data.x = nextX;
@@ -631,17 +462,16 @@ class EditorScene extends Phaser.Scene {
     const source = this.selectedId ? this.objects.get(this.selectedId)?.data : undefined;
     if (!source) return;
     this.recordHistory();
-    const copy = { ...source, id: `object-${this.nextId++}`, x: Phaser.Math.Clamp(source.x + 36, 20, 780), y: Phaser.Math.Clamp(source.y + 30, 20, 430), name: `${source.name} نسخة`, locked: false };
+    const copy = { ...source, id: `object-${this.nextId++}`, x: clampNumber(source.x + 36, 20, 780), y: clampNumber(source.y + 30, 20, 430), name: `${source.name} نسخة`, locked: false };
     this.createView(copy); this.select(copy.id); this.emitChange();
   }
 
   setGridVisible(visible: boolean) {
-    if (!this.gridGraphics) return;
-    this.gridGraphics.clear();
-    if (visible) { this.gridGraphics.lineStyle(1, 0x8bb9b0, 0.13); for (let x=0;x<=800;x+=40) this.gridGraphics.lineBetween(x,0,x,450); for (let y=0;y<=450;y+=40) this.gridGraphics.lineBetween(0,y,800,y); }
+    this.gridVisible = visible;
+    this.emitChange();
   }
 
-  startPreview() {
+    startPreview() {
     if (this.previewing) return;
     const host = document.querySelector<HTMLElement>("#game-stage");
     if (!host) {
@@ -718,14 +548,21 @@ class EditorScene extends Phaser.Scene {
     this.emitChange();
   }
 
-  update(_time: number, _delta: number) {}
+  onChange(listener: (objects: EditorObject[], selected: EditorObject | null) => void) { this.listeners.add(listener); }
+
+  destroy() {
+    this.canvasRenderer?.destroy();
+    this.canvasRenderer = null;
+    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
+  }
 
   requestAttack() { this.runtime?.requestAttack(); }
 
   getSelected() { return this.selectedId ? this.objects.get(this.selectedId)?.data ?? null : null; }
   getObjects() { return [...this.objects.values()].map(item => item.data); }
   private emitChange() {
-    this.game.events.emit("editor-change", this.getObjects(), this.getSelected());
+    this.canvasRenderer?.setScene(this.getObjects(), this.selectedId, this.gridVisible);
+    for (const listener of this.listeners) listener(this.getObjects(), this.getSelected());
     if (this.previewing) return;
     if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
     this.autoSaveTimer = setTimeout(() => {
@@ -744,12 +581,8 @@ function setStatus(message: string) {
   if (status) status.innerHTML = `<i></i> ${message}`;
 }
 
-const game = new Phaser.Game({
-  type: Phaser.AUTO, parent: "game-stage", width: 800, height: 450,
-  backgroundColor: "#172d43", scene: [EditorScene],
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  render: { antialias: true, pixelArt: false }
-});
+editorScene = new EditorScene();
+editorScene.create();
 
 
 
@@ -838,8 +671,8 @@ function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
     if (lockButton) lockButton.textContent = selected.locked ? "فتح القفل 🔓" : "قفل الكائن 🔒";
   }
 }
-game.events.on("editor-change", renderEditor);
-game.events.once("ready", () => { if (editorScene) renderEditor(editorScene.getObjects(), editorScene.getSelected()); });
+editorScene?.onChange(renderEditor);
+if (editorScene) renderEditor(editorScene.getObjects(), editorScene.getSelected());
 
 
 const assistantForm = document.querySelector<HTMLFormElement>("#assistant-form");
@@ -916,7 +749,7 @@ for (const prop of ["health", "speed", "damage", "size"] as const) {
   document.querySelector<HTMLInputElement>(`#creature-${prop}`)?.addEventListener("change", event => {
     const input = event.currentTarget as HTMLInputElement;
     const limits = prop === "size" ? [0.5, 2.5] : prop === "damage" ? [1, 500] : [1, 1000];
-    const value = Phaser.Math.Clamp(Number(input.value) || limits[0], limits[0], limits[1]);
+    const value = clampNumber(Number(input.value) || limits[0], limits[0], limits[1]);
     input.value = String(value);
     if (prop === "size" || editorScene?.getSelected()?.kind === "hero" || editorScene?.getSelected()?.kind === "enemy") editorScene?.updateProperties({ [prop]: value });
   });
