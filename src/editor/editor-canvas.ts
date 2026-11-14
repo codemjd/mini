@@ -305,10 +305,17 @@ export class SparkEditorCanvas {
   }
 
   private drawObject(ctx: CanvasRenderingContext2D, item: SparkEditorObject, time: number, selected: boolean): void {
+    const motion = item.motion ?? "idle";
+    const phase = time / 1000;
     const bob = item.kind === "hero" || item.kind === "enemy" ? Math.sin(time / 330 + item.x) * 2.2 : 0;
+    const animatedBob = motion === "float" ? Math.sin(phase * 2.4 + item.x) * 6
+      : motion === "bounce" ? -Math.abs(Math.sin(phase * 3.2 + item.y)) * 9 : 0;
+    const pulse = motion === "pulse" ? 1 + Math.sin(phase * 3.5) * 0.09 : 1;
+    const wobble = motion === "wobble" ? Math.sin(phase * 4.5 + item.x) * 0.11 : 0;
     ctx.save();
-    ctx.translate(item.x, item.y + bob);
-    ctx.scale(item.size * (selected ? 1.06 : 1), item.size * (selected ? 1.06 : 1));
+    ctx.translate(item.x, item.y + bob + animatedBob);
+    ctx.rotate(wobble);
+    ctx.scale(item.size * (selected ? 1.06 : 1) * pulse, item.size * (selected ? 1.06 : 1) * pulse);
     ctx.globalAlpha = selected ? 1 : 0.94;
 
     if (item.kind === "hero") this.drawHero(ctx, item, time);
