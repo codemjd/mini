@@ -58,6 +58,30 @@ test("preview starts, exposes touch controls, and restores the editor", async ({
   await expect(page.locator("#object-count")).toHaveText("6");
 });
 
+test("Spark Script safely edits and persists the scene", async ({ page }) => {
+  await page.locator("#spark-script").fill([
+    'set("hero", "speed", 260);',
+    'spawn("coin", 320, 220);',
+    'note("custom scene ready");'
+  ].join("\n"));
+  await page.locator("#run-script").click();
+  await expect(page.locator("#object-count")).toHaveText("7");
+  await expect(page.locator("#creature-speed")).toHaveValue("260");
+  await expect(page.locator("#script-output")).toContainText("custom scene ready");
+
+  await page.reload();
+  await expect(page.locator("#object-count")).toHaveText("7");
+  await expect(page.locator("#spark-script")).toContainText('spawn("coin", 320, 220);');
+});
+
+test("Spark Script rejects arbitrary JavaScript atomically", async ({ page }) => {
+  await page.locator("#spark-script").fill('window.alert("not allowed");');
+  await page.locator("#run-script").click();
+  await expect(page.locator("#object-count")).toHaveText("6");
+  await expect(page.locator("#script-output")).toContainText("خطأ:");
+  await expect(page.locator("#spark-script")).toBeVisible();
+});
+
 test("project import rejects invalid JSON without replacing the scene", async ({ page }) => {
   await page.locator("#import-file").setInputFiles({
     name: "broken.json",
