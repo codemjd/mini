@@ -189,7 +189,7 @@ export class SparkEditorController {
     return true;
   }
 
-  addPreset(preset: "coins" | "barricade" | "rival") {
+  addPreset(preset: "coins" | "barricade" | "rival" | "camp" | "gate" | "crystal-garden") {
     if (this.previewing) this.stopPreview();
     const presets: Record<typeof preset, Array<{ kind: ObjectKind; x: number; y: number; overrides?: Partial<EditorObject> }>> = {
       coins: [260, 350, 440, 530].map(x => ({ kind: "coin", x, y: 225 })),
@@ -198,7 +198,25 @@ export class SparkEditorController {
         { kind: "crate", x: 350, y: 280, overrides: { name: "صندوق الحاجز" } },
         { kind: "crate", x: 450, y: 280, overrides: { name: "صندوق الحاجز" } }
       ],
-      rival: [{ kind: "enemy", x: 560, y: 225, overrides: { name: "حارس الساحة", health: 180, speed: 145, damage: 32, color: "#e65d72", size: 1.15 } }]
+      rival: [{ kind: "enemy", x: 560, y: 225, overrides: { name: "حارس الساحة", health: 180, speed: 145, damage: 32, color: "#e65d72", size: 1.15 } }],
+      camp: [
+        { kind: "crate", x: 310, y: 260, overrides: { name: "صندوق المؤن", color: "#b8794d", size: 1.12 } },
+        { kind: "platform", x: 405, y: 300, overrides: { name: "موقد المخيم", color: "#d97745", size: 0.9 } },
+        { kind: "coin", x: 405, y: 250, overrides: { name: "شعلة المخيم", color: "#ffd166", size: 0.82 } },
+        { kind: "crate", x: 500, y: 260, overrides: { name: "حقيبة الرحلة", color: "#6f9b79", size: 0.92 } }
+      ],
+      gate: [
+        { kind: "platform", x: 400, y: 170, overrides: { name: "قوس البوابة", color: "#71859c", size: 1.5 } },
+        { kind: "crate", x: 330, y: 255, overrides: { name: "دعامة البوابة", color: "#8d7865", size: 1.15 } },
+        { kind: "crate", x: 470, y: 255, overrides: { name: "دعامة البوابة", color: "#8d7865", size: 1.15 } },
+        { kind: "coin", x: 400, y: 245, overrides: { name: "ختم البوابة", color: "#8ed5d0", size: 0.9 } }
+      ],
+      "crystal-garden": [
+        { kind: "coin", x: 300, y: 180, overrides: { name: "بلورة زرقاء", color: "#69c8e8", size: 1.18 } },
+        { kind: "coin", x: 400, y: 240, overrides: { name: "بلورة بنفسجية", color: "#b89aff", size: 1.3 } },
+        { kind: "coin", x: 500, y: 180, overrides: { name: "بلورة خضراء", color: "#83d6a4", size: 1.18 } },
+        { kind: "platform", x: 400, y: 310, overrides: { name: "قاعدة الحديقة", color: "#527e75", size: 1.35 } }
+      ]
     };
     const items = presets[preset];
     this.recordHistory();
