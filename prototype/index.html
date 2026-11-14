@@ -47,7 +47,7 @@ const renderer={
  step(dt,items,keys){if(!world)return;const h=items.find(o=>o.type==='hero'),body=h&&bodies.get(h.id);if(body){let dx=0,dy=0;if(keys.has('a')||keys.has('arrowleft'))dx--;if(keys.has('d')||keys.has('arrowright'))dx++;if(keys.has('w')||keys.has('arrowup'))dy--;if(keys.has('s')||keys.has('arrowdown'))dy++;body.setLinearVelocity(new Vec2(dx*4,dy*4));}world.step(Math.max(1/120,Math.min(dt,1/30)),8,3);for(const o of items){const b=bodies.get(o.id);if(b){const p=b.getPosition();o.x=p.x*SCALE;o.y=p.y*SCALE;}}}
 };
 
-const $=id=>document.getElementById(id),stage=$('stage'),canvas=$('gameCanvas'),statusEl=$('status');
+const $=id=>document.getElementById(id),stage=$('stage'),statusEl=$('status');let canvas=$('gameCanvas');
 const base=()=>[{id:'p1',type:'hero',name:'البطل',x:300,y:260,scale:1,color:'#ffc06a'},{id:'p2',type:'enemy',name:'الخصم',x:650,y:260,scale:1,color:'#f06c78'},{id:'p3',type:'crate',name:'صندوق',x:480,y:360,scale:1,color:'#b47a55'},{id:'p4',type:'coin',name:'عملة',x:480,y:170,scale:1,color:'#f4d15e'}];
 let objects=base(),selectedId='p1',preview=false,keys=new Set(),drag=null,nextId=5;
 const selected=()=>objects.find(o=>o.id===selectedId),hero=()=>objects.find(o=>o.type==='hero'),say=t=>statusEl.textContent=t;
