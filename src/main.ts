@@ -1,4 +1,5 @@
 import { createSparkProjectDocument } from "./editor/project-document";
+import { SPARK_ASSETS, findSparkAsset, type SparkAssetCategory } from "./editor/asset-catalog";
 import { DEFAULT_SPARK_SCRIPT } from "./scripting/spark-script";
 import { SparkEditorController, type EditorObject, type ObjectKind } from "./editor/editor-controller";
 import { resolveLocalCommand, type LocalAssistantAction } from "./local-assistant";
@@ -40,6 +41,7 @@ app.innerHTML = `
         </div>
         <aside class="tools-panel">
           <div class="panel-section"><h2>إضافة عناصر</h2><button class="tool-button" id="add-hero"><span class="tool-icon hero-icon">●</span><span><strong>شخصية اللاعب</strong><small>الشخصية التي تتحكم بها</small></span><b>＋</b></button><button class="tool-button" id="add-enemy"><span class="tool-icon enemy-icon">◆</span><span><strong>عدو</strong><small>هدف للتجربة</small></span><b>＋</b></button><button class="tool-button" id="add-crate"><span class="tool-icon crate-icon">▧</span><span><strong>صندوق</strong><small>عنصر ثابت</small></span><b>＋</b></button><button class="tool-button" id="add-platform"><span class="tool-icon platform-icon">▬</span><span><strong>منصة</strong><small>سطح للمشهد</small></span><b>＋</b></button><button class="tool-button" id="add-coin"><span class="tool-icon coin-icon">●</span><span><strong>بلورة</strong><small>عنصر قابل للجمع في المعاينة</small></span><b>＋</b></button></div>
+          <div class="panel-section vector-assets"><div class="asset-heading"><h2>مكتبة العناصر المتجهية</h2><span class="asset-count">12 عنصرًا</span></div><label class="asset-search-label" for="asset-search">ابحث في المكتبة</label><input id="asset-search" class="asset-search" type="search" placeholder="اسم العنصر..." autocomplete="off"><select id="asset-category" class="asset-category" aria-label="تصنيف العناصر"><option value="all">كل التصنيفات</option><option value="characters">الشخصيات</option><option value="enemies">الأعداء</option><option value="environment">البيئة</option><option value="collectibles">المقتنيات</option></select><div id="asset-grid" class="asset-grid" aria-live="polite"></div><p class="asset-note">عناصر متجهية مدمجة تُرسم داخل المحرر ويمكن تعديل لونها وحجمها بعد الإضافة.</p></div>
           <div class="panel-section asset-library"><h2>تركيبات جاهزة</h2><button class="preset-button" id="preset-coins"><span>✦</span><span><strong>مسار البلورات</strong><small>أربع بلورات لامعة</small></span></button><button class="preset-button" id="preset-barricade"><span>▤</span><span><strong>حاجز خشبي</strong><small>منصة وصندوقان</small></span></button><button class="preset-button" id="preset-rival"><span>⚔</span><span><strong>خصم للتحدي</strong><small>عدو بخصائص محسّنة</small></span></button><button class="preset-button" id="preset-camp"><span>⌂</span><span><strong>مخيم المستكشف</strong><small>مؤن وموقد وعناصر ديكور</small></span></button><button class="preset-button" id="preset-gate"><span>▥</span><span><strong>بوابة قديمة</strong><small>مدخل حجري مع ختم</small></span></button><button class="preset-button" id="preset-crystal-garden"><span>✧</span><span><strong>حديقة البلورات</strong><small>مجموعة بلورات بألوان مختلفة</small></span></button></div>
           <div class="panel-section object-manager"><h2>الكائنات في المشهد <span class="muted" id="object-count">0</span></h2><div id="object-list" class="object-list"></div></div>
           <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>اسم الكائن<input id="object-name" type="text" maxlength="24"></label><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><div id="appearance-properties"><div class="inspector-subtitle">المظهر</div><label>الحجم<input id="creature-size" type="number" min="0.5" max="2.5" step="0.1"></label><label>لون العنصر<input id="creature-color" type="color"></label></div><div id="creature-properties"><div class="inspector-subtitle">خصائص الشخصية</div><label>الصحة (HP)<input id="creature-health" type="number" min="1" max="1000"></label><label>السرعة<input id="creature-speed" type="number" min="1" max="1000"></label><label>الضرر<input id="creature-damage" type="number" min="1" max="500"></label></div><div class="inspector-actions inspector-layer-actions"><button class="secondary-button" id="lock-object">قفل الكائن</button><button class="secondary-button" id="bring-forward">للأمام ↑</button><button class="secondary-button" id="send-backward">للخلف ↓</button></div><div class="inspector-actions"><button class="secondary-button" id="duplicate-object">نسخ الكائن</button><button class="danger-button" id="delete-object">حذف الكائن</button></div></div></div>
@@ -166,6 +168,43 @@ function runLocalAssistant(raw: string) {
   if (completed) setStatus("المساعد المحلي: " + finalMessage);
 }
 
+function renderAssetCatalog() {
+  const grid = document.querySelector<HTMLDivElement>("#asset-grid");
+  const search = document.querySelector<HTMLInputElement>("#asset-search");
+  const category = document.querySelector<HTMLSelectElement>("#asset-category");
+  if (!grid || !search || !category) return;
+  const query = search.value.trim().toLocaleLowerCase("ar");
+  const selectedCategory = category.value as SparkAssetCategory | "all";
+  const assets = SPARK_ASSETS.filter(asset =>
+    (selectedCategory === "all" || asset.category === selectedCategory) &&
+    (asset.name.toLocaleLowerCase("ar").includes(query) || asset.description.toLocaleLowerCase("ar").includes(query))
+  );
+  grid.replaceChildren();
+  for (const asset of assets) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "asset-card";
+    button.dataset.assetId = asset.id;
+    button.setAttribute("aria-label", "إضافة " + asset.name);
+    const preview = document.createElement("span");
+    preview.className = "asset-preview";
+    preview.textContent = asset.icon;
+    preview.style.setProperty("--asset-color", asset.color);
+    const name = document.createElement("strong");
+    name.textContent = asset.name;
+    const description = document.createElement("small");
+    description.textContent = asset.description;
+    button.append(preview, name, description);
+    grid.append(button);
+  }
+  if (!assets.length) {
+    const empty = document.createElement("p");
+    empty.className = "asset-empty";
+    empty.textContent = "لا توجد عناصر مطابقة لبحثك.";
+    grid.append(empty);
+  }
+}
+
 function renderSceneManager() {
   const sceneList = document.querySelector<HTMLDivElement>("#scene-tabs");
   const count = document.querySelector<HTMLElement>("#scene-count");
@@ -255,6 +294,16 @@ document.querySelector("#scene-tabs")?.addEventListener("click", event => {
   const target = (event.target as HTMLElement).closest<HTMLElement>("[data-scene-id]");
   if (target?.dataset.sceneId) editorScene?.switchScene(target.dataset.sceneId);
 });
+document.querySelector("#asset-search")?.addEventListener("input", renderAssetCatalog);
+document.querySelector("#asset-category")?.addEventListener("change", renderAssetCatalog);
+document.querySelector("#asset-grid")?.addEventListener("click", event => {
+  const target = (event.target as HTMLElement).closest<HTMLElement>("[data-asset-id]");
+  const asset = target?.dataset.assetId ? findSparkAsset(target.dataset.assetId) : undefined;
+  if (!asset || !editorScene) return;
+  editorScene.addObject(asset.kind, undefined, undefined, { name: asset.name, color: asset.color, size: asset.size });
+  setStatus("أُضيف " + asset.name + " إلى المشهد — يمكنك تحريكه وتعديل خصائصه");
+});
+renderAssetCatalog();
 document.querySelector("#preset-coins")?.addEventListener("click", () => editorScene?.addPreset("coins"));
 document.querySelector("#preset-barricade")?.addEventListener("click", () => editorScene?.addPreset("barricade"));
 document.querySelector("#preset-rival")?.addEventListener("click", () => editorScene?.addPreset("rival"));
