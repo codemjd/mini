@@ -45,7 +45,7 @@ const renderer={
  step(dt,items,keys){const h=items.find(o=>o.type==='hero');if(!h)return;let dx=0,dy=0;if(keys.has('a')||keys.has('arrowleft'))dx--;if(keys.has('d')||keys.has('arrowright'))dx++;if(keys.has('w')||keys.has('arrowup'))dy--;if(keys.has('s')||keys.has('arrowdown'))dy++;const nx=Math.max(30,Math.min(930,h.x+dx*190*dt)),ny=Math.max(30,Math.min(510,h.y+dy*190*dt));const block=items.some(o=>o.id!==h.id&&['crate','platform','enemy'].includes(o.type)&&Math.abs(nx-o.x)<(o.type==='platform'?58:38)&&Math.abs(ny-o.y)<35);if(!block){h.x=nx;h.y=ny;}const a=actorMap.get(h.id);if(a)a.pos=new ex.Vector(h.x,h.y);for(let i=items.length-1;i>=0;i--){const o=items[i];if(o.type==='coin'&&Math.hypot(o.x-h.x,o.y-h.y)<30){items.splice(i,1);const coin=actorMap.get(o.id);if(coin){game.currentScene.remove(coin);actorMap.delete(o.id);}say('جمع البطل عملة!');}}}
 };
 
-const $=id=>document.getElementById(id),stage=$('stage'),canvas=$('gameCanvas'),statusEl=$('status');
+const $=id=>document.getElementById(id),stage=$('stage'),statusEl=$('status');let canvas=$('gameCanvas');
 const base=()=>[{id:'p1',type:'hero',name:'البطل',x:300,y:260,scale:1,color:'#ffc06a'},{id:'p2',type:'enemy',name:'الخصم',x:650,y:260,scale:1,color:'#f06c78'},{id:'p3',type:'crate',name:'صندوق',x:480,y:360,scale:1,color:'#b47a55'},{id:'p4',type:'coin',name:'عملة',x:480,y:170,scale:1,color:'#f4d15e'}];
 let objects=base(),selectedId='p1',preview=false,keys=new Set(),drag=null,nextId=5;
 const selected=()=>objects.find(o=>o.id===selectedId),hero=()=>objects.find(o=>o.type==='hero'),say=t=>statusEl.textContent=t;
