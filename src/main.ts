@@ -210,6 +210,9 @@ document.querySelectorAll<HTMLButtonElement>("[data-assistant-command]").forEach
 document.querySelector("#preset-coins")?.addEventListener("click", () => editorScene?.addPreset("coins"));
 document.querySelector("#preset-barricade")?.addEventListener("click", () => editorScene?.addPreset("barricade"));
 document.querySelector("#preset-rival")?.addEventListener("click", () => editorScene?.addPreset("rival"));
+document.querySelector("#preset-camp")?.addEventListener("click", () => editorScene?.addPreset("camp"));
+document.querySelector("#preset-gate")?.addEventListener("click", () => editorScene?.addPreset("gate"));
+document.querySelector("#preset-crystal-garden")?.addEventListener("click", () => editorScene?.addPreset("crystal-garden"));
 document.querySelector("#add-hero")?.addEventListener("click", () => editorScene?.addObject("hero"));
 document.querySelector("#add-crate")?.addEventListener("click", () => editorScene?.addObject("crate"));
 document.querySelector("#save-button")?.addEventListener("click", () => editorScene?.save());
