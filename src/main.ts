@@ -705,7 +705,7 @@ document.querySelector<HTMLInputElement>("#import-file")?.addEventListener("chan
   if (!file) return;
   if (file.size > 2_000_000) { setStatus("حجم ملف المشروع أكبر من 2 ميغابايت"); input.value = ""; return; }
   try { editorScene?.importProject(await file.text()); }
-  catch { setStatus("تعذر قراءة الملف المحدد"); }
+  catch { setStatus("تعذر استيراد الملف — تعذر قراءة الملف المحدد"); }
   input.value = "";
 });
 document.addEventListener("keydown", event => {
