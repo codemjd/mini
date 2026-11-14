@@ -139,7 +139,7 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
       }
       const ids = new Set<string>();
       for (let index = 0; index < project.scenes.length; index += 1) {
-        const candidate = project.scenes[index] as { id?: unknown; name?: unknown; objects?: unknown; scriptSource?: unknown };
+        const candidate = project.scenes[index] as { id?: unknown; name?: unknown; objects?: unknown; scriptSource?: unknown; background?: unknown };
         if (!candidate || typeof candidate !== "object") continue;
         const id = safeSceneId(candidate.id, index);
         if (ids.has(id)) return { ok: false, error: "توجد معرفات مشاهد مكررة في الملف" };
