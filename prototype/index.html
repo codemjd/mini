@@ -45,7 +45,7 @@ const renderer={
 };
 function round(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
 
-const $=id=>document.getElementById(id),stage=$('stage'),canvas=$('gameCanvas'),statusEl=$('status');
+const $=id=>document.getElementById(id),stage=$('stage'),statusEl=$('status');let canvas=$('gameCanvas');
 const base=()=>[{id:'p1',type:'hero',name:'البطل',x:300,y:260,scale:1,color:'#ffc06a'},{id:'p2',type:'enemy',name:'الخصم',x:650,y:260,scale:1,color:'#f06c78'},{id:'p3',type:'crate',name:'صندوق',x:480,y:360,scale:1,color:'#b47a55'},{id:'p4',type:'coin',name:'عملة',x:480,y:170,scale:1,color:'#f4d15e'}];
 let objects=base(),selectedId='p1',preview=false,keys=new Set(),drag=null,nextId=5;
 const selected=()=>objects.find(o=>o.id===selectedId),hero=()=>objects.find(o=>o.type==='hero'),say=t=>statusEl.textContent=t;
