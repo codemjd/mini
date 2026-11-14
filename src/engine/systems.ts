@@ -10,6 +10,7 @@ export interface RuntimeSystemContext {
   totalCollectibles: number;
   attackRequested: boolean;
   events: RuntimeEvent[];
+  isTouching: (a: RuntimeActor, b: RuntimeActor) => boolean;
 }
 
 export interface RuntimeSystem {
@@ -91,7 +92,7 @@ export class CombatSystem implements RuntimeSystem {
       const target = context.actors
         .filter((actor) => actor.alive && actor.kind === "enemy")
         .map((actor) => ({ actor, distance: distance(hero, actor) }))
-        .filter((item) => item.distance <= 94)
+        .filter((item) => context.isTouching(hero, item.actor) || item.distance <= 94)
         .sort((a, b) => a.distance - b.distance)[0]?.actor;
       if (!target) {
         context.events.push({ type: "status", message: "لا يوجد عدو قريب — اقترب منه ثم هاجم" });
@@ -135,7 +136,7 @@ export class CollectibleSystem implements RuntimeSystem {
     const hero = context.actors.find((actor) => actor.alive && getBehavior(actor, "player-control"));
     if (!hero) return;
     for (const coin of context.actors) {
-      if (!coin.alive || coin.kind !== "coin" || distance(hero, coin) > 34) continue;
+      if (!coin.alive || coin.kind !== "coin" || (!context.isTouching(hero, coin) && distance(hero, coin) > 34)) continue;
       coin.alive = false;
       context.score += getBehavior(coin, "collectible")?.value ?? 1;
       const complete = context.totalCollectibles > 0 && context.score >= context.totalCollectibles;
