@@ -11,7 +11,7 @@ The new play-preview runtime is Spark-owned code and is separated into:
 - World — owns runtime actors, deterministic state, fixed-step simulation, and lifecycle.
 - Systems — player movement, follow-target enemy behavior, combat, and collectibles.
 - Time manager — frame timing, time scaling, and timers.
-- Renderer — PixiJS scene graph, HUD, procedural environment, actor views, and simple impact particles.
+- Renderer — melonJS Application, scene graph, renderer, text HUD, and procedural actor views.
 - Runtime host — keyboard/touch input, frame pump, callbacks, and disposal.
 
 This separation follows the documented distinction in GDevelop between project structure, game runtime, rendering, and reusable behavior/extensions. Spark does not attempt to import GDevelop's C++ Core, generated code, editor, cloud services, or complete RuntimeScene/RuntimeGame dependency graph.
@@ -19,7 +19,7 @@ This separation follows the documented distinction in GDevelop between project s
 ## What was reused and what was rebuilt
 
 1. The time-management implementation is adapted from the GDJS Runtime TimeManager. The original MIT notice is kept in the source header and in licenses/GDevelop-GDJS-MIT.txt.
-2. PixiJS 7.4.2 is used as a separately installed MIT-licensed rendering library. GDevelop's GDJS also uses PixiJS; Spark does not copy GDevelop's renderer implementation.
+2. melonJS 20.15.1 is the preview runtime and rendering engine. Its Application owns the canvas, game loop, scene graph, and renderer; Spark does not copy melonJS source.
 3. The scene model, behavior systems, renderer, game loop, input bridge, and editor adapter in this branch are Spark implementations. Their organization is informed by the public GDevelop architecture overview, not copied from the GDevelop editor.
 4. GDevelop's name and logo are not used as product branding. Spark is independent and does not claim affiliation.
 
@@ -44,7 +44,7 @@ The current extraction therefore takes a useful, independently testable vertical
 - The editor still uses Phaser. This is intentional and temporary.
 - The first renderer uses procedural vector art; it does not yet load commercial or third-party sprite packs.
 - Physics bodies, event-sheet visual editor, tilemaps, skeletal animation, audio mixer, asset pipeline, scene transitions, and export targets are later subsystems.
-- PixiJS requires WebGL support in the browser used for preview. A fallback renderer is a later hardening task if target-device tests expose a need.
+- melonJS AUTO renderer selection can fall back between WebGPU, WebGL 2, and Canvas 2D according to device support. Actual compatibility and performance still require browser and Android device tests.
 
 ## Verification gates before switching the editor
 
@@ -61,3 +61,19 @@ The current extraction therefore takes a useful, independently testable vertical
 - GDJS TimeManager source: https://github.com/4ian/GDevelop/blob/master/GDJS/Runtime/timemanager.ts
 - GDevelop license summary: https://github.com/4ian/GDevelop/blob/master/LICENSE.md
 - GDJS license: https://github.com/4ian/GDevelop/blob/master/GDJS/LICENSE.md
+
+
+## melonJS migration — phase 2
+
+The preview now runs through melonJS 20.15.1. Phaser remains only as the temporary editor renderer while the migration is verified.
+
+- Application initialization is asynchronous and owns the preview canvas lifecycle.
+- Spark's versioned scene model and deterministic behavior systems remain engine-independent.
+- A melonJS Renderable scene graph draws the procedural environment, actors, health bars, and HUD.
+- The melonJS update loop drives Spark's bounded fixed-step simulation.
+- The official Tiled Inflate plugin is registered once for future compressed Tiled-map loading.
+- PixiJS is removed from the active runtime dependencies.
+
+The built-in melonJS SAT physics is the default candidate for simple 2D collisions. Matter, Planck, or Rapier adapters are not bundled yet: select one only after a real project requirement and a device-size/performance comparison. Spine integration is deferred until its package peer compatibility with melonJS 20.x is verified.
+
+This is a runtime migration milestone, not a finished editor migration. The editor still uses Phaser, and no APK or real-device validation is claimed.

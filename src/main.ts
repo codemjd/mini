@@ -667,7 +667,17 @@ class EditorScene extends Phaser.Scene {
           if (hint) hint.textContent = "أكملت رحلة البلورات بنجاح! ✦";
         }
       });
-      this.runtime.start();
+      void this.runtime.start().catch((error) => {
+        this.runtime?.destroy();
+        this.runtime = null;
+        this.previewing = false;
+        if (editorCanvas) editorCanvas.style.visibility = "";
+        document.querySelector("#touch-controls")?.setAttribute("hidden", "true");
+        document.querySelector("#stage-shell")?.classList.remove("is-previewing");
+        document.querySelector("#preview-button")?.removeAttribute("hidden");
+        document.querySelector("#stop-preview")?.setAttribute("hidden", "true");
+        setStatus("تعذر تشغيل melonJS: " + (error instanceof Error ? error.message : "خطأ غير معروف"));
+      });
     } catch (error) {
       this.runtime?.destroy();
       this.runtime = null;
@@ -679,11 +689,11 @@ class EditorScene extends Phaser.Scene {
 
     document.querySelector("#touch-controls")?.removeAttribute("hidden");
     document.querySelector("#stage-shell")?.classList.add("is-previewing");
-    setStatus("محرك Spark يعمل — حركة ثابتة وسلوكيات مستقلة");
+    setStatus("محرك melonJS يعمل — Runtime مستقل وسلوكيات Spark");
     document.querySelector("#preview-button")?.setAttribute("hidden", "true");
     document.querySelector("#stop-preview")?.removeAttribute("hidden");
     const hint = document.querySelector<HTMLElement>("#stage-hint");
-    if (hint) hint.textContent = "المعاينة تعمل بمحرك Spark الجديد: تحرّك بالأسهم أو WASD، واجمع البلورات، واضغط الهجوم لمواجهة الحارس.";
+    if (hint) hint.textContent = "المعاينة تعمل بمحرك melonJS: تحرّك بالأسهم أو WASD، واجمع البلورات، واضغط الهجوم لمواجهة الحارس.";
     this.emitChange();
   }
 

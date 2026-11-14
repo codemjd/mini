@@ -61,6 +61,13 @@ npm run test:e2e
 
 ## Spark Engine preview foundation (0.5.0)
 
-The play-preview now runs through an independent Spark runtime layer built around a versioned scene model, a fixed-step simulation loop, modular movement/AI/combat/collectible systems, a time manager, and a PixiJS renderer. The existing Phaser editor is intentionally retained during this first migration stage; preview data is copied into the runtime so gameplay does not mutate the editable scene.
+The play-preview now runs through an independent Spark runtime layer built around a versioned scene model, a fixed-step simulation loop, modular movement/AI/combat/collectible systems, a time manager, and a melonJS renderer. The existing Phaser editor is intentionally retained during this first migration stage; preview data is copied into the runtime so gameplay does not mutate the editable scene.
 
 See [the extraction notes](docs/ENGINE-EXTRACTION.md) and [third-party notices](THIRD_PARTY_NOTICES.md) for architecture and licensing details.
+
+
+## Runtime engine
+
+The play preview is migrating to **melonJS 20.15.1**. Phaser is retained temporarily for the editor while the new runtime is verified. Spark keeps its own project schema, behavior systems, and deterministic local assistant.
+
+The first selected official add-on is the Tiled Inflate plugin for compressed Tiled maps. Physics adapters, Spine animation, virtual gamepad, debugging tools, and Capacitor are staged separately after compatibility and device checks.
