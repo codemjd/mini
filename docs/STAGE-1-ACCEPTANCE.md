@@ -20,7 +20,7 @@ This document defines what the first engineering stage of Spark Workshop Mini de
 
 These are deliberately separate from implementation checkboxes:
 
-- [ ] CI checks pass on the final reviewed PR head, including desktop and mobile-browser regression tests and Android debug APK build.
+- [x] CI checks passed on the validated implementation commit `0ce3839`: TypeScript check, production build, 32 desktop/mobile Chromium test cases, Android debug APK build, and artifact upload. Later branch commits after this implementation commit are documentation/PR metadata only.
 - [ ] Install and test the generated APK on a physical Android device (editor touch input, preview controls, persistence, and app resume/exit).
 - [ ] Produce a separately signed release APK before calling the Android build distributable.
 
@@ -46,3 +46,12 @@ npm run test:e2e
 ```
 
 The Android debug APK workflow is available in GitHub Actions under **Android debug APK**. The workflow creates a clean Capacitor Android project, syncs the web output, runs `assembleDebug`, and uploads `app-debug.apk` as an artifact.
+
+
+## Latest CI evidence
+
+- Implementation commit: `0ce3839a8f88f506c5bc08bbf5f432ca21658ab8`
+- Browser quality workflow: [run 56](https://github.com/codemjd/mini/actions/runs/43609839722) — 32 tests passed across desktop and mobile Chromium.
+- Build-and-check workflow: [run 128](https://github.com/codemjd/mini/actions/runs/43609839719) — TypeScript check, production build, and 32 browser tests passed.
+- Android workflow: [run 31](https://github.com/codemjd/mini/actions/runs/43609839636) — debug APK built and uploaded.
+- Artifact: `spark-workshop-debug-apk`, containing `app-debug.apk` (4,593,146 bytes). The artifact expires on 2026-11-28.
