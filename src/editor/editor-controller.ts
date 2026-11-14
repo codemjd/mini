@@ -67,6 +67,7 @@ export class SparkEditorController {
     this.canvasRenderer.mount(host);
     this.loadProject();
     if (this.objects.size === 0) this.createStarterLevel();
+    if (!this.selectedId) this.select(this.objects.keys().next().value ?? null);
     this.emitChange();
   }
 
@@ -143,6 +144,8 @@ export class SparkEditorController {
     this.selectedId = null;
     this.nextId = 1;
     this.createStarterLevel();
+    const hero = [...this.objects.values()].find(item => item.data.kind === "hero");
+    if (hero) this.select(hero.data.id);
     this.emitChange();
     this.save();
     this.options.setStatus("أصبحت رحلة البلورات جاهزة للتعديل واللعب");
@@ -249,12 +252,17 @@ export class SparkEditorController {
   }
 
   private restoreObjects(snapshot: EditorObject[]) {
+    const previousSelection = this.selectedId;
     for (const item of this.objects.values()) item.view.destroy();
     this.objects.clear();
     this.selectedId = null;
     for (const data of snapshot) this.createView({ ...data });
     this.refreshDepths();
-    this.emitChange();
+    const selection = previousSelection && this.objects.has(previousSelection)
+      ? previousSelection
+      : this.objects.keys().next().value ?? null;
+    if (selection) this.select(selection);
+    else this.emitChange();
     this.updateHistoryButtons();
   }
 
@@ -506,8 +514,17 @@ export class SparkEditorController {
     this.runtime = null;
     this.canvasRenderer?.destroy();
     this.canvasRenderer = null;
+    const flushPendingSave = !!this.autoSaveTimer;
     if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
     this.autoSaveTimer = undefined;
+    if (flushPendingSave) {
+      try {
+        const payload = createSparkProjectDocument(this.getObjects(), this.options.getScriptSource());
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch {
+        // The browser may reject storage while closing; the last successful save remains intact.
+      }
+    }
     this.listeners.clear();
   }
 
