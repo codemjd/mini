@@ -16,7 +16,6 @@
   "dependencies": {
     "@melonjs/tiled-inflate-plugin": "1.2.2",
     "melonjs": "20.15.1",
-    "phaser": "^3.90.0",
     "@capacitor/app": "8.1.2",
     "@capacitor/core": "8.6.2",
     "@melonjs/capacitor-plugin": "1.0.2",
