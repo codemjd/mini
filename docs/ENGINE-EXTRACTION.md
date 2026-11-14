@@ -94,3 +94,10 @@ Physics choice: keep melonJS built-in SAT for the current top-down arcade runtim
 Spine is deliberately not installed: its plugin package has MIT terms, but the underlying Spine runtime has separate licensing conditions. Native Sprite/TextureAtlas animation remains the default.
 
 The editor is still Phaser-based. This phase upgrades the runtime and platform pipeline; it does not claim a complete editor migration or a physical-device test.
+
+
+## Editor independence — first vertical slice
+
+The project document model is isolated in \`src/editor/project-document.ts\`. It migrates legacy v1/v2 JSON into schema v3, validates object records, preserves the optional Spark Script source, and has no Phaser or melonJS dependency. The visual editor still uses Phaser for display and pointer manipulation; that renderer is not yet replaced.
+
+The optional Spark Script subsystem is kept in \`src/scripting/spark-script.ts\`. It parses a four-command allowlist into validated operations and commits scene changes as one undoable edit. It is deliberately not arbitrary JavaScript and does not run per-frame gameplay logic.
