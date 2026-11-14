@@ -86,3 +86,8 @@ The preview runtime now uses melonJS 20.15.1 with:
 Android packaging is configured through Capacitor 8. CI scaffolds a clean Android project, builds a debug APK and uploads it as an artifact. This does not replace testing on a physical Android device.
 
 The editor still uses Phaser temporarily. Do not remove it until the editor can create, save, reopen and preview a project entirely through Spark's new editor/runtime path.
+
+
+## Optional professional editing — Spark Script
+
+Advanced users can use a small, restricted command language to modify scene data in one undoable transaction. It supports \`set\`, \`spawn\`, \`remove\`, and \`note\`; it does not evaluate JavaScript or expose browser, network, or file APIs. See [Spark Script documentation](docs/SPARK-SCRIPT.md). This is a scene-edit scripting aid, not a general gameplay scripting runtime.
