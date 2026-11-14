@@ -375,3 +375,45 @@ button:disabled{cursor:not-allowed}
 
 /* Native Spark editor renderer; touch coordinates are handled by the canvas adapter. */
 #game-stage canvas.spark-editor-canvas{display:block;width:100%!important;height:100%!important;object-fit:fill;touch-action:none;user-select:none;-webkit-user-select:none}
+
+
+/* Spark Workshop 0.8 — multi-scene project workspace */
+.scene-manager{
+  margin:0 0 14px;
+  padding:13px;
+  border:1px solid #3d625d;
+  border-radius:13px;
+  background:linear-gradient(135deg,#1b3839,#172c36);
+  box-shadow:0 12px 30px #0002;
+}
+.scene-manager-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.scene-manager-heading strong,.scene-manager-heading small{display:block}
+.scene-manager-heading strong{font-size:12px;color:#f1f7f2}
+.scene-manager-heading small{margin-top:3px;font-size:9px;color:#94b4a9}
+.scene-manager-actions{display:flex;gap:6px;flex-wrap:wrap}
+.scene-manager-actions button{
+  border:1px solid #486d67;border-radius:8px;padding:6px 9px;
+  background:#203f40;color:#d8eee4;font:700 9px "Cairo",Tahoma,sans-serif;cursor:pointer
+}
+.scene-manager-actions button:first-child{background:#d9ad68;border-color:#f0ca8c;color:#35291b}
+.scene-manager-actions button:last-child{border-color:#79515a;background:#412e37;color:#ffc7c7}
+.scene-manager-actions button:hover{filter:brightness(1.14)}
+.scene-tabs{display:flex;gap:7px;overflow-x:auto;padding:12px 1px 5px;scrollbar-width:thin}
+.scene-tab{
+  flex:0 0 auto;min-width:112px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  padding:9px 12px;border:1px solid #3b5b5b;border-radius:9px;background:#142a32;color:#bfd3ca;
+  text-align:right;cursor:pointer
+}
+.scene-tab strong{font-size:10px;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scene-tab small{font-size:8px;color:#89a69f}
+.scene-tab.active{border-color:#e5bb77;background:linear-gradient(135deg,#38564c,#263e40);color:#ffdfa5;box-shadow:0 0 0 1px #e5bb7722}
+.scene-tab:focus-visible,.scene-manager-actions button:focus-visible{outline:2px solid #f5ce88;outline-offset:2px}
+.scene-manager-foot{display:flex;justify-content:space-between;gap:8px;color:#789891;font-size:8px}
+@media(max-width:650px){
+ .scene-manager{padding:10px;margin-bottom:10px}
+ .scene-manager-heading{align-items:flex-start;flex-direction:column;gap:8px}
+ .scene-manager-actions{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+ .scene-manager-actions button{padding:7px 3px;font-size:8px}
+ .scene-tab{min-width:100px;padding:8px 10px}
+ .scene-manager-foot{font-size:7px}
+}
