@@ -447,3 +447,10 @@ button:disabled{cursor:not-allowed}
 #object-motion,#enemy-ai-mode{width:100%;min-height:36px;border:1px solid #3b5a61;border-radius:8px;background:#0e222a;color:#eff8f3;padding:6px 9px;font:inherit;font-size:12px}
 #object-motion:focus,#enemy-ai-mode:focus{outline:2px solid #82dfc0;outline-offset:2px}
 .field-help{margin:7px 0 0;color:#91aaad;font-size:10px;line-height:1.65}
+
+
+/* Per-scene background selection */
+.background-picker{display:inline-flex;align-items:center;gap:6px;color:#9fb9b7;font-size:10px;white-space:nowrap}
+.background-picker select{max-width:132px;min-height:29px;padding:4px 7px;border:1px solid #3a5961;border-radius:7px;background:#10252d;color:#e9f4ef;font:inherit;font-size:10px}
+.background-picker select:focus{outline:2px solid #82dfc0;outline-offset:2px}
+@media(max-width:720px){.background-picker{font-size:9px}.background-picker select{max-width:118px;font-size:9px}}
