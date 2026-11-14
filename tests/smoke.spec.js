@@ -47,6 +47,8 @@ test("preview starts, exposes touch controls, and restores the editor", async ({
   await expect(page.locator("#stop-preview")).toBeVisible();
   await expect(page.locator("#touch-controls")).toBeVisible();
   await expect(page.locator("#game-stage canvas.spark-preview-canvas")).toHaveCount(1);
+  await expect(page.locator("#game-stage")).toHaveAttribute("data-spark-input", "melonjs-gamepad-plugin");
+  await expect(page.locator("#touch-controls")).toContainText("melonJS");
 
   await page.locator("#stop-preview").click();
   await expect(page.locator("#preview-button")).toBeVisible();
