@@ -74,20 +74,17 @@ class SparkActorRenderable extends Renderable {
       renderer.setColor("rgba(255,207,68,0.16)");
       renderer.fillEllipse(cx,cy,r*1.35*pulse,r*1.35*pulse);
       renderer.setColor("#ffcf45");
-      renderer.beginPath();
-      renderer.moveTo(cx,cy-r*pulse);
-      renderer.lineTo(cx+r*0.68*pulse,cy);
-      renderer.lineTo(cx,cy+r*pulse);
-      renderer.lineTo(cx-r*0.68*pulse,cy);
-      renderer.closePath();
-      renderer.fill();
+      renderer.fillEllipse(cx,cy,r*0.68*pulse,r*pulse);
       renderer.setColor("#fff5b5");
       renderer.strokeLine(cx,cy-r*0.62,cx+r*0.35,cy);
+      renderer.strokeLine(cx+r*0.35,cy,cx,cy+r*0.62);
+      renderer.strokeLine(cx,cy+r*0.62,cx-r*0.35,cy);
+      renderer.strokeLine(cx-r*0.35,cy,cx,cy-r*0.62);
     } else if(a.kind==="crate"){
       renderer.setColor("rgba(0,0,0,0.25)");
       renderer.fillEllipse(cx,cy+r*0.72,r*0.95,5);
       renderer.setColor("#754b38");
-      renderer.fillRoundRect(cx-r*0.85,cy-r*0.72,r*1.7,r*1.45,7);
+      renderer.fillRect(cx-r*0.85,cy-r*0.72,r*1.7,r*1.45,7);
       renderer.setColor(a.color);
       renderer.fillRoundRect(cx-r*0.72,cy-r*0.62,r*1.44,r*1.25,5);
       renderer.setColor("#f5c58b");

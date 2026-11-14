@@ -59,7 +59,7 @@ npm run test:e2e
 ملف JSON يحفظ بيانات المشروع، ولا يمثل تطبيقًا قابلًا للتثبيت. لن نعلن جاهزية HTML5 أو APK قبل بناء حقيقي واختبار مستقل.
 
 
-## Spark Engine preview foundation (0.5.0)
+## Spark Engine preview foundation (0.6.0)
 
 The play-preview now runs through an independent Spark runtime layer built around a versioned scene model, a fixed-step simulation loop, modular movement/AI/combat/collectible systems, a time manager, and a melonJS renderer. The existing Phaser editor is intentionally retained during this first migration stage; preview data is copied into the runtime so gameplay does not mutate the editable scene.
 
