@@ -61,7 +61,7 @@ npm run test:e2e
 
 ## Spark Engine preview foundation (0.7.0)
 
-The play-preview now runs through an independent Spark runtime layer built around a versioned scene model, a fixed-step simulation loop, modular movement/AI/combat/collectible systems, a time manager, and a melonJS renderer. The existing Phaser editor is intentionally retained during this first migration stage; preview data is copied into the runtime so gameplay does not mutate the editable scene.
+The play-preview now runs through an independent Spark runtime layer built around a versioned scene model, a fixed-step simulation loop, modular movement/AI/combat/collectible systems, a time manager, and a melonJS renderer. The editor now uses Spark-owned Canvas 2D rendering and pointer manipulation; the play preview uses melonJS. The two layers share the versioned Spark project model without requiring a second game engine in the editor.
 
 See [the extraction notes](docs/ENGINE-EXTRACTION.md) and [third-party notices](THIRD_PARTY_NOTICES.md) for architecture and licensing details.
 
@@ -91,3 +91,8 @@ The editor still uses Phaser temporarily. Do not remove it until the editor can 
 ## Optional professional editing — Spark Script
 
 Advanced users can use a small, restricted command language to modify scene data in one undoable transaction. It supports \`set\`, \`spawn\`, \`remove\`, and \`note\`; it does not evaluate JavaScript or expose browser, network, or file APIs. See [Spark Script documentation](docs/SPARK-SCRIPT.md). This is a scene-edit scripting aid, not a general gameplay scripting runtime.
+
+
+## Editor renderer migration
+
+The scene editor canvas and pointer/drag handling are now Spark-owned Canvas 2D code. Phaser is no longer required by the editor or preview bundle. melonJS remains the preview/game runtime; keeping these responsibilities separate avoids running two game engines for editing and playing.
