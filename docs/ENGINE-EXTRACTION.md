@@ -110,3 +110,12 @@ The optional Spark Script subsystem is kept in \`src/scripting/spark-script.ts\`
 - melonJS remains responsible for the playable preview and runtime.
 - Phaser was removed from active dependencies after the editor renderer migration.
 - Current scope remains a single-scene editor with object list, inspector, locking, layers, undo/redo, JSON import/export, and local persistence. Multi-scene project navigation, multi-select, clipboard workflow, and a richer property/asset system remain later work.
+
+
+## Stage 1 closure work — controller, persistence, and input safety
+
+The editor controller is now isolated in `src/editor/editor-controller.ts`. `src/main.ts` owns the static RTL application shell, binds the controller, renders the object list/inspector, and connects user controls. The controller exposes explicit `canUndo` / `canRedo` queries instead of requiring the UI to inspect private stacks.
+
+Persistence now writes `spark-workshop-mini-project-v3`. Existing v2 local saves are read and migrated without discarding the project or its Spark Script source. A successful manual save removes the obsolete key. Imported object identifiers are normalized and de-duplicated before they reach HTML attributes. Status messages are appended as text nodes to avoid treating project/script-derived text as HTML.
+
+The browser regression suite covers legacy save migration, script edits with undo/redo, and malicious-looking script error text. These checks complement the existing scene creation, editing, preview lifecycle, and mobile viewport tests.
