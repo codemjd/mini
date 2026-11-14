@@ -74,8 +74,13 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
       const item = candidate as Partial<SparkEditorObject>;
       if (!KINDS.includes(item.kind as SparkEditorObjectKind)) continue;
 
-      let id = typeof item.id === "string" && item.id.length <= 80 ? item.id : "object-" + (index + 1);
-      if (!id || ids.has(id)) id = "object-imported-" + (index + 1);
+      const importedId = typeof item.id === "string" ? item.id : "";
+      const baseId = /^[A-Za-z0-9_-]{1,80}$/.test(importedId) ? importedId : "object-" + (index + 1);
+      let id = baseId;
+      let duplicateSuffix = 1;
+      while (ids.has(id)) {
+        id = baseId.slice(0, 68) + "-imported-" + duplicateSuffix++;
+      }
       ids.add(id);
 
       const color = typeof item.color === "string" && /^#[0-9a-fA-F]{6}$/.test(item.color)
