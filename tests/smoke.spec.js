@@ -83,6 +83,57 @@ test("Spark Script rejects arbitrary JavaScript atomically", async ({ page }) =>
   await expect(page.locator("#spark-script")).toBeVisible();
 });
 
+
+test("legacy v2 local projects migrate to schema v3 without losing objects or script", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem("spark-workshop-mini-project-v2", JSON.stringify({
+      version: 2,
+      title: "Old project",
+      width: 800,
+      height: 450,
+      objects: [{
+        id: "saved-hero",
+        kind: "hero",
+        x: 210,
+        y: 190,
+        name: "Legacy hero",
+        health: 120,
+        speed: 240,
+        damage: 30,
+        size: 1,
+        color: "#55aaff"
+      }],
+      scriptSource: 'note("migrated");'
+    }));
+  });
+  await page.reload();
+  await expect(page.locator("#object-count")).toHaveText("1");
+  await expect(page.locator("#object-name")).toHaveValue("Legacy hero");
+  await expect(page.locator("#spark-script")).toHaveValue('note("migrated");');
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v3") || "null"));
+  expect(stored.version).toBe(3);
+  expect(stored.objects).toHaveLength(1);
+  expect(stored.scriptSource).toBe('note("migrated");');
+});
+
+test("undo and redo cover script-generated changes", async ({ page }) => {
+  await page.locator("#spark-script").fill('spawn("coin", 310, 210);');
+  await page.locator("#run-script").click();
+  await expect(page.locator("#object-count")).toHaveText("7");
+  await page.locator("#undo-button").click();
+  await expect(page.locator("#object-count")).toHaveText("6");
+  await page.locator("#redo-button").click();
+  await expect(page.locator("#object-count")).toHaveText("7");
+});
+
+test("script error text is rendered as text, never injected as HTML", async ({ page }) => {
+  await page.locator("#spark-script").fill('set("<img src=x onerror=alert(1)>", "health", 5);');
+  await page.locator("#run-script").click();
+  await expect(page.locator("#script-output")).toContainText("خطأ:");
+  await expect(page.locator("#save-state img")).toHaveCount(0);
+  await expect(page.locator("#object-count")).toHaveText("6");
+});
+
 test("project import rejects invalid JSON without replacing the scene", async ({ page }) => {
   await page.locator("#import-file").setInputFiles({
     name: "broken.json",
