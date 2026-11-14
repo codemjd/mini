@@ -96,3 +96,12 @@ Advanced users can use a small, restricted command language to modify scene data
 ## Editor renderer migration
 
 The scene editor canvas and pointer/drag handling are now Spark-owned Canvas 2D code. Phaser is no longer required by the editor or preview bundle. melonJS remains the preview/game runtime; keeping these responsibilities separate avoids running two game engines for editing and playing.
+
+
+## Stage 1 foundation — editor separation and project lifecycle
+
+- The scene editor controller is isolated in `src/editor/editor-controller.ts`; the main entry point now wires UI events and renders the inspector/list only.
+- Project persistence uses schema v3 under a versioned storage key. Existing v2 local saves migrate automatically on first open and are removed after a successful manual v3 save.
+- Imported object IDs are normalized to a safe character set and made unique before they can reach editor list markup.
+- Status messages use text nodes, not HTML string interpolation.
+- The optional Spark Script remains a restricted command language, and script edits participate in undo/redo.
