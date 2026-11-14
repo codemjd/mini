@@ -763,4 +763,4 @@ for (const axis of ["x", "y"] as const) {
     editorScene?.updatePosition(axis === "x" ? Number(input.value) : selected.x, axis === "y" ? Number(input.value) : selected.y);
   });
 }
-window.addEventListener("beforeunload", () => game.destroy(true));
+window.addEventListener("beforeunload", () => editorScene?.destroy());
