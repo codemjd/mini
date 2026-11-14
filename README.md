@@ -59,7 +59,7 @@ npm run test:e2e
 ملف JSON يحفظ بيانات المشروع، ولا يمثل تطبيقًا قابلًا للتثبيت. لن نعلن جاهزية HTML5 أو APK قبل بناء حقيقي واختبار مستقل.
 
 
-## Spark Engine preview foundation (0.6.0)
+## Spark Engine preview foundation (0.7.0)
 
 The play-preview now runs through an independent Spark runtime layer built around a versioned scene model, a fixed-step simulation loop, modular movement/AI/combat/collectible systems, a time manager, and a melonJS renderer. The existing Phaser editor is intentionally retained during this first migration stage; preview data is copied into the runtime so gameplay does not mutate the editable scene.
 
@@ -71,3 +71,18 @@ See [the extraction notes](docs/ENGINE-EXTRACTION.md) and [third-party notices](
 The play preview is migrating to **melonJS 20.15.1**. Phaser is retained temporarily for the editor while the new runtime is verified. Spark keeps its own project schema, behavior systems, and deterministic local assistant.
 
 The first selected official add-on is the Tiled Inflate plugin for compressed Tiled maps. Physics adapters, Spine animation, virtual gamepad, debugging tools, and Capacitor are staged separately after compatibility and device checks.
+
+
+## melonJS runtime integration — 0.7.0
+
+The preview runtime now uses melonJS 20.15.1 with:
+- Built-in SAT sensor bodies and collision lifecycle callbacks connected to Spark gameplay systems.
+- Official virtual gamepad plugin for touch joystick/button input and unified keyboard/gamepad actions.
+- Official Tiled Inflate plugin for compressed Tiled maps.
+- Optional Debug Panel, loaded only when ?debug=1 is present; F1 toggles it.
+- TexturePacker/Aseprite-compatible atlas loading and animated Sprite factory.
+- Conditional Capacitor lifecycle integration for native builds.
+
+Android packaging is configured through Capacitor 8. CI scaffolds a clean Android project, builds a debug APK and uploads it as an artifact. This does not replace testing on a physical Android device.
+
+The editor still uses Phaser temporarily. Do not remove it until the editor can create, save, reopen and preview a project entirely through Spark's new editor/runtime path.
