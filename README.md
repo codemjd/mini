@@ -24,7 +24,9 @@ https://codemjd.github.io/mini/
 - محرر المشاهد مستقل عن Phaser ويستخدم `SparkEditorCanvas`.
 - وحدة `SparkEditorController` مستقلة عن نقطة تشغيل الواجهة.
 - melonJS 20.15.1 مسؤول عن المعاينة القابلة للعب، مع إدخال لوحة المفاتيح واللمس.
-- نموذج المشروع من الإصدار الثالث، مع ترحيل تلقائي للحفظ المحلي من الإصدار الثاني.
+- نموذج المشروع من الإصدار الرابع متعدد المشاهد، مع ترحيل تلقائي من صيغ v1 وv2 وv3.
+- إدارة حتى 30 مشهدًا داخل المشروع: إنشاء، تبديل، نسخ، إعادة تسمية، وحذف مع حماية المشهد الأخير.
+- لكل مشهد عناصره وSpark Script الخاص به، مع حفظ تلقائي مستقل وتصدير/استيراد المشروع كاملًا.
 - تصدير/استيراد JSON، والتراجع والإعادة، وقفل العناصر وترتيبها.
 - مساحة Spark Script الاختيارية لتنفيذ أوامر محددة وآمنة.
 
@@ -65,7 +67,7 @@ npm run test:e2e
 
 ## الحدود الحالية
 
-هذه بداية صغيرة وليست محرك ألعاب مكتملًا. ما زال ينقصها محرر أحداث مرئي، ومكتبة أصول فنية حقيقية قابلة للاستعراض، ومشاهد متعددة، وتحديد متعدد، وأنظمة تصادم ومنصات متقدمة، وتصدير HTML5/ZIP وإصدار APK موقّع للنشر. يوجد الآن مسار CI يُنتج APK تجريبيًا (Debug)، لكنه لم يُعتمد بعد بعد اختبار التثبيت والتشغيل على جهاز Android فعلي. الرسومات الحالية مرسومة برمجيًا داخل المشهد وليست حزمة رسومات تجارية أو مولّدة. المساعد يعمل بقائمة أوامر محددة، وليس ذكاءً اصطناعيًا حرًا.
+هذه بداية صغيرة وليست محرك ألعاب مكتملًا. ما زال ينقصها محرر أحداث مرئي، ومكتبة أصول فنية حقيقية قابلة للاستعراض، وتحديد متعدد، وأنظمة تصادم ومنصات متقدمة، وتصدير HTML5/ZIP وإصدار APK موقّع للنشر. يوجد الآن مسار CI يُنتج APK تجريبيًا (Debug)، لكنه لم يُعتمد بعد بعد اختبار التثبيت والتشغيل على جهاز Android فعلي. الرسومات الحالية مرسومة برمجيًا داخل المشهد وليست حزمة رسومات تجارية أو مولّدة. المساعد يعمل بقائمة أوامر محددة، وليس ذكاءً اصطناعيًا حرًا.
 
 ملف JSON يحفظ بيانات المشروع ولا يمثل تطبيقًا قابلًا للتثبيت. بناء APK التجريبي متاح عبر GitHub Actions؛ أما اعتماد إصدار قابل للتوزيع فيتطلب اختبارًا على جهاز فعلي وإعداد توقيع إصدار مناسب.
 
@@ -96,7 +98,7 @@ The preview runtime now uses melonJS 20.15.1 with:
 
 Android packaging is configured through Capacitor 8. CI scaffolds a clean Android project, builds a debug APK and uploads it as an artifact. This does not replace testing on a physical Android device.
 
-The editor is now split into a dedicated Canvas 2D renderer and `SparkEditorController`; project storage is versioned as v3 with automatic v2 migration. Remaining product work includes multi-scene editing, multi-select, richer asset workflows, and physical-device validation.
+The editor is now split into a dedicated Canvas 2D renderer and `SparkEditorController`; project storage is versioned as v4 with automatic v1/v2/v3 migration. Multi-scene editing is now implemented with a 30-scene project limit, isolated object/script state, scene duplication/renaming/deletion, and whole-project persistence. Remaining product work includes multi-select, richer asset workflows, visual behaviors, and physical-device validation.
 
 
 ## Optional professional editing — Spark Script
@@ -112,7 +114,7 @@ The scene editor canvas and pointer/drag handling are now Spark-owned Canvas 2D 
 ## Stage 1 foundation — editor separation and project lifecycle
 
 - The scene editor controller is isolated in `src/editor/editor-controller.ts`; the main entry point now wires UI events and renders the inspector/list only.
-- Project persistence uses schema v3 under a versioned storage key. Existing v2 local saves migrate automatically on first open and are removed after a successful manual v3 save.
+- Project persistence uses schema v4 with up to 30 scenes under a versioned storage key. Existing v1/v2/v3 local saves migrate automatically on first open.
 - Imported object IDs are normalized to a safe character set and made unique before they can reach editor list markup.
 - Status messages use text nodes, not HTML string interpolation.
 - The optional Spark Script remains a restricted command language, and script edits participate in undo/redo.
