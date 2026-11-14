@@ -132,3 +132,8 @@ button:focus-visible,input:focus-visible{outline:2px solid #f2c476;outline-offse
   .asset-library .preset-button{width:100%;min-height:44px}
   .asset-library .preset-button>span:first-child{width:30px;height:30px}
 }
+
+/* Combat controls and touch ergonomics */
+.touch-attack{min-width:116px;height:44px;margin-top:6px;border:1px solid #d28a55;border-radius:12px;background:linear-gradient(135deg,#87483c,#5b2d36);color:#fff0e5;font:800 13px "Cairo",Tahoma,sans-serif;box-shadow:0 5px 16px #0005;touch-action:none}
+.touch-attack:active{transform:translateY(1px);background:#a65342}
+@media(min-width:721px){.touch-controls{gap:8px}}
