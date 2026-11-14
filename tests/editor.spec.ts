@@ -61,6 +61,7 @@ test("built-in scene compositions add reusable objects and support undo", async 
 });
 
 test("multiple scenes stay isolated and switch without losing edits", async ({ page }) => {
+  page.once("dialog", dialog => dialog.accept("المرحلة الثانية"));
   await page.locator("#object-name").fill("بطل الجزيرة");
   await page.locator("#object-name").dispatchEvent("change");
   await page.locator("#scene-new").click();
@@ -94,6 +95,7 @@ test("scenes can be duplicated, renamed, and deleted while preserving one scene"
 });
 
 test("multi-scene project exports as v4 and reloads the active scene", async ({ page }) => {
+  page.once("dialog", dialog => dialog.accept("المشهد الثاني"));
   await page.locator("#scene-new").click();
   await page.locator("#add-enemy").click();
   await page.locator("#save-button").click();
