@@ -10,7 +10,7 @@ test("workshop renders the current six-object starter scene", async ({ page }) =
   const pageErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
 
-  await expect(page).toHaveTitle("ورشة الشرارات Mini");
+  await expect(page).toHaveTitle("ورشة الشرارات Mini — رحلة البلورات");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.getByRole("heading", { name: "محرر المشهد" })).toBeVisible();
   await expect(page.locator("#game-stage canvas")).toHaveCount(1);
@@ -46,10 +46,13 @@ test("preview starts, exposes touch controls, and restores the editor", async ({
   await page.locator("#preview-button").click();
   await expect(page.locator("#stop-preview")).toBeVisible();
   await expect(page.locator("#touch-controls")).toBeVisible();
+  await expect(page.locator("#game-stage canvas.spark-preview-canvas")).toHaveCount(1);
 
   await page.locator("#stop-preview").click();
   await expect(page.locator("#preview-button")).toBeVisible();
   await expect(page.locator("#touch-controls")).toBeHidden();
+  await expect(page.locator("#game-stage canvas.spark-preview-canvas")).toHaveCount(0);
+  await expect(page.locator("#game-stage canvas")).toHaveCount(1);
   await expect(page.locator("#object-count")).toHaveText("6");
 });
 
