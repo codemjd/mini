@@ -11,6 +11,8 @@ export interface LegacyEditorObject {
   damage: number;
   size: number;
   color: string;
+  motion?: "idle" | "float" | "pulse" | "bounce" | "wobble";
+  aiMode?: "chase" | "guard";
 }
 
 function behaviorsFor(kind: SparkObjectKind, item: LegacyEditorObject): SparkBehavior[] {
@@ -23,7 +25,7 @@ function behaviorsFor(kind: SparkObjectKind, item: LegacyEditorObject): SparkBeh
       ];
     case "enemy":
       return [
-        { type: "follow-target", speed: item.speed, stopDistance: 48 },
+        ...(item.aiMode === "guard" ? [] : [{ type: "follow-target" as const, speed: item.speed, stopDistance: 48 }]),
         { type: "health", maximum: item.health },
         { type: "melee", damage: item.damage, range: 52, cooldownMs: 850 }
       ];
@@ -59,6 +61,8 @@ export function createRuntimeSceneFromObjects(objects: LegacyEditorObject[]): Sp
       health: normalized.health,
       speed: normalized.speed,
       damage: normalized.damage,
+      motion: item.motion ?? "idle",
+      aiMode: item.aiMode ?? "chase",
       behaviors: behaviorsFor(item.kind, { ...item, ...normalized })
     };
   });
