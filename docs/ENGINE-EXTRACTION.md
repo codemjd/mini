@@ -101,3 +101,12 @@ The editor is still Phaser-based. This phase upgrades the runtime and platform p
 The project document model is isolated in \`src/editor/project-document.ts\`. It migrates legacy v1/v2 JSON into schema v3, validates object records, preserves the optional Spark Script source, and has no Phaser or melonJS dependency. The visual editor still uses Phaser for display and pointer manipulation; that renderer is not yet replaced.
 
 The optional Spark Script subsystem is kept in \`src/scripting/spark-script.ts\`. It parses a four-command allowlist into validated operations and commits scene changes as one undoable edit. It is deliberately not arbitrary JavaScript and does not run per-frame gameplay logic.
+
+
+## Editor renderer migration — first batch
+
+- The editor now renders with \`SparkEditorCanvas\`, a Spark-owned Canvas 2D renderer for the scene background, actors, selection outlines, grid, and pointer/touch dragging.
+- Scene editing no longer creates a Phaser game or imports Phaser APIs. The project model and editor renderer do not depend on melonJS.
+- melonJS remains responsible for the playable preview and runtime.
+- Phaser was removed from active dependencies after the editor renderer migration.
+- Current scope remains a single-scene editor with object list, inspector, locking, layers, undo/redo, JSON import/export, and local persistence. Multi-scene project navigation, multi-select, clipboard workflow, and a richer property/asset system remain later work.
