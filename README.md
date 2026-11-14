@@ -116,3 +116,8 @@ The scene editor canvas and pointer/drag handling are now Spark-owned Canvas 2D 
 - Imported object IDs are normalized to a safe character set and made unique before they can reach editor list markup.
 - Status messages use text nodes, not HTML string interpolation.
 - The optional Spark Script remains a restricted command language, and script edits participate in undo/redo.
+
+
+## Stage 1 acceptance boundary
+
+See [Stage 1 acceptance and deferred scope](docs/STAGE-1-ACCEPTANCE.md) for the exact feature boundary and the remaining physical-device/release gates.
