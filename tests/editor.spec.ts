@@ -151,6 +151,16 @@ test("scene backgrounds are isolated and persist with their scene", async ({ pag
   await page.locator("#scene-new").click();
   await expect(page.locator("#background-theme")).toHaveValue("crystal-garden");
   await page.locator("#background-theme").selectOption("frost-cavern");
+  await page.waitForFunction(() => {
+    const raw = localStorage.getItem("spark-workshop-mini-project-v4");
+    if (!raw) return false;
+    try {
+      const project = JSON.parse(raw);
+      return project.scenes?.some((scene: { background?: string }) => scene.background === "frost-cavern");
+    } catch {
+      return false;
+    }
+  });
 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v4") || "{}"));
   expect(saved.scenes[0].background).toBe("sunset-ruins");
