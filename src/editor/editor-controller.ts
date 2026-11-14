@@ -18,8 +18,9 @@ export interface SparkEditorControllerOptions {
   setStatus(message: string): void;
 }
 
-const STORAGE_KEY = "spark-workshop-mini-project-v3";
-const LEGACY_STORAGE_KEY = "spark-workshop-mini-project-v2";
+const STORAGE_KEY = "spark-workshop-mini-project-v4";
+const LEGACY_STORAGE_KEY = "spark-workshop-mini-project-v3";
+const OLDER_STORAGE_KEY = "spark-workshop-mini-project-v2";
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
@@ -394,6 +395,8 @@ export class SparkEditorController {
 
   getActiveSceneId() { return this.activeSceneId; }
 
+  getProjectDocument() { return this.projectDocument(); }
+
   private projectDocument() {
     this.captureActiveScene();
     return createSparkProjectDocument(this.getObjects(), this.options.getScriptSource(), this.scenes, this.activeSceneId);
@@ -485,6 +488,7 @@ export class SparkEditorController {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.projectDocument()));
       localStorage.removeItem(LEGACY_STORAGE_KEY);
+      localStorage.removeItem(OLDER_STORAGE_KEY);
       this.options.setStatus("تم حفظ المشروع وجميع مشاهده على هذا الجهاز");
     } catch {
       this.options.setStatus("تعذر الحفظ — مساحة التخزين قد تكون ممتلئة");
@@ -515,7 +519,9 @@ export class SparkEditorController {
   private loadProject() {
     try {
       const currentRaw = localStorage.getItem(STORAGE_KEY);
-      const legacyRaw = currentRaw ? null : localStorage.getItem(LEGACY_STORAGE_KEY);
+      const previousRaw = currentRaw ? null : localStorage.getItem(LEGACY_STORAGE_KEY);
+      const olderRaw = currentRaw || previousRaw ? null : localStorage.getItem(OLDER_STORAGE_KEY);
+      const legacyRaw = previousRaw ?? olderRaw;
       const raw = currentRaw ?? legacyRaw;
       if (!raw) return;
       const parsed = parseSparkProjectDocument(raw);
@@ -531,8 +537,10 @@ export class SparkEditorController {
       this.activeSceneId = active.id;
       this.options.setScriptSource(active.scriptSource);
       for (const item of active.objects) this.createView({ ...item });
-      if (!currentRaw || parsed.document.version !== 4) {
+      if (!currentRaw) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.projectDocument()));
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+        localStorage.removeItem(OLDER_STORAGE_KEY);
       }
     } catch {
       this.options.setStatus("تعذر قراءة الحفظ السابق");
