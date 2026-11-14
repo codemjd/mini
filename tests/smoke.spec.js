@@ -84,6 +84,25 @@ test("Spark Script rejects arbitrary JavaScript atomically", async ({ page }) =>
 });
 
 
+
+test("canvas pointer editing moves objects and undo restores the prior position", async ({ page }) => {
+  await page.locator("#snap-toggle").click();
+  const canvas = page.locator("#game-stage canvas.spark-editor-canvas");
+  const rect = await canvas.boundingBox();
+  expect(rect).not.toBeNull();
+  const start = { x: rect.x + 122 * rect.width / 800, y: rect.y + 223 * rect.height / 450 };
+  const end = { x: rect.x + 204 * rect.width / 800, y: rect.y + 246 * rect.height / 450 };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator("#position-x")).toHaveValue("204");
+  await expect(page.locator("#position-y")).toHaveValue("246");
+  await page.locator("#undo-button").click();
+  await expect(page.locator("#position-x")).toHaveValue("122");
+  await expect(page.locator("#position-y")).toHaveValue("223");
+});
+
 test("legacy v2 local projects migrate to schema v3 without losing objects or script", async ({ page }) => {
   await page.evaluate(() => {
     localStorage.setItem("spark-workshop-mini-project-v2", JSON.stringify({
