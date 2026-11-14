@@ -43,6 +43,23 @@ test("preview enables touch controls and restores the editable scene", async ({ 
   await expect(page.locator("#object-count")).toHaveText("6");
 });
 
+test("built-in scene compositions add reusable objects and support undo", async ({ page }) => {
+  const cases = [
+    { button: "#preset-camp", count: "10" },
+    { button: "#preset-gate", count: "14" },
+    { button: "#preset-crystal-garden", count: "18" }
+  ];
+
+  for (const item of cases) {
+    await page.locator(item.button).click();
+    await expect(page.locator("#object-count")).toHaveText(item.count);
+  }
+
+  await page.locator("#undo-button").click();
+  await expect(page.locator("#object-count")).toHaveText("14");
+  await expect(page.locator("#object-list")).toContainText("بلورة");
+});
+
 test("the workshop stays within a phone-sized viewport", async ({ page }) => {
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
