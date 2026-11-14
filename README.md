@@ -68,7 +68,7 @@ See [the extraction notes](docs/ENGINE-EXTRACTION.md) and [third-party notices](
 
 ## Runtime engine
 
-The play preview is migrating to **melonJS 20.15.1**. Phaser is retained temporarily for the editor while the new runtime is verified. Spark keeps its own project schema, behavior systems, and deterministic local assistant.
+The play preview uses **melonJS 20.15.1**. The scene editor uses Spark-owned Canvas 2D rendering and input, with a renderer-independent project document schema. Spark keeps its own behavior systems and deterministic local assistant.
 
 The first selected official add-on is the Tiled Inflate plugin for compressed Tiled maps. Physics adapters, Spine animation, virtual gamepad, debugging tools, and Capacitor are staged separately after compatibility and device checks.
 
@@ -85,7 +85,7 @@ The preview runtime now uses melonJS 20.15.1 with:
 
 Android packaging is configured through Capacitor 8. CI scaffolds a clean Android project, builds a debug APK and uploads it as an artifact. This does not replace testing on a physical Android device.
 
-The editor still uses Phaser temporarily. Do not remove it until the editor can create, save, reopen and preview a project entirely through Spark's new editor/runtime path.
+The native Canvas 2D editor renderer is now in place. The remaining editor migration work is feature parity, multi-scene editing, richer asset workflows, and physical-device validation.
 
 
 ## Optional professional editing — Spark Script
