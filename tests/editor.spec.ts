@@ -57,7 +57,7 @@ test("built-in scene compositions add reusable objects and support undo", async 
 
   await page.locator("#undo-button").click();
   await expect(page.locator("#object-count")).toHaveText("14");
-  await expect(page.locator("#object-list")).toContainText("بلورة");
+  await expect(page.locator("#object-list")).toContainText("عملة");
 });
 
 test("multiple scenes stay isolated and switch without losing edits", async ({ page }) => {
