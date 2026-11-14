@@ -30,7 +30,7 @@ app.innerHTML = `
       <div class="editor-heading"><div><span class="eyebrow">محرر الألعاب</span><h1>محرر المشهد</h1><p>أضف العناصر إلى لعبتك ورتّبها مباشرة داخل الساحة.</p></div><span class="version-tag">الإصدار 0.8 — محرر متعدد المشاهد</span></div>
       <div class="editor-layout">
         <div class="scene-column">
-          <div class="stage-toolbar"><span>المشهد 01 <b>/</b> جزيرة البلورات</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">جزيرة البلورات · 800 × 450</span></div></div>
+          <div class="stage-toolbar"><span>المشهد 01 <b>/</b> جزيرة البلورات</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><label class="background-picker">الخلفية <select id="background-theme"><option value="crystal-garden">حديقة البلورات</option><option value="sunset-ruins">أطلال الغروب</option><option value="frost-cavern">كهف الجليد</option><option value="desert-dunes">كثبان الصحراء</option></select></label><span class="stage-size">800 × 450</span></div></div>
           <section class="scene-manager" aria-label="إدارة المشاهد">
             <div class="scene-manager-heading"><div><strong>مشاهد المشروع</strong><small>كل مشهد له عناصره وأوامره الخاصة</small></div><div class="scene-manager-actions"><button id="scene-new" type="button">＋ جديد</button><button id="scene-duplicate" type="button">نسخ</button><button id="scene-rename" type="button">إعادة تسمية</button><button id="scene-delete" type="button">حذف</button></div></div>
             <div id="scene-tabs" class="scene-tabs" role="tablist" aria-label="مشاهد المشروع"></div>
@@ -231,6 +231,8 @@ function renderSceneManager() {
 
 function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
   renderSceneManager();
+  const backgroundSelect = document.querySelector<HTMLSelectElement>("#background-theme");
+  if (backgroundSelect) backgroundSelect.value = editorScene?.getBackground() ?? "crystal-garden";
   const undo = document.querySelector<HTMLButtonElement>("#undo-button");
   const redo = document.querySelector<HTMLButtonElement>("#redo-button");
   if (undo) undo.disabled = !editorScene?.canUndo();
@@ -300,6 +302,7 @@ document.querySelector("#scene-tabs")?.addEventListener("click", event => {
   const target = (event.target as HTMLElement).closest<HTMLElement>("[data-scene-id]");
   if (target?.dataset.sceneId) editorScene?.switchScene(target.dataset.sceneId);
 });
+document.querySelector<HTMLSelectElement>("#background-theme")?.addEventListener("change", event => editorScene?.setBackground((event.currentTarget as HTMLSelectElement).value as NonNullable<EditorObject["motion"]> extends never ? never : "crystal-garden" | "sunset-ruins" | "frost-cavern" | "desert-dunes"));
 document.querySelector("#nav-assets")?.addEventListener("click", () => { document.querySelector("#asset-grid")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.querySelector<HTMLInputElement>("#asset-search")?.focus(); });
 document.querySelector<HTMLSelectElement>("#object-motion")?.addEventListener("change", event => {
   const motion = (event.currentTarget as HTMLSelectElement).value as NonNullable<EditorObject["motion"]>;
