@@ -1,104 +1,55 @@
+import { input } from "melonjs";
 import type { SparkInputState, SparkSceneDefinition } from "./model";
 import { SparkMelonRenderer } from "./melon-renderer";
 import { SparkRuntimeWorld } from "./world";
-import { registerSparkMelonPlugins } from "./plugins";
 
-export interface SparkRuntimeCallbacks {
-  onStatus?: (message:string)=>void;
-  onScore?: (score:number,total:number)=>void;
-  onComplete?: ()=>void;
-}
+const INPUT_BINDINGS:Array<[number,string,boolean?]>=[
+ [input.KEY.LEFT,"spark-left"],[input.KEY.A,"spark-left"],
+ [input.KEY.RIGHT,"spark-right"],[input.KEY.D,"spark-right"],
+ [input.KEY.UP,"spark-up"],[input.KEY.W,"spark-up"],
+ [input.KEY.DOWN,"spark-down"],[input.KEY.S,"spark-down"],
+ [input.KEY.SPACE,"spark-attack",true],[input.KEY.X,"spark-attack",true]
+];
 
-const MOVEMENT_KEYS=new Set(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","KeyA","KeyD","KeyW","KeyS"]);
+export interface SparkRuntimeCallbacks{onStatus?:(message:string)=>void;onScore?:(score:number,total:number)=>void;onComplete?:()=>void;}
 
-export class SparkGameRuntime {
-  readonly world:SparkRuntimeWorld;
-  private readonly renderer:SparkMelonRenderer;
-  private readonly pressedKeys=new Set<string>();
-  private touchMovement:SparkInputState={x:0,y:0};
-  private started=false;
-  private disposed=false;
-
-  private readonly onKeyDown=(event:KeyboardEvent)=>{
-    if(MOVEMENT_KEYS.has(event.code)||event.code==="Space") event.preventDefault();
-    this.pressedKeys.add(event.code);
-  };
-  private readonly onKeyUp=(event:KeyboardEvent)=>{this.pressedKeys.delete(event.code);};
-  private readonly onBlur=()=>{this.pressedKeys.clear();};
-
-  constructor(host:HTMLElement,scene:SparkSceneDefinition,private readonly callbacks:SparkRuntimeCallbacks={}) {
-    this.world=new SparkRuntimeWorld(scene);
-    this.renderer=new SparkMelonRenderer(host,scene,this.world);
+export class SparkGameRuntime{
+ readonly world:SparkRuntimeWorld;
+ private readonly renderer:SparkMelonRenderer;
+ private started=false;
+ private disposed=false;
+ private inputBound=false;
+ constructor(host:HTMLElement,scene:SparkSceneDefinition,private readonly callbacks:SparkRuntimeCallbacks={}){
+  this.world=new SparkRuntimeWorld(scene);this.renderer=new SparkMelonRenderer(host,scene,this.world);
+ }
+ async start():Promise<void>{
+  if(this.started||this.disposed)return;
+  this.started=true;this.bindInput();
+  try{
+   await this.renderer.start(deltaMs=>this.frame(deltaMs));
+   if(!this.disposed)this.callbacks.onStatus?.("معاينة melonJS جاهزة — لوحة المفاتيح وعصا اللمس ويد التحكم تعمل عبر نظام الإدخال الموحد");
+  }catch(error){this.unbindInput();this.started=false;throw error;}
+ }
+ requestAttack():void{if(!this.disposed)this.world.requestAttack();}
+ destroy():void{if(this.disposed)return;this.disposed=true;this.unbindInput();this.renderer.destroy();}
+ private bindInput():void{if(this.inputBound)return;for(const [key,action,lock] of INPUT_BINDINGS)input.bindKey(key,action,lock,true);this.inputBound=true;}
+ private unbindInput():void{if(!this.inputBound)return;for(const [key] of INPUT_BINDINGS)input.unbindKey(key);this.inputBound=false;}
+ private frame(deltaMs:number):void{
+  if(this.disposed)return;
+  this.world.setInput(this.readMovement());this.world.advance(deltaMs);
+  for(const event of this.world.consumeEvents()){
+   this.callbacks.onStatus?.(event.message);
+   if(event.type==="score"||event.type==="complete")this.callbacks.onScore?.(event.score??this.world.score,event.total??this.world.totalCollectibles);
+   if(event.type==="complete"){this.renderer.setBanner("أحسنت! اكتملت الرحلة ✦");this.callbacks.onComplete?.();}
   }
-
-  async start():Promise<void> {
-    if(this.started||this.disposed) return;
-    this.started=true;
-    registerSparkMelonPlugins();
-    window.addEventListener("keydown",this.onKeyDown,{passive:false});
-    window.addEventListener("keyup",this.onKeyUp);
-    window.addEventListener("blur",this.onBlur);
-    try {
-      await this.renderer.start((deltaMs)=>this.frame(deltaMs));
-      if(!this.disposed) this.callbacks.onStatus?.("معاينة melonJS جاهزة — الحركة والقتال يعملان داخل Runtime مستقل");
-    } catch(error) {
-      this.unbindInput();
-      this.started=false;
-      throw error;
-    }
-  }
-
-  setTouchMovement(x:number,y:number):void {
-    this.touchMovement={
-      x:Math.max(-1,Math.min(1,Number.isFinite(x)?x:0)),
-      y:Math.max(-1,Math.min(1,Number.isFinite(y)?y:0))
-    };
-  }
-
-  requestAttack():void {
-    if(!this.disposed) this.world.requestAttack();
-  }
-
-  destroy():void {
-    if(this.disposed) return;
-    this.disposed=true;
-    this.unbindInput();
-    this.renderer.destroy();
-  }
-
-  private unbindInput():void {
-    window.removeEventListener("keydown",this.onKeyDown);
-    window.removeEventListener("keyup",this.onKeyUp);
-    window.removeEventListener("blur",this.onBlur);
-    this.pressedKeys.clear();
-  }
-
-  private frame(deltaMs:number):void {
-    if(this.disposed) return;
-    this.world.setInput(this.readMovement());
-    this.world.advance(deltaMs);
-    for(const event of this.world.consumeEvents()){
-      this.callbacks.onStatus?.(event.message);
-      if(event.type==="score"||event.type==="complete"){
-        this.callbacks.onScore?.(event.score??this.world.score,event.total??this.world.totalCollectibles);
-      }
-      if(event.type==="complete"){
-        this.renderer.setBanner("أحسنت! اكتملت الرحلة ✦");
-        this.callbacks.onComplete?.();
-      }
-    }
-  }
-
-  private readMovement():SparkInputState {
-    let x=this.touchMovement.x, y=this.touchMovement.y;
-    if(this.pressedKeys.has("ArrowLeft")||this.pressedKeys.has("KeyA")) x-=1;
-    if(this.pressedKeys.has("ArrowRight")||this.pressedKeys.has("KeyD")) x+=1;
-    if(this.pressedKeys.has("ArrowUp")||this.pressedKeys.has("KeyW")) y-=1;
-    if(this.pressedKeys.has("ArrowDown")||this.pressedKeys.has("KeyS")) y+=1;
-    if(this.pressedKeys.has("Space")){
-      this.pressedKeys.delete("Space");
-      this.requestAttack();
-    }
-    return {x:Math.max(-1,Math.min(1,x)),y:Math.max(-1,Math.min(1,y))};
-  }
+ }
+ private readMovement():SparkInputState{
+  let x=0,y=0;
+  if(input.isKeyPressed("spark-left"))x-=1;
+  if(input.isKeyPressed("spark-right"))x+=1;
+  if(input.isKeyPressed("spark-up"))y-=1;
+  if(input.isKeyPressed("spark-down"))y+=1;
+  if(input.isKeyPressed("spark-attack"))this.requestAttack();
+  return{x,y};
+ }
 }
