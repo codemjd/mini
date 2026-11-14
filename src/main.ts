@@ -26,11 +26,11 @@ app.innerHTML = `
       <div class="sidebar-note"><span>✦</span><p>أضف كائنًا، حدده، ثم اسحبه داخل ساحة اللعب. احفظ مشروعك لتعود إليه لاحقًا على هذا الجهاز.</p></div>
     </aside>
     <section class="editor">
-      <div class="editor-heading"><div><span class="eyebrow">محرر الألعاب</span><h1>محرر المشهد</h1><p>أضف العناصر إلى لعبتك ورتّبها مباشرة داخل الساحة.</p></div><span class="version-tag">الإصدار 0.4 — أول لعبة مصغّرة</span></div>
+      <div class="editor-heading"><div><span class="eyebrow">محرر الألعاب</span><h1>محرر المشهد</h1><p>أضف العناصر إلى لعبتك ورتّبها مباشرة داخل الساحة.</p></div><span class="version-tag">الإصدار 0.7 — melonJS Runtime مصغّرة</span></div>
       <div class="editor-layout">
         <div class="scene-column">
           <div class="stage-toolbar"><span>المشهد 01 <b>/</b> جزيرة البلورات</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">جزيرة البلورات · 800 × 450</span></div></div>
-          <div class="stage-shell" id="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><button data-dir="up" aria-label="أعلى">▲</button><div><button data-dir="left" aria-label="يسار">◀</button><button data-dir="down" aria-label="أسفل">▼</button><button data-dir="right" aria-label="يمين">▶</button></div><button class="touch-attack" id="touch-attack" aria-label="هجوم">⚔ هجوم</button></div>
+          <div class="stage-shell" id="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><span>تحكم اللمس من melonJS: عصا الحركة وزر الهجوم</span></div>
           <div class="hint-row" id="stage-hint" role="status" aria-live="polite"><span>✦</span> اجمع البلورات الأربع، واحذر حارس الوحل. هذه ساحة جاهزة للتعديل واللعب.</div>
         </div>
         <aside class="tools-panel">
@@ -75,7 +75,6 @@ class EditorScene extends Phaser.Scene {
   private runtime: SparkGameRuntime | null = null;
   private autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
   private gridGraphics?: Phaser.GameObjects.Graphics;
-  private touchDirection = { x: 0, y: 0 };
   private nextId = 1;
   private snapToGrid = true;
   private undoStack: EditorObject[][] = [];
@@ -629,8 +628,6 @@ class EditorScene extends Phaser.Scene {
     this.createView(copy); this.select(copy.id); this.emitChange();
   }
 
-  setTouchDirection(x: number, y: number) { this.touchDirection = { x, y }; this.runtime?.setTouchMovement(x, y); }
-
   setGridVisible(visible: boolean) {
     if (!this.gridGraphics) return;
     this.gridGraphics.clear();
@@ -647,7 +644,6 @@ class EditorScene extends Phaser.Scene {
     const editorCanvas = host.querySelector<HTMLCanvasElement>("canvas:not(.spark-preview-canvas)");
     this.previewing = true;
     this.selectedId = null;
-    this.touchDirection = { x: 0, y: 0 };
     if (editorCanvas) editorCanvas.style.visibility = "hidden";
 
     try {
@@ -889,13 +885,6 @@ document.querySelector("#export-button")?.addEventListener("click", () => { cons
 document.querySelector("#add-enemy")?.addEventListener("click", () => editorScene?.addObject("enemy"));
 document.querySelector("#add-platform")?.addEventListener("click", () => editorScene?.addObject("platform"));
 document.querySelector("#add-coin")?.addEventListener("click", () => editorScene?.addObject("coin"));
-const touchVectors: Record<string, {x:number;y:number}> = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
-document.querySelector("#touch-attack")?.addEventListener("pointerdown", event => { event.preventDefault(); editorScene?.requestAttack(); });
-document.querySelectorAll<HTMLButtonElement>("#touch-controls button[data-dir]").forEach(button => {
-  const start = (event: Event) => { event.preventDefault(); const direction = touchVectors[button.dataset.dir ?? ""]; if (direction) editorScene?.setTouchDirection(direction.x, direction.y); };
-  const stop = () => editorScene?.setTouchDirection(0, 0);
-  button.addEventListener("pointerdown", start); button.addEventListener("pointerup", stop); button.addEventListener("pointerleave", stop); button.addEventListener("pointercancel", stop);
-});
 document.querySelector("#object-list")?.addEventListener("click", event => {
   const target = (event.target as HTMLElement).closest<HTMLElement>("[data-object-id]");
   if (target) editorScene?.select(target.dataset.objectId ?? null);
