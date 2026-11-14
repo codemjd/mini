@@ -30,6 +30,11 @@ app.innerHTML = `
       <div class="editor-layout">
         <div class="scene-column">
           <div class="stage-toolbar"><span>المشهد 01 <b>/</b> جزيرة البلورات</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">جزيرة البلورات · 800 × 450</span></div></div>
+          <section class="scene-manager" aria-label="إدارة المشاهد">
+            <div class="scene-manager-heading"><div><strong>مشاهد المشروع</strong><small>كل مشهد له عناصره وأوامره الخاصة</small></div><div class="scene-manager-actions"><button id="scene-new" type="button">＋ جديد</button><button id="scene-duplicate" type="button">نسخ</button><button id="scene-rename" type="button">إعادة تسمية</button><button id="scene-delete" type="button">حذف</button></div></div>
+            <div id="scene-tabs" class="scene-tabs" role="tablist" aria-label="مشاهد المشروع"></div>
+            <div class="scene-manager-foot"><span id="scene-count">مشهد واحد</span><span>الحد الأقصى 30 مشهدًا · حفظ تلقائي مستقل</span></div>
+          </section>
           <div class="stage-shell" id="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><span>تحكم اللمس من melonJS: عصا الحركة وزر الهجوم</span></div>
           <div class="hint-row" id="stage-hint" role="status" aria-live="polite"><span>✦</span> اجمع البلورات الأربع، واحذر حارس الوحل. هذه ساحة جاهزة للتعديل واللعب.</div>
         </div>
@@ -161,7 +166,32 @@ function runLocalAssistant(raw: string) {
   if (completed) setStatus("المساعد المحلي: " + finalMessage);
 }
 
+function renderSceneManager() {
+  const sceneList = document.querySelector<HTMLDivElement>("#scene-tabs");
+  const count = document.querySelector<HTMLElement>("#scene-count");
+  if (!sceneList || !editorScene) return;
+  const scenes = editorScene.getScenes();
+  const activeId = editorScene.getActiveSceneId();
+  sceneList.replaceChildren();
+  for (const scene of scenes) {
+    const tab = document.createElement("button");
+    tab.type = "button";
+    tab.className = "scene-tab" + (scene.id === activeId ? " active" : "");
+    tab.dataset.sceneId = scene.id;
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-selected", String(scene.id === activeId));
+    const name = document.createElement("strong");
+    name.textContent = scene.name;
+    const meta = document.createElement("small");
+    meta.textContent = scene.objects.length + " عنصر";
+    tab.append(name, meta);
+    sceneList.append(tab);
+  }
+  if (count) count.textContent = scenes.length + (scenes.length === 1 ? " مشهد" : " مشاهد");
+}
+
 function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
+  renderSceneManager();
   const undo = document.querySelector<HTMLButtonElement>("#undo-button");
   const redo = document.querySelector<HTMLButtonElement>("#redo-button");
   if (undo) undo.disabled = !editorScene?.canUndo();
@@ -206,6 +236,24 @@ assistantForm?.addEventListener("submit", event => {
 });
 document.querySelectorAll<HTMLButtonElement>("[data-assistant-command]").forEach(button => {
   button.addEventListener("click", () => runLocalAssistant(button.dataset.assistantCommand ?? ""));
+});
+document.querySelector("#scene-new")?.addEventListener("click", () => {
+  const name = window.prompt("اسم المشهد الجديد", "مشهد جديد");
+  if (name !== null) editorScene?.createScene(name);
+});
+document.querySelector("#scene-duplicate")?.addEventListener("click", () => editorScene?.duplicateScene());
+document.querySelector("#scene-rename")?.addEventListener("click", () => {
+  const current = editorScene?.getScenes().find(scene => scene.id === editorScene.getActiveSceneId());
+  if (!current) return;
+  const name = window.prompt("الاسم الجديد للمشهد", current.name);
+  if (name !== null) editorScene?.renameScene(name);
+});
+document.querySelector("#scene-delete")?.addEventListener("click", () => {
+  if (window.confirm("حذف المشهد الحالي؟ لا يمكن التراجع عن حذف المشهد.")) editorScene?.deleteScene();
+});
+document.querySelector("#scene-tabs")?.addEventListener("click", event => {
+  const target = (event.target as HTMLElement).closest<HTMLElement>("[data-scene-id]");
+  if (target?.dataset.sceneId) editorScene?.switchScene(target.dataset.sceneId);
 });
 document.querySelector("#preset-coins")?.addEventListener("click", () => editorScene?.addPreset("coins"));
 document.querySelector("#preset-barricade")?.addEventListener("click", () => editorScene?.addPreset("barricade"));
