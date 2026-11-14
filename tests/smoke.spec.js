@@ -230,7 +230,7 @@ test("invalid project JSON is rejected without replacing the current scene", asy
 
 
 test("preview combat lets the hero defeat a nearby enemy", async ({ page }) => {
-  await page.locator("#object-list .object-row").first().click();
+  await page.locator("#object-list .object-row").filter({ hasText: "شخصية لاعب" }).click();
   await page.locator("#creature-damage").fill("100");
   await page.locator("#creature-damage").press("Tab");
   await page.locator("#add-enemy").click();
