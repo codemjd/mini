@@ -2,7 +2,7 @@
 
 ## Scope
 
-This branch starts the transition from a single Phaser scene that edits and plays a game into separate engine subsystems. The existing editor remains on Phaser in this phase to protect editing, saving, undo/redo, and the published preview while the new runtime is tested.
+This branch separates the visual editor from game preview. The editor uses Spark-owned Canvas 2D rendering and pointer manipulation; melonJS owns the playable preview, and the versioned Spark project model connects the two.
 
 The new play-preview runtime is Spark-owned code and is separated into:
 
@@ -27,7 +27,7 @@ This separation follows the documented distinction in GDevelop between project s
 
 The official architecture has dependencies across the Core, GDJS, GDevelop.js, newIDE, and Extensions areas. RuntimeScene and RuntimeGame expect the wider runtime object container, layers, resource management, variables, renderer interfaces, code-generated events, and extension declarations. The C++ Core-to-JavaScript bindings are built with Emscripten and CMake. Copying only a few of those large classes would leave an incomplete, fragile engine.
 
-The current extraction therefore takes a useful, independently testable vertical slice instead of importing thousands of files. The next decision gate is to prove this runtime through the same editing workflow before moving scene editing away from Phaser.
+The current extraction takes a useful, independently testable vertical slice instead of importing thousands of files. The first editor migration is now in place; the next decision gate is to validate full edit/save/reopen/preview flows on desktop and Android.
 
 ## Runtime guarantees in this phase
 
@@ -41,18 +41,18 @@ The current extraction therefore takes a useful, independently testable vertical
 ## Known limits
 
 - This is a 2D runtime foundation, not full GDevelop compatibility.
-- The editor still uses Phaser. This is intentional and temporary.
+- The editor now uses Spark-owned Canvas 2D rendering. Phaser has been removed from active dependencies.
 - The first renderer uses procedural vector art; it does not yet load commercial or third-party sprite packs.
 - Physics bodies, event-sheet visual editor, tilemaps, skeletal animation, audio mixer, asset pipeline, scene transitions, and export targets are later subsystems.
 - melonJS AUTO renderer selection can fall back between WebGPU, WebGL 2, and Canvas 2D according to device support. Actual compatibility and performance still require browser and Android device tests.
 
-## Verification gates before switching the editor
+## Verification gates for the migrated editor
 
 1. Build and type-check in CI.
 2. Browser test for preview creation and cleanup.
 3. Verify score, attack, keyboard, and touch pathways.
 4. Test on low-memory Android browsers and measure frame time.
-5. Only then move editor rendering and manipulation to the new renderer.
+5. Verify pointer/touch selection, dragging, layer order, undo/redo, persistence, and preview lifecycle on desktop and Android.
 
 ## Upstream references
 
@@ -65,7 +65,7 @@ The current extraction therefore takes a useful, independently testable vertical
 
 ## melonJS migration — phase 2
 
-The preview now runs through melonJS 20.15.1. Phaser remains only as the temporary editor renderer while the migration is verified.
+The preview runs through melonJS 20.15.1. The scene editor uses a Spark-owned Canvas 2D renderer; the two renderers have separate responsibilities.
 
 - Application initialization is asynchronous and owns the preview canvas lifecycle.
 - Spark's versioned scene model and deterministic behavior systems remain engine-independent.
@@ -76,7 +76,7 @@ The preview now runs through melonJS 20.15.1. Phaser remains only as the tempora
 
 The built-in melonJS SAT physics is the default candidate for simple 2D collisions. Matter, Planck, or Rapier adapters are not bundled yet: select one only after a real project requirement and a device-size/performance comparison. Spine integration is deferred until its package peer compatibility with melonJS 20.x is verified.
 
-This is a runtime migration milestone, not a finished editor migration. The editor still uses Phaser, and no APK or real-device validation is claimed.
+This is a runtime and initial editor-renderer migration milestone, not a finished editor product. The project still requires full device interaction testing and verification of the Android package after these latest changes.
 
 
 ## Phase 3 — official melonJS systems
