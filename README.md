@@ -57,3 +57,10 @@ npm run test:e2e
 هذه بداية صغيرة وليست محرك ألعاب مكتملًا. ما زال ينقصها محرر أحداث مرئي، ومكتبة أصول فنية حقيقية قابلة للاستعراض، ومشاهد متعددة، وأنظمة تصادم ومنصات متقدمة، وتصدير HTML5/ZIP وAPK. الرسومات الحالية مرسومة برمجيًا داخل المشهد وليست حزمة رسومات تجارية أو مولّدة. المساعد يعمل بقائمة أوامر محددة، وليس ذكاءً اصطناعيًا حرًا.
 
 ملف JSON يحفظ بيانات المشروع، ولا يمثل تطبيقًا قابلًا للتثبيت. لن نعلن جاهزية HTML5 أو APK قبل بناء حقيقي واختبار مستقل.
+
+
+## Spark Engine preview foundation (0.5.0)
+
+The play-preview now runs through an independent Spark runtime layer built around a versioned scene model, a fixed-step simulation loop, modular movement/AI/combat/collectible systems, a time manager, and a PixiJS renderer. The existing Phaser editor is intentionally retained during this first migration stage; preview data is copied into the runtime so gameplay does not mutate the editable scene.
+
+See [the extraction notes](docs/ENGINE-EXTRACTION.md) and [third-party notices](THIRD_PARTY_NOTICES.md) for architecture and licensing details.
