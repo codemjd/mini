@@ -21,7 +21,7 @@ app.innerHTML = `
       <div class="side-heading"><span>مساحة العمل</span><span class="muted">01</span></div>
       <button class="nav-item active"><span>▦</span> محرر المشهد</button>
       <button class="nav-item" disabled><span>♟</span> الشخصيات <em>لاحقًا</em></button>
-      <button class="nav-item" disabled><span>◇</span> مكتبة الأصول <em>لاحقًا</em></button>
+      <button class="nav-item" id="nav-assets"><span>◇</span> مكتبة الأصول</button>
       <button class="nav-item" disabled><span>⌘</span> السلوكيات <em>لاحقًا</em></button>
       <div class="side-divider"></div>
       <div class="sidebar-note"><span>✦</span><p>أضف كائنًا، حدده، ثم اسحبه داخل ساحة اللعب. احفظ مشروعك لتعود إليه لاحقًا على هذا الجهاز.</p></div>
@@ -294,6 +294,7 @@ document.querySelector("#scene-tabs")?.addEventListener("click", event => {
   const target = (event.target as HTMLElement).closest<HTMLElement>("[data-scene-id]");
   if (target?.dataset.sceneId) editorScene?.switchScene(target.dataset.sceneId);
 });
+document.querySelector("#nav-assets")?.addEventListener("click", () => { document.querySelector("#asset-grid")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.querySelector<HTMLInputElement>("#asset-search")?.focus(); });
 document.querySelector("#asset-search")?.addEventListener("input", renderAssetCatalog);
 document.querySelector("#asset-category")?.addEventListener("change", renderAssetCatalog);
 document.querySelector("#asset-grid")?.addEventListener("click", event => {
