@@ -29,6 +29,24 @@ export class SparkRuntimeWorld {
     new CollectibleSystem()
   ].sort((a, b) => a.priority - b.priority);
   private pendingEvents: RuntimeEvent[] = [];
+  private readonly activeContacts = new Set<string>();
+
+  private contactKey(a: string, b: string): string {
+    return a < b ? a + String.fromCharCode(0) + b : b + String.fromCharCode(0) + a;
+  }
+
+  setPhysicsContact(a: string, b: string, active: boolean): void {
+    if (!a || !b || a === b) return;
+    const key = this.contactKey(a, b);
+    if (active) this.activeContacts.add(key);
+    else this.activeContacts.delete(key);
+  }
+
+  isTouching(a: string, b: string): boolean {
+    return this.activeContacts.has(this.contactKey(a, b));
+  }
+
+  getPhysicsContactCount(): number { return this.activeContacts.size; }
 
   constructor(scene: SparkSceneDefinition) {
     this.scene = scene;
@@ -68,7 +86,8 @@ export class SparkRuntimeWorld {
         score: this.score,
         totalCollectibles: this.totalCollectibles,
         attackRequested: this.attackRequested,
-        events: this.pendingEvents
+        events: this.pendingEvents,
+        isTouching: (a, b) => this.isTouching(a.id, b.id)
       };
       this.attackRequested = false;
       for (const system of this.systems) system.update(context);
