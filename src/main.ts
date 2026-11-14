@@ -422,7 +422,7 @@ class EditorScene {
   importProject(raw: unknown): boolean {
     const parsed = parseSparkProjectDocument(raw);
     if (!parsed.ok) {
-      setStatus(parsed.error);
+      setStatus("تعذر استيراد الملف — " + parsed.error);
       return false;
     }
     const imported = parsed.document.objects.map(item => ({
