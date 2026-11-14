@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 import { SparkGameRuntime, createRuntimeSceneFromObjects } from "./engine";
+import { createSparkProjectDocument, parseSparkProjectDocument } from "./editor/project-document";
+import { DEFAULT_SPARK_SCRIPT, executeSparkScript } from "./scripting/spark-script";
 import { resolveLocalCommand, type LocalAssistantAction } from "./local-assistant";
 import "./style.css";
 
@@ -59,6 +61,19 @@ app.innerHTML = `
           </form>
           <div class="assistant-footnote"><span>●</span> مساعد قواعد محلي — لا يرسل نصوصك إلى أي خادم، ولا يدّعي فهم أوامر خارج قائمته.</div>
         </div>
+      </section>
+      <section class="code-workbench" aria-label="مساحة البرمجة المتقدمة">
+        <div class="code-workbench-heading">
+          <div><span class="eyebrow">للمستخدمين المتقدمين</span><h2>برمجة مخصصة · Spark Script</h2><p>اكتب أوامر صغيرة لتعديل عناصر المشهد تلقائيًا. بقية الورشة لا تحتاج إلى برمجة.</p></div>
+          <span class="code-safety">واجهة أوامر محدودة وآمنة</span>
+        </div>
+        <textarea id="spark-script" class="spark-script-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="مقتطف Spark Script"># إعداد بسيط للمشهد — الأوامر المدعومة فقط
+set(&quot;hero&quot;, &quot;speed&quot;, 260);
+set(&quot;enemy&quot;, &quot;health&quot;, 75);
+spawn(&quot;coin&quot;, 420, 225);
+note(&quot;تم تجهيز تحدٍ أسرع مع بلورة إضافية&quot;);</textarea>
+        <div class="code-workbench-actions"><button type="button" class="run-script-button" id="run-script">▶ تنفيذ المقتطف</button><button type="button" class="reset-script-button" id="reset-script">استعادة المثال</button><span id="script-output" role="status" aria-live="polite">الأوامر: set · spawn · remove · note</span></div>
+        <p class="code-workbench-footnote">Spark Script ليست JavaScript كاملًا: لا تستخدم eval ولا تتيح الشبكة أو الملفات أو واجهات المتصفح. كل مقتطف يُفحص أولًا، ويُنفّذ فقط عبر أوامر محددة على بيانات المشهد.</p>
       </section>
       <section class="welcome-panel"><div class="welcome-icon">✧</div><div><strong>مساحة صناعة ألعاب تتوسع باستمرار</strong><p>جرّب الأصول الجاهزة، عدّل مظهر كل عنصر، رتّب الطبقات، واستخدم التراجع والاستيراد والتصدير لحماية عملك.</p></div></section>
     </section>
@@ -225,6 +240,35 @@ class EditorScene extends Phaser.Scene {
       this.createView(data);
     }
     this.refreshDepths();
+  }
+
+  applySparkScript(source: string) {
+    if (this.previewing) this.stopPreview();
+    const result = executeSparkScript(source, this.getObjects(), () => "object-" + this.nextId++);
+    const output = document.querySelector<HTMLElement>("#script-output");
+    if (!result.ok) {
+      if (output) output.textContent = "خطأ: " + (result.error ?? "تعذر تنفيذ المقتطف");
+      setStatus("Spark Script: " + (result.error ?? "تعذر تنفيذ المقتطف"));
+      return result;
+    }
+    if (!result.changed) {
+      if (output) output.textContent = result.messages.join(" · ") || "لا توجد تغييرات لتنفيذها";
+      setStatus("Spark Script: لا توجد تغييرات");
+      return result;
+    }
+
+    const previousSelection = this.selectedId;
+    this.recordHistory();
+    this.restoreObjects(result.objects);
+    const nextSelection = previousSelection && this.objects.has(previousSelection)
+      ? previousSelection
+      : result.objects.find(item => item.kind === "hero")?.id ?? result.objects[0]?.id ?? null;
+    if (nextSelection) this.select(nextSelection);
+    this.save();
+    const summary = result.messages.join(" · ") || "تم تنفيذ المقتطف";
+    if (output) output.textContent = summary;
+    setStatus("Spark Script: تم تنفيذ المقتطف بنجاح");
+    return result;
   }
 
   buildStarterGame() {
@@ -536,7 +580,7 @@ class EditorScene extends Phaser.Scene {
 
   save() {
     try {
-      const payload = { version: 2, title: "ورشة الشرارات - مشروعي", width: 800, height: 450, objects: this.getObjects() };
+      const payload = createSparkProjectDocument(this.getObjects(), getSparkScriptSource());
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       setStatus("تم حفظ المشروع على هذا الجهاز");
     } catch {
@@ -545,82 +589,45 @@ class EditorScene extends Phaser.Scene {
   }
 
   importProject(raw: unknown): boolean {
-    try {
-      const parsed = (typeof raw === "string" ? JSON.parse(raw) : raw) as { version?: unknown; objects?: unknown };
-      if (!parsed || ![1, 2].includes(Number(parsed.version)) || !Array.isArray(parsed.objects) || parsed.objects.length > 500) {
-        setStatus("ملف المشروع غير صالح أو يتجاوز 500 عنصر");
-        return false;
-      }
-      const allowed: ObjectKind[] = ["hero", "enemy", "crate", "coin", "platform"];
-      const imported: EditorObject[] = [];
-      for (const value of parsed.objects) {
-        if (!value || typeof value !== "object") continue;
-        const item = value as Partial<EditorObject>;
-        if (!allowed.includes(item.kind as ObjectKind)) continue;
-        const number = (candidate: unknown, fallback: number, min: number, max: number) => {
-          const parsedNumber = Number(candidate);
-          return Phaser.Math.Clamp(Number.isFinite(parsedNumber) ? parsedNumber : fallback, min, max);
-        };
-        const color = typeof item.color === "string" && /^#[0-9a-fA-F]{6}$/.test(item.color) ? item.color : "#ffbd59";
-        imported.push({
-          id: `object-${this.nextId++}`,
-          kind: item.kind as ObjectKind,
-          x: number(item.x, 400, 0, 800),
-          y: number(item.y, 225, 0, 450),
-          name: typeof item.name === "string" ? item.name.slice(0, 24) : String(item.kind),
-          health: number(item.health, 100, 1, 1000),
-          speed: number(item.speed, 180, 1, 1000),
-          damage: number(item.damage, 20, 1, 500),
-          size: number(item.size, 1, 0.5, 2.5),
-          color,
-          locked: item.locked === true
-        });
-      }
-      if (parsed.objects.length > 0 && imported.length === 0) {
-        setStatus("لم أجد عناصر معروفة في ملف المشروع");
-        return false;
-      }
-      this.recordHistory();
-      this.restoreObjects(imported);
-      if (imported.length) this.select(imported[0].id);
-      this.save();
-      setStatus(`تم استيراد المشروع — ${imported.length} عنصر`);
-      return true;
-    } catch {
-      setStatus("تعذر استيراد الملف — تأكد أنه JSON صالح");
+    const parsed = parseSparkProjectDocument(raw);
+    if (!parsed.ok) {
+      setStatus(parsed.error);
       return false;
     }
+    const imported = parsed.document.objects.map(item => ({
+      ...item,
+      id: "object-" + this.nextId++
+    }));
+    const scriptEditor = document.querySelector<HTMLTextAreaElement>("#spark-script");
+    if (scriptEditor) scriptEditor.value = parsed.document.scriptSource;
+    this.recordHistory();
+    this.restoreObjects(imported);
+    if (imported.length) this.select(imported[0].id);
+    this.save();
+    setStatus("تم استيراد المشروع — " + imported.length + " عنصر");
+    return true;
   }
 
   private loadProject() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as { version?: number; objects?: unknown[] };
-      if (![1, 2].includes(Number(parsed.version)) || !Array.isArray(parsed.objects)) return;
-      for (const item of parsed.objects) {
-        if (!item || typeof item !== "object") continue;
-        const candidate = item as Partial<EditorObject>;
-        if (!["hero", "crate", "enemy", "coin", "platform"].includes(String(candidate.kind))) continue;
-        const data: EditorObject = {
-          id: `object-${this.nextId++}`,
-          kind: candidate.kind as ObjectKind,
-          x: Phaser.Math.Clamp(typeof candidate.x === "number" && Number.isFinite(candidate.x) ? candidate.x : 400, 0, 800),
-          y: Phaser.Math.Clamp(typeof candidate.y === "number" && Number.isFinite(candidate.y) ? candidate.y : 225, 0, 450),
-          name: typeof candidate.name === "string" ? candidate.name.slice(0, 24) : String(candidate.kind),
-          health: Phaser.Math.Clamp(Number(candidate.health) || 100, 1, 1000),
-          speed: Phaser.Math.Clamp(Number(candidate.speed) || 180, 1, 1000),
-          damage: Phaser.Math.Clamp(Number(candidate.damage) || 20, 1, 500),
-          size: Phaser.Math.Clamp(Number(candidate.size) || 1, 0.5, 2.5),
-          color: typeof candidate.color === "string" && /^#[0-9a-fA-F]{6}$/.test(candidate.color) ? candidate.color : "#ffbd59",
-          locked: candidate.locked === true
-        };
-        this.createView(data);
+      const parsed = parseSparkProjectDocument(raw);
+      if (!parsed.ok) {
+        setStatus("تعذر قراءة الحفظ السابق: " + parsed.error);
+        return;
       }
-    } catch { setStatus("تعذر قراءة الحفظ السابق"); }
+      const scriptEditor = document.querySelector<HTMLTextAreaElement>("#spark-script");
+      if (scriptEditor) scriptEditor.value = parsed.document.scriptSource;
+      for (const item of parsed.document.objects) {
+        this.createView({ ...item, id: "object-" + this.nextId++ });
+      }
+    } catch {
+      setStatus("تعذر قراءة الحفظ السابق");
+    }
   }
 
-  duplicateSelected() {
+    duplicateSelected() {
     const source = this.selectedId ? this.objects.get(this.selectedId)?.data : undefined;
     if (!source) return;
     this.recordHistory();
@@ -722,10 +729,14 @@ class EditorScene extends Phaser.Scene {
     if (this.previewing) return;
     if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
     this.autoSaveTimer = setTimeout(() => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, title: "ورشة الشرارات - مشروعي", width: 800, height: 450, objects: this.getObjects() })); }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(createSparkProjectDocument(this.getObjects(), getSparkScriptSource()))); }
       catch { setStatus("تعذر الحفظ التلقائي — استخدم حفظ المشروع"); }
     }, 650);
   }
+}
+
+function getSparkScriptSource(): string {
+  return document.querySelector<HTMLTextAreaElement>("#spark-script")?.value ?? "";
 }
 
 function setStatus(message: string) {
@@ -880,7 +891,19 @@ document.querySelector("#stop-preview")?.addEventListener("click", () => editorS
 document.querySelector("#grid-toggle")?.addEventListener("click", event => { const button = event.currentTarget as HTMLButtonElement; const visible = button.getAttribute("aria-pressed") !== "true"; button.setAttribute("aria-pressed", String(visible)); button.textContent = visible ? "شبكة ✓" : "شبكة"; editorScene?.setGridVisible(visible); });
 document.querySelector("#snap-toggle")?.addEventListener("click", event => { const button = event.currentTarget as HTMLButtonElement; const enabled = button.getAttribute("aria-pressed") !== "true"; button.setAttribute("aria-pressed", String(enabled)); button.textContent = enabled ? "محاذاة ✓" : "محاذاة"; editorScene?.setSnapToGrid(enabled); });
 document.querySelector("#reset-view")?.addEventListener("click", () => { const canvas = document.querySelector<HTMLCanvasElement>("#game-stage canvas"); if (canvas) canvas.scrollIntoView({ behavior: "smooth", block: "center" }); });
-document.querySelector("#export-button")?.addEventListener("click", () => { const payload = { version: 2, title: "ورشة الشرارات - مشروعي", width: 800, height: 450, objects: editorScene?.getObjects() ?? [] }; const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "spark-workshop-project.json"; link.click(); URL.revokeObjectURL(url); setStatus("تم تصدير ملف المشروع"); });
+document.querySelector("#export-button")?.addEventListener("click", () => { const payload = createSparkProjectDocument(editorScene?.getObjects() ?? [], getSparkScriptSource()); const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "spark-workshop-project.json"; link.click(); URL.revokeObjectURL(url); setStatus("تم تصدير ملف المشروع"); });
+document.querySelector("#run-script")?.addEventListener("click", () => {
+  const result = editorScene?.applySparkScript(getSparkScriptSource());
+  if (!result) setStatus("تعذر الوصول إلى محرر المشهد");
+});
+document.querySelector("#reset-script")?.addEventListener("click", () => {
+  const editor = document.querySelector<HTMLTextAreaElement>("#spark-script");
+  if (editor) editor.value = DEFAULT_SPARK_SCRIPT;
+  editorScene?.save();
+  const output = document.querySelector<HTMLElement>("#script-output");
+  if (output) output.textContent = "تمت استعادة المثال الجاهز";
+});
+document.querySelector("#spark-script")?.addEventListener("change", () => editorScene?.save());
 document.querySelector("#add-enemy")?.addEventListener("click", () => editorScene?.addObject("enemy"));
 document.querySelector("#add-platform")?.addEventListener("click", () => editorScene?.addObject("platform"));
 document.querySelector("#add-coin")?.addEventListener("click", () => editorScene?.addObject("coin"));
