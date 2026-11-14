@@ -408,6 +408,12 @@ class EditorScene extends Phaser.Scene {
     parts.push(label);
     const view = this.add.container(data.x, data.y, parts);
     view.setSize(isCreature ? 88 : 76, isCreature ? 112 : 84);
+    if (isCreature) {
+      this.tweens.add({ targets: view, y: data.y - 3, duration: 920, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+    } else if (data.kind === "coin") {
+      this.tweens.add({ targets: view, angle: 360, duration: 2600, repeat: -1, ease: "Linear" });
+      this.tweens.add({ targets: view, scaleX: (data.size || 1) * 1.12, scaleY: (data.size || 1) * 0.94, duration: 720, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+    }
     view.setScale(data.size || 1);
     view.setInteractive(new Phaser.Geom.Rectangle(-58, -48, 116, 105), Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(view);
@@ -644,7 +650,13 @@ class EditorScene extends Phaser.Scene {
     this.previewCoinsTotal = this.previewSnapshot.filter(item => item.kind === "coin").length;
     this.previewScore = 0;
     this.previewing = true; this.selectedId = null;
-    for (const item of this.objects.values()) { item.view.disableInteractive(); item.view.setAlpha(1); }
+    for (const item of this.objects.values()) {
+      this.tweens.killTweensOf(item.view);
+      item.view.disableInteractive();
+      item.view.setAlpha(1);
+      item.view.setAngle(0);
+      item.view.setScale(item.data.size || 1);
+    }
     if (this.input.keyboard) this.previewKeys = this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE") as Record<string, Phaser.Input.Keyboard.Key>;
     this.attackCooldown = 0;
     this.enemyAttackCooldown = 0;
@@ -691,14 +703,29 @@ class EditorScene extends Phaser.Scene {
     this.enemyAttackCooldown = Math.max(0, this.enemyAttackCooldown - delta);
     if (Phaser.Input.Keyboard.JustDown(k?.SPACE as Phaser.Input.Keyboard.Key) || this.attackRequested) { this.attackRequested = false; this.performAttack(hero); }
     let dx = this.touchDirection.x, dy = this.touchDirection.y; if (k?.A.isDown || k?.LEFT.isDown) dx--; if (k?.D.isDown || k?.RIGHT.isDown) dx++; if (k?.W.isDown || k?.UP.isDown) dy--; if (k?.S.isDown || k?.DOWN.isDown) dy++;
-    if (dx || dy) { const length = Math.hypot(dx,dy) || 1; hero.view.x = Phaser.Math.Clamp(hero.view.x + dx/length*speed, 25, 775); hero.view.y = Phaser.Math.Clamp(hero.view.y + dy/length*speed, 25, 425); hero.data.x = Math.round(hero.view.x); hero.data.y = Math.round(hero.view.y); }
+    if (dx || dy) {
+      const length = Math.hypot(dx,dy) || 1;
+      hero.view.x = Phaser.Math.Clamp(hero.view.x + dx/length*speed, 25, 775);
+      hero.view.y = Phaser.Math.Clamp(hero.view.y + dy/length*speed, 25, 425);
+      hero.data.x = Math.round(hero.view.x);
+      hero.data.y = Math.round(hero.view.y);
+      hero.view.setAngle(Phaser.Math.Clamp(dx * 3, -7, 7));
+      hero.view.setScale((hero.data.size || 1) * (1 + Math.sin(_time / 42) * 0.025));
+    } else {
+      hero.view.setAngle(0);
+      hero.view.setScale((hero.data.size || 1) * (1 + Math.sin(_time / 310) * 0.012));
+    }
     for (const [id, item] of this.objects) {
       if (item.data.kind === "enemy") {
         const distance = Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y);
         if (distance > 42) {
           const step = Math.min(distance - 42, Math.max(35, item.data.speed) * delta / 1000);
-          item.view.x += (hero.view.x - item.view.x) / distance * step;
-          item.view.y += (hero.view.y - item.view.y) / distance * step;
+          const moveX = (hero.view.x - item.view.x) / distance * step;
+          const moveY = (hero.view.y - item.view.y) / distance * step;
+          item.view.x += moveX;
+          item.view.y += moveY;
+          item.view.setAngle(Phaser.Math.Clamp(moveX * 2.5, -8, 8));
+          item.view.setScale((item.data.size || 1) * (1 + Math.sin(_time / 48) * 0.025));
           item.data.x = Math.round(item.view.x); item.data.y = Math.round(item.view.y);
         } else if (this.enemyAttackCooldown <= 0) {
           hero.data.health = Math.max(0, hero.data.health - Math.max(1, item.data.damage));
@@ -712,8 +739,26 @@ class EditorScene extends Phaser.Scene {
         this.objects.delete(id);
         this.previewScore += 1;
         this.previewScoreLabel?.setText("البلورات: " + this.previewScore + " / " + this.previewCoinsTotal);
-        const sparkle = this.add.star(item.view.x, item.view.y, 6, 3, 15, 0xffe58a).setDepth(35);
-        this.tweens.add({ targets: sparkle, y: sparkle.y - 28, alpha: 0, scale: 2.2, duration: 360, onComplete: () => sparkle.destroy() });
+        const burstX = item.view.x;
+        const burstY = item.view.y;
+        for (let particle = 0; particle < 10; particle++) {
+          const angle = (Math.PI * 2 * particle) / 10;
+          const distance = Phaser.Math.Between(24, 48);
+          const sparkle = this.add.star(burstX, burstY, 4, 2, 7, particle % 2 ? 0xfff3b0 : 0x73fff0).setDepth(35);
+          this.tweens.add({
+            targets: sparkle,
+            x: burstX + Math.cos(angle) * distance,
+            y: burstY + Math.sin(angle) * distance,
+            alpha: 0,
+            scale: 0.15,
+            angle: Phaser.Math.Between(-150, 150),
+            duration: Phaser.Math.Between(260, 430),
+            ease: "Cubic.Out",
+            onComplete: () => sparkle.destroy()
+          });
+        }
+        const ring = this.add.circle(burstX, burstY, 10, 0xffffff, 0).setStrokeStyle(3, 0x9effe9, 0.95).setDepth(34);
+        this.tweens.add({ targets: ring, scale: 3.8, alpha: 0, duration: 380, ease: "Cubic.Out", onComplete: () => ring.destroy() });
         if (this.previewScore >= this.previewCoinsTotal && this.previewCoinsTotal > 0) {
           this.previewHint?.setText("أكملت رحلة البلورات! ✦");
           setStatus("رائع! جمعت كل البلورات الأربع — اكتمل التحدي");
@@ -737,7 +782,11 @@ class EditorScene extends Phaser.Scene {
       if (Phaser.Math.Distance.Between(hero.view.x, hero.view.y, enemy.view.x, enemy.view.y) > 92) continue;
       enemy.data.health = Math.max(0, enemy.data.health - Math.max(1, hero.data.damage));
       enemy.view.setAlpha(0.55);
-      this.time.delayedCall(90, () => { if (enemy.view.active) enemy.view.setAlpha(1); });
+      this.cameras.main.shake(85, 0.0035);
+      const impact = this.add.circle(enemy.view.x, enemy.view.y - 8, 12, 0xfff0b0, 0.75).setDepth(40);
+      this.tweens.add({ targets: impact, scale: 3.1, alpha: 0, duration: 220, ease: "Cubic.Out", onComplete: () => impact.destroy() });
+      this.tweens.add({ targets: enemy.view, x: enemy.view.x + 7, yoyo: true, repeat: 3, duration: 34, onComplete: () => { if (enemy.view.active) enemy.view.setPosition(enemy.data.x, enemy.data.y); } });
+      this.time.delayedCall(110, () => { if (enemy.view.active) enemy.view.setAlpha(1); });
       hit = true;
       if (enemy.data.health <= 0) { enemy.view.destroy(); this.objects.delete(id); setStatus("هُزم العدو! ✦"); }
       else setStatus(`أصبت العدو — صحته ${enemy.data.health}`);
