@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  await expect(page.locator("#game-stage canvas.spark-editor-canvas")).toHaveCount(1);
   await expect(page.locator("#game-stage canvas")).toHaveCount(1);
 });
 
