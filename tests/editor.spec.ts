@@ -127,3 +127,21 @@ test("vector asset library filters and inserts editable assets", async ({ page }
   await expect(page.locator("#object-count")).toHaveText("7");
   await expect(page.locator("#object-name")).toHaveValue("بلورة بنفسجية");
 });
+test("object motion and enemy AI settings persist across reloads", async ({ page }) => {
+  await page.locator("#object-list .object-row").filter({ hasText: "عدو" }).first().click();
+  await page.locator("#object-motion").selectOption("float");
+  await page.locator("#enemy-ai-mode").selectOption("guard");
+  await page.locator("#save-button").click();
+
+  const saved = await page.evaluate(() => {
+    const project = JSON.parse(localStorage.getItem("spark-workshop-mini-project-v4") || "{}");
+    return project.scenes[0].objects.find((item: { kind: string }) => item.kind === "enemy");
+  });
+  expect(saved.motion).toBe("float");
+  expect(saved.aiMode).toBe("guard");
+
+  await page.reload();
+  await page.locator("#object-list .object-row").filter({ hasText: "عدو" }).first().click();
+  await expect(page.locator("#object-motion")).toHaveValue("float");
+  await expect(page.locator("#enemy-ai-mode")).toHaveValue("guard");
+});
