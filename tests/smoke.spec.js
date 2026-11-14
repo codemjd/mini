@@ -13,6 +13,7 @@ test("workshop renders the current six-object starter scene", async ({ page }) =
   await expect(page).toHaveTitle("ورشة الشرارات Mini — رحلة البلورات");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.getByRole("heading", { name: "محرر المشهد" })).toBeVisible();
+  await expect(page.locator("#game-stage canvas.spark-editor-canvas")).toHaveCount(1);
   await expect(page.locator("#game-stage canvas")).toHaveCount(1);
   await expect(page.locator("#object-list .object-row")).toHaveCount(6);
   await expect(page.locator("#object-count")).toHaveText("6");
@@ -71,7 +72,7 @@ test("Spark Script safely edits and persists the scene", async ({ page }) => {
 
   await page.reload();
   await expect(page.locator("#object-count")).toHaveText("7");
-  await expect(page.locator("#spark-script")).toContainText('spawn("coin", 320, 220);');
+  await expect(page.locator("#spark-script")).toHaveValue(/spawn\("coin", 320, 220\);/);
 });
 
 test("Spark Script rejects arbitrary JavaScript atomically", async ({ page }) => {
