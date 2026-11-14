@@ -81,11 +81,11 @@ test("scenes can be duplicated, renamed, and deleted while preserving one scene"
   await expect(page.locator("#scene-count")).toContainText("2");
   await expect(page.locator("#object-count")).toHaveText("6");
 
-  page.on("dialog", dialog => dialog.accept("ممر الغابة"));
+  page.once("dialog", dialog => dialog.accept("ممر الغابة"));
   await page.locator("#scene-rename").click();
   await expect(page.locator(".scene-tab.active")).toContainText("ممر الغابة");
 
-  page.on("dialog", dialog => dialog.accept());
+  page.once("dialog", dialog => dialog.accept());
   await page.locator("#scene-delete").click();
   await expect(page.locator("#scene-count")).toContainText("1");
   await expect(page.locator("#object-count")).toHaveText("6");
@@ -97,7 +97,7 @@ test("multi-scene project exports as v4 and reloads the active scene", async ({ 
   await page.locator("#scene-new").click();
   await page.locator("#add-enemy").click();
   await page.locator("#save-button").click();
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v3") || "{}"));
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v4") || "{}"));
   expect(stored.version).toBe(4);
   expect(stored.scenes).toHaveLength(2);
   expect(stored.scenes.find((scene: { id: string }) => scene.id === stored.activeSceneId).objects).toHaveLength(1);
