@@ -28,7 +28,7 @@ app.innerHTML = `
       <div class="editor-layout">
         <div class="scene-column">
           <div class="stage-toolbar"><span>المشهد 01 <b>/</b> ساحة التدريب</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">800 × 450</span></div></div>
-          <div class="stage-shell" id="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><button data-dir="up" aria-label="أعلى">▲</button><div><button data-dir="left" aria-label="يسار">◀</button><button data-dir="down" aria-label="أسفل">▼</button><button data-dir="right" aria-label="يمين">▶</button></div></div>
+          <div class="stage-shell" id="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><button data-dir="up" aria-label="أعلى">▲</button><div><button data-dir="left" aria-label="يسار">◀</button><button data-dir="down" aria-label="أسفل">▼</button><button data-dir="right" aria-label="يمين">▶</button></div><button class="touch-attack" id="touch-attack" aria-label="هجوم">⚔ هجوم</button></div>
           <div class="hint-row" id="stage-hint" role="status" aria-live="polite"><span>✦</span> اختر كائنًا أو اسحبه. اضغط «معاينة اللعبة» لتجربة تحريك الشخصية.</div>
         </div>
         <aside class="tools-panel">
@@ -56,6 +56,10 @@ class EditorScene extends Phaser.Scene {
   private previewSnapshot: EditorObject[] | null = null;
   private previewScore = 0;
   private previewCoinsTotal = 0;
+  private attackCooldown = 0;
+  private enemyAttackCooldown = 0;
+  private attackRequested = false;
+  private autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
   private gridGraphics?: Phaser.GameObjects.Graphics;
   private touchDirection = { x: 0, y: 0 };
   private nextId = 1;
@@ -445,7 +449,10 @@ class EditorScene extends Phaser.Scene {
     this.previewScore = 0;
     this.previewing = true; this.selectedId = null;
     for (const item of this.objects.values()) { item.view.disableInteractive(); item.view.setAlpha(1); }
-    if (this.input.keyboard) this.previewKeys = this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT") as Record<string, Phaser.Input.Keyboard.Key>;
+    if (this.input.keyboard) this.previewKeys = this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE") as Record<string, Phaser.Input.Keyboard.Key>;
+    this.attackCooldown = 0;
+    this.enemyAttackCooldown = 0;
+    this.attackRequested = false;
     document.querySelector("#touch-controls")?.removeAttribute("hidden");
     document.querySelector("#stage-shell")?.classList.add("is-previewing");
     this.previewHint = this.add.text(400, 18, "وضع المعاينة  •  حرّك بطلك", { fontFamily: "Tahoma, Arial", fontSize: "14px", fontStyle: "bold", color: "#ffffff", backgroundColor: "#123b3b", padding: {x:15,y:8} }).setOrigin(0.5,0).setDepth(30);
@@ -460,6 +467,7 @@ class EditorScene extends Phaser.Scene {
   stopPreview() {
     if (!this.previewing) return;
     this.previewing = false;
+    this.attackRequested = false;
     this.previewHint?.destroy(); this.previewHint = undefined;
     this.previewScoreLabel?.destroy(); this.previewScoreLabel = undefined;
     this.touchDirection = { x: 0, y: 0 };
@@ -483,9 +491,26 @@ class EditorScene extends Phaser.Scene {
     const hero = [...this.objects.values()].find(item => item.data.kind === "hero");
     if (!hero) return;
     const k = this.previewKeys; const speed = Math.max(60, hero.data.speed) * delta / 1000;
+    this.attackCooldown = Math.max(0, this.attackCooldown - delta);
+    this.enemyAttackCooldown = Math.max(0, this.enemyAttackCooldown - delta);
+    if (Phaser.Input.Keyboard.JustDown(k?.SPACE as Phaser.Input.Keyboard.Key) || this.attackRequested) { this.attackRequested = false; this.performAttack(hero); }
     let dx = this.touchDirection.x, dy = this.touchDirection.y; if (k?.A.isDown || k?.LEFT.isDown) dx--; if (k?.D.isDown || k?.RIGHT.isDown) dx++; if (k?.W.isDown || k?.UP.isDown) dy--; if (k?.S.isDown || k?.DOWN.isDown) dy++;
     if (dx || dy) { const length = Math.hypot(dx,dy) || 1; hero.view.x = Phaser.Math.Clamp(hero.view.x + dx/length*speed, 25, 775); hero.view.y = Phaser.Math.Clamp(hero.view.y + dy/length*speed, 25, 425); hero.data.x = Math.round(hero.view.x); hero.data.y = Math.round(hero.view.y); }
     for (const [id, item] of this.objects) {
+      if (item.data.kind === "enemy") {
+        const distance = Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y);
+        if (distance > 42) {
+          const step = Math.min(distance - 42, Math.max(35, item.data.speed) * delta / 1000);
+          item.view.x += (hero.view.x - item.view.x) / distance * step;
+          item.view.y += (hero.view.y - item.view.y) / distance * step;
+          item.data.x = Math.round(item.view.x); item.data.y = Math.round(item.view.y);
+        } else if (this.enemyAttackCooldown <= 0) {
+          hero.data.health = Math.max(0, hero.data.health - Math.max(1, item.data.damage));
+          this.enemyAttackCooldown = 850;
+          setStatus(`تلقى بطلك ضربة! الصحة ${hero.data.health}`);
+          if (hero.data.health <= 0) { hero.data.health = 100; hero.view.setPosition(400, 225); hero.data.x = 400; hero.data.y = 225; setStatus("سقط بطلك وعاد إلى الساحة — انتبه لصحتك!"); }
+        }
+      }
       if (item.data.kind === "coin" && Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y) < 34) {
         item.view.destroy();
         this.objects.delete(id);
@@ -497,9 +522,38 @@ class EditorScene extends Phaser.Scene {
     }
   }
 
+  requestAttack() { this.attackRequested = true; }
+
+  private performAttack(hero: { data: EditorObject; view: Phaser.GameObjects.Container }) {
+    if (this.attackCooldown > 0) return;
+    this.attackCooldown = 420;
+    let hit = false;
+    for (const [id, enemy] of this.objects) {
+      if (enemy.data.kind !== "enemy") continue;
+      if (Phaser.Math.Distance.Between(hero.view.x, hero.view.y, enemy.view.x, enemy.view.y) > 92) continue;
+      enemy.data.health = Math.max(0, enemy.data.health - Math.max(1, hero.data.damage));
+      enemy.view.setAlpha(0.55);
+      this.time.delayedCall(90, () => { if (enemy.view.active) enemy.view.setAlpha(1); });
+      hit = true;
+      if (enemy.data.health <= 0) { enemy.view.destroy(); this.objects.delete(id); setStatus("هُزم العدو! ✦"); }
+      else setStatus(`أصبت العدو — صحته ${enemy.data.health}`);
+      break;
+    }
+    if (!hit) setStatus("لا يوجد عدو قريب — اقترب منه ثم هاجم");
+    this.emitChange();
+  }
+
   getSelected() { return this.selectedId ? this.objects.get(this.selectedId)?.data ?? null : null; }
   getObjects() { return [...this.objects.values()].map(item => item.data); }
-  private emitChange() { this.game.events.emit("editor-change", this.getObjects(), this.getSelected()); }
+  private emitChange() {
+    this.game.events.emit("editor-change", this.getObjects(), this.getSelected());
+    if (this.previewing) return;
+    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
+    this.autoSaveTimer = setTimeout(() => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, title: "ورشة الشرارات - مشروعي", width: 800, height: 450, objects: this.getObjects() })); }
+      catch { setStatus("تعذر الحفظ التلقائي — استخدم حفظ المشروع"); }
+    }, 650);
+  }
 }
 
 function setStatus(message: string) {
@@ -590,7 +644,8 @@ document.querySelector("#add-enemy")?.addEventListener("click", () => editorScen
 document.querySelector("#add-platform")?.addEventListener("click", () => editorScene?.addObject("platform"));
 document.querySelector("#add-coin")?.addEventListener("click", () => editorScene?.addObject("coin"));
 const touchVectors: Record<string, {x:number;y:number}> = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
-document.querySelectorAll<HTMLButtonElement>("#touch-controls button").forEach(button => {
+document.querySelector("#touch-attack")?.addEventListener("pointerdown", event => { event.preventDefault(); editorScene?.requestAttack(); });
+document.querySelectorAll<HTMLButtonElement>("#touch-controls button[data-dir]").forEach(button => {
   const start = (event: Event) => { event.preventDefault(); const direction = touchVectors[button.dataset.dir ?? ""]; if (direction) editorScene?.setTouchDirection(direction.x, direction.y); };
   const stop = () => editorScene?.setTouchDirection(0, 0);
   button.addEventListener("pointerdown", start); button.addEventListener("pointerup", stop); button.addEventListener("pointerleave", stop); button.addEventListener("pointercancel", stop);
