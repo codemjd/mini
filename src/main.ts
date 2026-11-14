@@ -664,7 +664,7 @@ for (const prop of ["health", "speed", "damage", "size"] as const) {
     if (prop === "size" || editorScene?.getSelected()?.kind === "hero" || editorScene?.getSelected()?.kind === "enemy") editorScene?.updateProperties({ [prop]: value });
   });
 }
-document.querySelector<HTMLInputElement>("#creature-color")?.addEventListener("input", event => editorScene?.updateProperties({ color: (event.currentTarget as HTMLInputElement).value }));
+document.querySelector<HTMLInputElement>("#creature-color")?.addEventListener("change", event => editorScene?.updateProperties({ color: (event.currentTarget as HTMLInputElement).value }));
 for (const axis of ["x", "y"] as const) {
   document.querySelector<HTMLInputElement>(`#position-${axis}`)?.addEventListener("change", event => {
     const input = event.currentTarget as HTMLInputElement;
