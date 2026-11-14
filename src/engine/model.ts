@@ -9,6 +9,7 @@ export type SparkBehavior =
 
 export type SparkMotionKind = "idle" | "float" | "pulse" | "bounce" | "wobble";
 export type SparkEnemyAiMode = "chase" | "guard";
+export type SparkSceneBackground = "crystal-garden" | "sunset-ruins" | "frost-cavern" | "desert-dunes";
 
 export interface SparkObjectDefinition {
   id: string;
@@ -32,7 +33,7 @@ export interface SparkSceneDefinition {
   name: string;
   width: number;
   height: number;
-  background: "crystal-garden";
+  background: SparkSceneBackground;
   objects: SparkObjectDefinition[];
 }
 
