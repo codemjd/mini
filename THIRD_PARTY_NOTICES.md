@@ -32,7 +32,7 @@ Spark registers the official Tiled Inflate plugin for compressed Tiled map suppo
 - License: MIT
 - Full notice: licenses/Tiled-Inflate-MIT.txt
 
-Phaser remains the temporary editor renderer during this migration. PixiJS has been removed from the active dependency graph and is no longer used by the Spark preview runtime.
+The editor uses Spark-owned Canvas 2D rendering. Phaser and PixiJS are not active dependencies; melonJS is used for the playable preview/runtime.
 
 A complete dependency-by-dependency license inventory is required before commercial distribution or binary packaging.
 
