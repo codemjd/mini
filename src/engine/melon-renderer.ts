@@ -61,7 +61,13 @@ class SparkActorRenderable extends Renderable {
     this.isDirty=true;
   }
   draw(renderer:MelonRenderer):void {
-    const a=this.actor,x=this.pos.x,y=this.pos.y,r=this.width/2,cx=x+r,cy=y+r;
+    const a=this.actor,x=this.pos.x,y=this.pos.y,baseRadius=this.width/2;
+    const motion=a.motion ?? "idle";
+    const phase=a.animationTime/1000;
+    const pulse=motion==="pulse" ? 1+Math.sin(phase*3.5)*0.09 : 1;
+    const bob=motion==="float" ? Math.sin(phase*2.4+a.x)*5 : motion==="bounce" ? -Math.abs(Math.sin(phase*3.2+a.y))*7 : 0;
+    const sway=motion==="wobble" ? Math.sin(phase*4.5+a.x)*2.5 : 0;
+    const r=baseRadius*pulse,cx=x+baseRadius+sway,cy=y+baseRadius+bob;
     renderer.save();
     if(a.kind==="coin"){
       const pulse=1+Math.sin(a.animationTime/170)*0.08;
