@@ -117,3 +117,13 @@ test("the workshop stays within a phone-sized viewport", async ({ page }) => {
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
   await expect(page.locator(".assistant-input-row")).toBeVisible();
 });
+test("vector asset library filters and inserts editable assets", async ({ page }) => {
+  await expect(page.locator("#asset-grid .asset-card")).toHaveCount(12);
+  await page.locator("#asset-category").selectOption("collectibles");
+  await expect(page.locator("#asset-grid .asset-card")).toHaveCount(4);
+  await page.locator("#asset-search").fill("بنفسجية");
+  await expect(page.locator("#asset-grid .asset-card")).toHaveCount(1);
+  await page.locator('[data-asset-id="crystal-violet"]').click();
+  await expect(page.locator("#object-count")).toHaveText("7");
+  await expect(page.locator("#object-name")).toHaveValue("بلورة بنفسجية");
+});
