@@ -7,6 +7,9 @@ export type SparkBehavior =
   | { type: "health"; maximum: number }
   | { type: "melee"; damage: number; range: number; cooldownMs: number };
 
+export type SparkMotionKind = "idle" | "float" | "pulse" | "bounce" | "wobble";
+export type SparkEnemyAiMode = "chase" | "guard";
+
 export interface SparkObjectDefinition {
   id: string;
   name: string;
@@ -18,6 +21,8 @@ export interface SparkObjectDefinition {
   health: number;
   speed: number;
   damage: number;
+  motion?: SparkMotionKind;
+  aiMode?: SparkEnemyAiMode;
   behaviors: SparkBehavior[];
 }
 
