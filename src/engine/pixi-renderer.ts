@@ -30,9 +30,10 @@ export class SparkPixiRenderer {
       backgroundAlpha: 0,
       resolution: Math.min(2, Math.max(1, window.devicePixelRatio || 1))
     });
-    this.app.view.className = "spark-preview-canvas";
-    this.app.view.setAttribute("aria-label", "معاينة اللعبة بمحرك Spark");
-    Object.assign(this.app.view.style, {
+    const canvas = this.app.view as HTMLCanvasElement;
+    canvas.className = "spark-preview-canvas";
+    canvas.setAttribute("aria-label", "معاينة اللعبة بمحرك Spark");
+    Object.assign(canvas.style, {
       position: "absolute",
       inset: "0",
       width: "100%",
@@ -40,7 +41,7 @@ export class SparkPixiRenderer {
       zIndex: "4",
       pointerEvents: "none"
     });
-    this.host.appendChild(this.app.view);
+    this.host.appendChild(canvas);
     this.root.sortableChildren = true;
     this.drawBackground();
     this.app.stage.addChild(this.root);
@@ -81,7 +82,7 @@ export class SparkPixiRenderer {
   }
 
   start(onFrame: (deltaMs: number) => void): void {
-    this.app.ticker.add((ticker) => onFrame(ticker.deltaMS));
+    this.app.ticker.add((deltaFrames) => onFrame(deltaFrames * (1000 / 60)));
   }
 
   render(world: SparkRuntimeWorld): void {
@@ -205,7 +206,7 @@ export class SparkPixiRenderer {
       body.addChild(new Graphics().lineStyle(2, 0x6b493a).arc(0, -18, 7, 0.2, 2.9).endFill());
       body.addChild(new Graphics().beginFill(0x9b7147).drawRoundedRect(24, -7, 8, 29, 3).endFill());
       body.addChild(new Graphics().beginFill(0xe1fbf7).lineStyle(2, 0x6baea6).drawPolygon([25, -22, 34, -35, 36, -3, 27, 2]).endFill());
-      body.addChild(new Graphics().beginFill(0x8debd4).drawStar(0, -53, 5, 6, 12).endFill());
+      body.addChild(new Graphics().beginFill(0x8debd4).drawPolygon(starPoints(0, -53, 5, 12, 6)).endFill());
     } else if (actor.kind === "enemy") {
       body.addChild(new Graphics().beginFill(0x2e9c79).drawEllipse(0, 4, 31, 25).endFill());
       body.addChild(new Graphics().beginFill(PIXIColor(actor.color)).lineStyle(3, 0xd8f6c9).drawEllipse(0, 0, 28, 24).endFill());
@@ -213,14 +214,14 @@ export class SparkPixiRenderer {
       body.addChild(new Graphics().beginFill(0xeafff4).drawEllipse(-9, -5, 7, 9).drawEllipse(9, -5, 7, 9).endFill());
       body.addChild(new Graphics().beginFill(0x25453c).drawCircle(-8, -4, 3).drawCircle(10, -4, 3).endFill());
       body.addChild(new Graphics().lineStyle(3, 0x31574a).arc(0, 8, 8, 0.2, 2.9));
-      body.addChild(new Graphics().beginFill(0xc8f5b2).drawStar(-17, -19, 3, 4, 8).drawStar(17, -19, 3, 4, 8).endFill());
+      body.addChild(new Graphics().beginFill(0xc8f5b2).drawPolygon(starPoints(-17, -19, 3, 8, 4)).drawPolygon(starPoints(17, -19, 3, 8, 4)).endFill());
     } else if (actor.kind === "coin") {
       body.addChild(new Graphics().beginFill(0x8cf9e3, 0.16).drawCircle(0, 0, 29).endFill());
       body.addChild(new Graphics().lineStyle(3, 0xfff0a7, 0.8).drawCircle(0, 0, 24));
       body.addChild(new Graphics().beginFill(0x2d8790).drawPolygon([0, -23, 18, -7, 13, 17, 0, 24, -13, 17, -18, -7]).endFill());
       body.addChild(new Graphics().beginFill(0x82f3e2).lineStyle(2, 0xd7fff5).drawPolygon([0, -20, 13, -7, 0, 16, -12, -7]).endFill());
       body.addChild(new Graphics().beginFill(0xffffff, 0.8).drawPolygon([-2, -16, 3, -11, -1, -2, -5, -10]).endFill());
-      body.addChild(new Graphics().beginFill(0xeaffca).drawStar(0, -31, 4, 2, 5).endFill());
+      body.addChild(new Graphics().beginFill(0xeaffca).drawPolygon(starPoints(0, -31, 4, 5, 2)).endFill());
     } else if (actor.kind === "crate") {
       body.addChild(new Graphics().beginFill(0x754a31).lineStyle(4, 0xf4c48b).drawRoundedRect(-25, -23, 50, 47, 7).endFill());
       body.addChild(new Graphics().lineStyle(6, 0xa66b3e).moveTo(-17, -15).lineTo(17, 15).moveTo(17, -15).lineTo(-17, 15));
@@ -262,7 +263,7 @@ export class SparkPixiRenderer {
   private spawnBurst(x: number, y: number, color: number): void {
     for (let i = 0; i < 10; i++) {
       const angle = (Math.PI * 2 * i) / 10;
-      const particle = new Graphics().beginFill(color, 0.95).drawStar(0, 0, 4, 2, 4).endFill();
+      const particle = new Graphics().beginFill(color, 0.95).drawPolygon(starPoints(0, 0, 4, 4, 2)).endFill();
       particle.position.set(x, y);
       this.root.addChild(particle);
       this.particles.push({
@@ -292,4 +293,15 @@ export class SparkPixiRenderer {
 
 function PIXIColor(value: string): number {
   return Number.parseInt(value.replace("#", ""), 16) || 0x78c99d;
+}
+
+
+function starPoints(x: number, y: number, points: number, outerRadius: number, innerRadius: number): number[] {
+  const result: number[] = [];
+  for (let index = 0; index < points * 2; index++) {
+    const angle = -Math.PI / 2 + (index * Math.PI) / points;
+    const radius = index % 2 === 0 ? outerRadius : innerRadius;
+    result.push(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+  }
+  return result;
 }
