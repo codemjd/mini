@@ -355,3 +355,20 @@ button:disabled{cursor:not-allowed}
 
 /* Spark Engine preview canvas — layered above the editor canvas only while playing. */
 #game-stage canvas.spark-preview-canvas{position:absolute!important;inset:0;z-index:4;touch-action:none}
+
+
+/* Optional professional scripting area — secondary to visual editing. */
+.code-workbench{margin-top:20px;padding:16px;border:1px solid #46546a;border-radius:15px;background:linear-gradient(145deg,#182536,#151f2e);box-shadow:0 14px 38px #0002}
+.code-workbench-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.code-workbench-heading h2{font-size:14px;margin:3px 0 2px;color:#eaf1f8}
+.code-workbench-heading p{font-size:10px;color:#91a4b8;margin:0;line-height:1.8}
+.code-safety{flex:none;padding:6px 9px;border:1px solid #4f6d62;border-radius:20px;background:#18392f;color:#b9e7d0;font-size:9px}
+.spark-script-editor{display:block;width:100%;min-height:142px;resize:vertical;direction:ltr;text-align:left;border:1px solid #354b61;border-radius:10px;padding:13px;background:#0b1420;color:#d8e8f5;font:12px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;outline:none}
+.spark-script-editor:focus{border-color:#83b4d0;box-shadow:0 0 0 3px #83b4d01c}
+.code-workbench-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px}
+.run-script-button,.reset-script-button{border:1px solid #45627a;border-radius:9px;padding:8px 12px;cursor:pointer;font-size:10px;font-weight:700}
+.run-script-button{background:#c8e4f1;color:#142b3c;border-color:#a9d2e5}
+.reset-script-button{background:#24364a;color:#d5e2ef}
+#script-output{font-size:10px;color:#a8c4d5;min-width:140px;flex:1}
+.code-workbench-footnote{font-size:9px;line-height:1.8;color:#8297ab;margin:10px 2px 0}
+@media(max-width:650px){.code-workbench{padding:12px}.code-workbench-heading{flex-direction:column}.spark-script-editor{min-height:126px;font-size:11px}.code-workbench-actions{align-items:stretch}.run-script-button,.reset-script-button{flex:1}}
