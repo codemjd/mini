@@ -3,7 +3,8 @@ import {
   createSparkProjectDocument,
   parseSparkProjectDocument,
   type SparkEditorObject,
-  type SparkEditorObjectKind
+  type SparkEditorObjectKind,
+  type SparkSceneDocument
 } from "./project-document";
 import { executeSparkScript } from "../scripting/spark-script";
 import { EditorCanvasObjectView, SparkEditorCanvas } from "./editor-canvas";
@@ -29,6 +30,8 @@ function randomBetween(min: number, max: number): number {
 
 export class SparkEditorController {
   private objects = new Map<string, { data: EditorObject; view: EditorCanvasObjectView }>();
+  private scenes: SparkSceneDocument[] = [];
+  private activeSceneId = "scene-1";
   private canvasRenderer: SparkEditorCanvas | null = null;
   private listeners = new Set<(objects: EditorObject[], selected: EditorObject | null) => void>();
   private gridVisible = true;
@@ -67,6 +70,7 @@ export class SparkEditorController {
     this.canvasRenderer.mount(host);
     this.loadProject();
     if (this.objects.size === 0) this.createStarterLevel();
+    if (this.scenes.length === 0) this.scenes = [{ id: this.activeSceneId, name: "المشهد الأول", objects: this.getObjects(), scriptSource: this.options.getScriptSource() }];
     if (!this.selectedId) this.select(this.objects.keys().next().value ?? null);
     this.emitChange();
   }
@@ -375,12 +379,113 @@ export class SparkEditorController {
     this.emitChange();
   }
 
+  private captureActiveScene() {
+    const active = this.scenes.find(scene => scene.id === this.activeSceneId);
+    const snapshot = { id: this.activeSceneId, name: active?.name ?? "المشهد الأول", objects: this.getObjects().map(item => ({ ...item })), scriptSource: this.options.getScriptSource() };
+    const index = this.scenes.findIndex(scene => scene.id === this.activeSceneId);
+    if (index >= 0) this.scenes[index] = snapshot;
+    else this.scenes.push(snapshot);
+  }
+
+  getScenes(): SparkSceneDocument[] {
+    this.captureActiveScene();
+    return this.scenes.map(scene => ({ ...scene, objects: scene.objects.map(item => ({ ...item })) }));
+  }
+
+  getActiveSceneId() { return this.activeSceneId; }
+
+  private projectDocument() {
+    this.captureActiveScene();
+    return createSparkProjectDocument(this.getObjects(), this.options.getScriptSource(), this.scenes, this.activeSceneId);
+  }
+
+  createScene(name = "مشهد جديد"): boolean {
+    if (this.previewing) this.stopPreview();
+    if (this.scenes.length >= 30) { this.options.setStatus("وصل المشروع إلى الحد الأقصى: 30 مشهدًا"); return false; }
+    this.captureActiveScene();
+    const base = name.trim().slice(0, 40) || "مشهد جديد";
+    let candidate = base, suffix = 2;
+    while (this.scenes.some(scene => scene.name === candidate)) candidate = base.slice(0, 32) + " " + suffix++;
+    const scene: SparkSceneDocument = { id: "scene-" + Date.now().toString(36) + "-" + (this.scenes.length + 1), name: candidate, objects: [], scriptSource: "" };
+    this.scenes.push(scene);
+    this.activateScene(scene);
+    this.options.setStatus("تم إنشاء " + candidate);
+    return true;
+  }
+
+  duplicateScene(): boolean {
+    if (this.previewing) this.stopPreview();
+    if (this.scenes.length >= 30) { this.options.setStatus("لا يمكن تجاوز 30 مشهدًا"); return false; }
+    this.captureActiveScene();
+    const source = this.scenes.find(scene => scene.id === this.activeSceneId);
+    if (!source) return false;
+    const copy: SparkSceneDocument = {
+      id: "scene-" + Date.now().toString(36) + "-" + (this.scenes.length + 1),
+      name: (source.name + " نسخة").slice(0, 40),
+      objects: source.objects.map(item => ({ ...item, id: "object-" + this.nextId++ })),
+      scriptSource: source.scriptSource
+    };
+    this.scenes.push(copy);
+    this.activateScene(copy);
+    this.options.setStatus("تم نسخ المشهد ومحتوياته");
+    return true;
+  }
+
+  renameScene(name: string): boolean {
+    const clean = name.trim().slice(0, 40);
+    if (!clean) { this.options.setStatus("اكتب اسمًا صالحًا للمشهد"); return false; }
+    const scene = this.scenes.find(item => item.id === this.activeSceneId);
+    if (!scene) return false;
+    if (this.scenes.some(item => item.id !== scene.id && item.name === clean)) {
+      this.options.setStatus("يوجد مشهد آخر بهذا الاسم"); return false;
+    }
+    scene.name = clean;
+    this.captureActiveScene();
+    this.save();
+    this.options.setStatus("تم تغيير اسم المشهد إلى " + clean);
+    this.emitChange();
+    return true;
+  }
+
+  deleteScene(): boolean {
+    if (this.previewing) this.stopPreview();
+    if (this.scenes.length <= 1) { this.options.setStatus("لا يمكن حذف المشهد الأخير في المشروع"); return false; }
+    const index = this.scenes.findIndex(scene => scene.id === this.activeSceneId);
+    if (index < 0) return false;
+    this.scenes.splice(index, 1);
+    const next = this.scenes[Math.max(0, index - 1)];
+    this.activateScene(next);
+    this.options.setStatus("تم حذف المشهد");
+    return true;
+  }
+
+  switchScene(id: string): boolean {
+    if (id === this.activeSceneId) return true;
+    const scene = this.scenes.find(item => item.id === id);
+    if (!scene) return false;
+    if (this.previewing) this.stopPreview();
+    this.captureActiveScene();
+    this.activateScene(scene);
+    this.options.setStatus("انتقلت إلى " + scene.name);
+    return true;
+  }
+
+  private activateScene(scene: SparkSceneDocument) {
+    this.activeSceneId = scene.id;
+    this.undoStack = [];
+    this.redoStack = [];
+    this.restoreObjects(scene.objects.map(item => ({ ...item })));
+    this.options.setScriptSource(scene.scriptSource);
+    this.updateHistoryButtons();
+    this.emitChange();
+    this.save();
+  }
+
   save() {
     try {
-      const payload = createSparkProjectDocument(this.getObjects(), this.options.getScriptSource());
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.projectDocument()));
       localStorage.removeItem(LEGACY_STORAGE_KEY);
-      this.options.setStatus("تم حفظ المشروع على هذا الجهاز");
+      this.options.setStatus("تم حفظ المشروع وجميع مشاهده على هذا الجهاز");
     } catch {
       this.options.setStatus("تعذر الحفظ — مساحة التخزين قد تكون ممتلئة");
     }
@@ -392,16 +497,18 @@ export class SparkEditorController {
       this.options.setStatus("تعذر استيراد الملف — " + parsed.error);
       return false;
     }
-    const imported = parsed.document.objects.map(item => ({
-      ...item,
-      id: "object-" + this.nextId++
+    this.scenes = parsed.document.scenes.map(scene => ({
+      ...scene,
+      objects: scene.objects.map(item => ({ ...item, id: "object-" + this.nextId++ }))
     }));
-    this.options.setScriptSource(parsed.document.scriptSource);
-    this.recordHistory();
-    this.restoreObjects(imported);
-    if (imported.length) this.select(imported[0].id);
+    const active = this.scenes.find(scene => scene.id === parsed.document.activeSceneId) ?? this.scenes[0];
+    this.undoStack = [];
+    this.redoStack = [];
+    this.activeSceneId = active.id;
+    this.options.setScriptSource(active.scriptSource);
+    this.restoreObjects(active.objects.map(item => ({ ...item })));
     this.save();
-    this.options.setStatus("تم استيراد المشروع — " + imported.length + " عنصر");
+    this.options.setStatus("تم استيراد المشروع — " + this.scenes.length + " مشهد");
     return true;
   }
 
@@ -416,12 +523,16 @@ export class SparkEditorController {
         this.options.setStatus("تعذر قراءة الحفظ السابق: " + parsed.error);
         return;
       }
-      this.options.setScriptSource(parsed.document.scriptSource);
-      for (const item of parsed.document.objects) {
-        this.createView({ ...item, id: "object-" + this.nextId++ });
-      }
-      if (!currentRaw && legacyRaw) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed.document));
+      this.scenes = parsed.document.scenes.map(scene => ({
+        ...scene,
+        objects: scene.objects.map(item => ({ ...item, id: "object-" + this.nextId++ }))
+      }));
+      const active = this.scenes.find(scene => scene.id === parsed.document.activeSceneId) ?? this.scenes[0];
+      this.activeSceneId = active.id;
+      this.options.setScriptSource(active.scriptSource);
+      for (const item of active.objects) this.createView({ ...item });
+      if (!currentRaw || parsed.document.version !== 4) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.projectDocument()));
       }
     } catch {
       this.options.setStatus("تعذر قراءة الحفظ السابق");
@@ -537,8 +648,7 @@ export class SparkEditorController {
     this.autoSaveTimer = undefined;
     if (flushPendingSave) {
       try {
-        const payload = createSparkProjectDocument(this.getObjects(), this.options.getScriptSource());
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.projectDocument()));
       } catch {
         // The browser may reject storage while closing; the last successful save remains intact.
       }
@@ -556,7 +666,7 @@ export class SparkEditorController {
     if (this.previewing) return;
     if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
     this.autoSaveTimer = setTimeout(() => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(createSparkProjectDocument(this.getObjects(), this.options.getScriptSource()))); }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.projectDocument())); }
       catch { this.options.setStatus("تعذر الحفظ التلقائي — استخدم حفظ المشروع"); }
     }, 650);
   }
