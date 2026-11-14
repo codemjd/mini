@@ -1,5 +1,8 @@
 export type SparkEditorObjectKind = "hero" | "enemy" | "crate" | "coin" | "platform";
 
+export type SparkMotionKind = "idle" | "float" | "pulse" | "bounce" | "wobble";
+export type SparkEnemyAiMode = "chase" | "guard";
+
 export interface SparkEditorObject {
   id: string;
   kind: SparkEditorObjectKind;
@@ -12,6 +15,8 @@ export interface SparkEditorObject {
   size: number;
   color: string;
   locked?: boolean;
+  motion?: SparkMotionKind;
+  aiMode?: SparkEnemyAiMode;
 }
 
 export interface SparkSceneDocument {
@@ -74,7 +79,9 @@ function parseObjects(raw: unknown): SparkEditorObject[] | null {
       name: typeof item.name === "string" ? item.name.slice(0, 24) : String(item.kind),
       health: clamp(item.health, 100, 1, 1000), speed: clamp(item.speed, 180, 1, 1000),
       damage: clamp(item.damage, 20, 1, 500), size: clamp(item.size, 1, 0.5, 2.5),
-      color, locked: item.locked === true
+      color, locked: item.locked === true,
+      motion: ["idle", "float", "pulse", "bounce", "wobble"].includes(String(item.motion)) ? item.motion as SparkMotionKind : "idle",
+      aiMode: item.kind === "enemy" && item.aiMode === "guard" ? "guard" : "chase"
     });
   }
   if (raw.length > 0 && objects.length === 0) return null;
