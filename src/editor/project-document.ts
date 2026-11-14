@@ -2,6 +2,7 @@ export type SparkEditorObjectKind = "hero" | "enemy" | "crate" | "coin" | "platf
 
 export type SparkMotionKind = "idle" | "float" | "pulse" | "bounce" | "wobble";
 export type SparkEnemyAiMode = "chase" | "guard";
+export type SparkBackgroundKind = "crystal-garden" | "sunset-ruins" | "frost-cavern" | "desert-dunes";
 
 export interface SparkEditorObject {
   id: string;
@@ -24,6 +25,7 @@ export interface SparkSceneDocument {
   name: string;
   objects: SparkEditorObject[];
   scriptSource: string;
+  background?: SparkBackgroundKind;
 }
 
 export interface SparkProjectDocument {
@@ -106,7 +108,8 @@ export function createSparkProjectDocument(
     id: safeSceneId(scene.id, index),
     name: (scene.name || "مشهد " + (index + 1)).slice(0, 40),
     objects: scene.objects.slice(0, OBJECT_LIMIT).map(item => ({ ...item })),
-    scriptSource: scene.scriptSource.slice(0, SCRIPT_LIMIT)
+    scriptSource: scene.scriptSource.slice(0, SCRIPT_LIMIT),
+    background: ["crystal-garden", "sunset-ruins", "frost-cavern", "desert-dunes"].includes(String(scene.background)) ? scene.background : "crystal-garden"
   }));
   const active = normalizedScenes.find(scene => scene.id === activeSceneId) ?? normalizedScenes[0];
   return {
@@ -144,7 +147,7 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
         const objects = parseObjects(candidate.objects);
         const scriptSource = cleanScript(candidate.scriptSource);
         if (!objects || scriptSource === null) return { ok: false, error: "بيانات أحد المشاهد غير صالحة أو تتجاوز الحدود" };
-        scenes.push({ id, name: typeof candidate.name === "string" ? candidate.name.slice(0, 40) : "مشهد " + (index + 1), objects, scriptSource });
+        scenes.push({ id, name: typeof candidate.name === "string" ? candidate.name.slice(0, 40) : "مشهد " + (index + 1), objects, scriptSource, background: ["crystal-garden", "sunset-ruins", "frost-cavern", "desert-dunes"].includes(String(candidate.background)) ? candidate.background as SparkBackgroundKind : "crystal-garden" });
       }
       if (!scenes.length) return { ok: false, error: "لا يحتوي المشروع على مشاهد صالحة" };
     } else {
@@ -152,7 +155,7 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
       const scriptValue = cleanScript(typeof project.scriptSource === "string" ? project.scriptSource : project.script);
       if (!objects) return { ok: false, error: "قائمة العناصر غير صالحة أو تتجاوز 500 عنصر" };
       if (scriptValue === null) return { ok: false, error: "المقتطف البرمجي يتجاوز 12 ألف حرف" };
-      scenes = [{ id: "scene-1", name: "المشهد الأول", objects, scriptSource: scriptValue }];
+      scenes = [{ id: "scene-1", name: "المشهد الأول", objects, scriptSource: scriptValue, background: "crystal-garden" }];
     }
 
     const requestedActive = typeof project.activeSceneId === "string" ? project.activeSceneId : "";
