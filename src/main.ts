@@ -1,10 +1,11 @@
 import Phaser from "phaser";
+import { resolveLocalCommand, type LocalAssistantAction } from "./local-assistant";
 import "./style.css";
 
 type ObjectKind = "hero" | "crate" | "enemy" | "coin" | "platform";
 type EditorObject = { id: string; kind: ObjectKind; x: number; y: number; name: string; health: number; speed: number; damage: number; size: number; color: string; locked?: boolean };
 
-const STORAGE_KEY = "spark-workshop-mini-project-v1";
+const STORAGE_KEY = "spark-workshop-mini-project-v2";
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("تعذر العثور على مساحة التطبيق");
 
@@ -27,9 +28,9 @@ app.innerHTML = `
       <div class="editor-heading"><div><span class="eyebrow">محرر الألعاب</span><h1>محرر المشهد</h1><p>أضف العناصر إلى لعبتك ورتّبها مباشرة داخل الساحة.</p></div><span class="version-tag">الإصدار 0.3 — أدوات متقدمة</span></div>
       <div class="editor-layout">
         <div class="scene-column">
-          <div class="stage-toolbar"><span>المشهد 01 <b>/</b> ساحة التدريب</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">800 × 450</span></div></div>
+          <div class="stage-toolbar"><span>المشهد 01 <b>/</b> ساحة التدريب</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">جزيرة البلورات · 800 × 450</span></div></div>
           <div class="stage-shell" id="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><button data-dir="up" aria-label="أعلى">▲</button><div><button data-dir="left" aria-label="يسار">◀</button><button data-dir="down" aria-label="أسفل">▼</button><button data-dir="right" aria-label="يمين">▶</button></div><button class="touch-attack" id="touch-attack" aria-label="هجوم">⚔ هجوم</button></div>
-          <div class="hint-row" id="stage-hint" role="status" aria-live="polite"><span>✦</span> اختر كائنًا أو اسحبه. اضغط «معاينة اللعبة» لتجربة تحريك الشخصية.</div>
+          <div class="hint-row" id="stage-hint" role="status" aria-live="polite"><span>✦</span> اجمع البلورات الأربع، واحذر حارس الوحل. هذه ساحة جاهزة للتعديل واللعب.</div>
         </div>
         <aside class="tools-panel">
           <div class="panel-section"><h2>إضافة عناصر</h2><button class="tool-button" id="add-hero"><span class="tool-icon hero-icon">●</span><span><strong>شخصية اللاعب</strong><small>الشخصية التي تتحكم بها</small></span><b>＋</b></button><button class="tool-button" id="add-enemy"><span class="tool-icon enemy-icon">◆</span><span><strong>عدو</strong><small>هدف للتجربة</small></span><b>＋</b></button><button class="tool-button" id="add-crate"><span class="tool-icon crate-icon">▧</span><span><strong>صندوق</strong><small>عنصر ثابت</small></span><b>＋</b></button><button class="tool-button" id="add-platform"><span class="tool-icon platform-icon">▬</span><span><strong>منصة</strong><small>سطح للمشهد</small></span><b>＋</b></button><button class="tool-button" id="add-coin"><span class="tool-icon coin-icon">●</span><span><strong>عملة</strong><small>عنصر قابل للجمع في المعاينة</small></span><b>＋</b></button></div>
@@ -38,6 +39,26 @@ app.innerHTML = `
           <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>اسم الكائن<input id="object-name" type="text" maxlength="24"></label><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><div id="appearance-properties"><div class="inspector-subtitle">المظهر</div><label>الحجم<input id="creature-size" type="number" min="0.5" max="2.5" step="0.1"></label><label>لون العنصر<input id="creature-color" type="color"></label></div><div id="creature-properties"><div class="inspector-subtitle">خصائص الشخصية</div><label>الصحة (HP)<input id="creature-health" type="number" min="1" max="1000"></label><label>السرعة<input id="creature-speed" type="number" min="1" max="1000"></label><label>الضرر<input id="creature-damage" type="number" min="1" max="500"></label></div><div class="inspector-actions inspector-layer-actions"><button class="secondary-button" id="lock-object">قفل الكائن</button><button class="secondary-button" id="bring-forward">للأمام ↑</button><button class="secondary-button" id="send-backward">للخلف ↓</button></div><div class="inspector-actions"><button class="secondary-button" id="duplicate-object">نسخ الكائن</button><button class="danger-button" id="delete-object">حذف الكائن</button></div></div></div>
         </aside>
       </div>
+      <section class="assistant-panel" aria-label="مساعد الورشة المحلي">
+        <div class="assistant-heading">
+          <div class="assistant-identity"><span class="assistant-mark">✦</span><div><strong>مساعد الورشة</strong><small>يفهم أوامرك وينفّذها داخل مشروعك</small></div></div>
+          <span class="offline-pill"><i></i> محلي · بلا إنترنت · بلا AI</span>
+        </div>
+        <div class="assistant-body">
+          <p class="assistant-response" id="assistant-response" role="status" aria-live="polite">أهلًا بك! أستطيع تجهيز لعبة مصغّرة، وإضافة العناصر، وتعديل البطل والعدو. أوامري محددة وواضحة وتعمل على جهازك.</p>
+          <div class="assistant-examples" aria-label="أمثلة للأوامر">
+            <button type="button" class="command-chip" data-assistant-command="جهز لعبة جمع البلورات">جهّز لعبة جاهزة</button>
+            <button type="button" class="command-chip" data-assistant-command="أضف 4 عملات">أضف 4 بلورات</button>
+            <button type="button" class="command-chip" data-assistant-command="اجعل البطل أسرع">سرّع البطل</button>
+            <button type="button" class="command-chip" data-assistant-command="اجعل العدو أضعف">سهّل المواجهة</button>
+          </div>
+          <form class="assistant-input-row" id="assistant-form">
+            <input id="assistant-input" type="text" maxlength="120" autocomplete="off" placeholder="اكتب أمرًا مثل: اجعل البطل أسرع أو أضف عدوًا..." aria-label="اكتب أمرًا للمساعد">
+            <button type="submit" class="assistant-send">تنفيذ الأمر <span>←</span></button>
+          </form>
+          <div class="assistant-footnote"><span>●</span> مساعد قواعد محلي — لا يرسل نصوصك إلى أي خادم، ولا يدّعي فهم أوامر خارج قائمته.</div>
+        </div>
+      </section>
       <section class="welcome-panel"><div class="welcome-icon">✧</div><div><strong>مساحة صناعة ألعاب تتوسع باستمرار</strong><p>جرّب الأصول الجاهزة، عدّل مظهر كل عنصر، رتّب الطبقات، واستخدم التراجع والاستيراد والتصدير لحماية عملك.</p></div></section>
     </section>
   </main>
@@ -72,24 +93,7 @@ class EditorScene extends Phaser.Scene {
   create() {
     editorScene = this;
     const { width, height } = this.scale;
-    const bg = this.add.graphics().setDepth(-20);
-    bg.fillGradientStyle(0x142b40, 0x18384a, 0x23505a, 0x1a3549, 1);
-    bg.fillRect(0, 0, width, height);
-    bg.fillStyle(0x70c8ad, 0.055);
-    bg.fillCircle(105, 95, 105);
-    bg.fillStyle(0xf6b85e, 0.055);
-    bg.fillCircle(690, 350, 145);
-    bg.lineStyle(2, 0x9ed9c4, 0.10);
-    bg.strokeCircle(400, 225, 178);
-    bg.strokeCircle(400, 225, 212);
-    bg.lineStyle(1, 0xf3d49a, 0.09);
-    bg.strokeCircle(400, 225, 248);
-    bg.fillStyle(0xd8f2e8, 0.28);
-    for (let i = 0; i < 42; i++) {
-      const x = (i * 137 + 31) % width;
-      const y = (i * 79 + 23) % height;
-      bg.fillCircle(x, y, i % 7 === 0 ? 2 : 1);
-    }
+    this.createWorldBackground(width, height);
     const grid = this.add.graphics().setDepth(-10);
     this.gridGraphics = grid;
     grid.lineStyle(1, 0xa6d8c8, 0.10);
@@ -98,12 +102,9 @@ class EditorScene extends Phaser.Scene {
     const border = this.add.graphics().setDepth(-9);
     border.lineStyle(3, 0x8ac7b7, 0.22);
     border.strokeRoundedRect(8, 8, width - 16, height - 16, 18);
-    this.add.text(16, 14, "ساحة التدريب", { fontFamily: "Tahoma, Arial", fontSize: "14px", color: "#e4fff4", backgroundColor: "#102436", padding: { x: 9, y: 6 } }).setDepth(20);
+    this.add.text(16, 14, "جزيرة البلورات", { fontFamily: "Tahoma, Arial", fontSize: "14px", color: "#e4fff4", backgroundColor: "#102436", padding: { x: 9, y: 6 } }).setDepth(20);
     this.loadProject();
-    if (this.objects.size === 0) {
-      this.addObject("hero", 400, 225);
-      this.addObject("crate", 540, 260);
-    }
+    if (this.objects.size === 0) this.createStarterLevel();
     this.input.on("dragstart", (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
       const item = [...this.objects.values()].find(entry => entry.view === gameObject);
       if (!this.previewing && item && !item.data.locked) this.recordHistory();
@@ -120,6 +121,169 @@ class EditorScene extends Phaser.Scene {
       this.emitChange();
     });
     this.input.on("dragend", () => this.emitChange());
+  }
+
+  private createWorldBackground(width: number, height: number) {
+    const g = this.add.graphics().setDepth(-30);
+    g.fillGradientStyle(0x153b43, 0x285b50, 0x37684c, 0x173b3f, 1);
+    g.fillRect(0, 0, width, height);
+    g.fillStyle(0x8bd5a6, 0.08);
+    g.fillCircle(145, 105, 118);
+    g.fillCircle(650, 350, 150);
+    g.fillStyle(0x102f34, 0.22);
+    g.fillEllipse(400, 30, 620, 105);
+    g.fillEllipse(400, 430, 700, 90);
+    g.fillStyle(0x183c3b, 0.82);
+    g.fillRoundedRect(34, 164, 732, 122, 58);
+    g.fillStyle(0x837f64, 0.96);
+    g.fillRoundedRect(39, 169, 722, 112, 54);
+    g.fillStyle(0xb6a982, 0.98);
+    g.fillRoundedRect(46, 175, 708, 100, 48);
+    g.fillStyle(0xe3d4a6, 0.16);
+    g.fillRoundedRect(54, 181, 692, 11, 6);
+    g.fillStyle(0x696f5a, 0.22);
+    for (let x = 70; x < 750; x += 68) g.fillRoundedRect(x, 190 + ((x / 68) % 2) * 7, 34, 70, 13);
+    g.fillStyle(0xefe0b5, 0.20);
+    for (let i = 0; i < 46; i++) {
+      const x = 58 + (i * 137) % 685;
+      const y = 184 + (i * 47) % 84;
+      g.fillCircle(x, y, i % 5 === 0 ? 2 : 1);
+    }
+    for (let i = 0; i < 22; i++) {
+      const x = 22 + (i * 79) % 756;
+      const topY = 34 + (i * 17) % 43;
+      const bottomY = 397 + (i * 13) % 35;
+      const radius = 23 + (i % 4) * 5;
+      g.fillStyle(0x143a35, 0.90);
+      g.fillCircle(x + 3, topY + 5, radius + 3);
+      g.fillCircle(x + 3, bottomY + 5, radius + 3);
+      g.fillStyle(i % 2 ? 0x2d7654 : 0x36815d, 0.96);
+      g.fillCircle(x, topY, radius);
+      g.fillCircle(x, bottomY, radius);
+      g.fillStyle(0xa5d989, 0.18);
+      g.fillEllipse(x - 5, topY - 6, radius, 10);
+      g.fillEllipse(x - 5, bottomY - 6, radius, 10);
+    }
+    for (const x of [58, 142, 658, 742]) {
+      const y = x < 400 ? 112 : 337;
+      g.fillStyle(0x3b4938, 0.95);
+      g.fillRoundedRect(x - 6, y - 3, 13, 40, 6);
+      g.fillStyle(0x194637, 0.98);
+      g.fillCircle(x, y - 13, 31);
+      g.fillStyle(0x347b56, 0.98);
+      g.fillCircle(x - 12, y - 22, 20);
+      g.fillCircle(x + 13, y - 19, 19);
+      g.fillStyle(0x9bd783, 0.36);
+      g.fillCircle(x - 8, y - 29, 7);
+    }
+    g.fillStyle(0x8fe9df, 0.12);
+    g.fillCircle(400, 92, 70);
+    g.fillStyle(0x8df5e6, 0.78);
+    g.fillTriangle(384, 105, 400, 71, 416, 105);
+    g.fillStyle(0xd9fff7, 0.9);
+    g.fillTriangle(400, 71, 407, 97, 400, 105);
+    g.fillStyle(0x9ee7ee, 0.13);
+    g.fillCircle(205, 350, 34);
+    g.fillStyle(0x70d5db, 0.8);
+    g.fillTriangle(194, 358, 205, 330, 216, 358);
+    g.fillStyle(0xd9ffff, 0.9);
+    g.fillTriangle(205, 330, 211, 351, 205, 358);
+    g.lineStyle(2, 0xa4d78d, 0.45);
+    for (let i = 0; i < 34; i++) {
+      const x = 18 + (i * 53) % 764;
+      const y = i % 2 ? 132 + (i * 19) % 24 : 294 + (i * 23) % 30;
+      g.lineBetween(x, y + 7, x - 3, y);
+      g.lineBetween(x, y + 7, x + 5, y - 1);
+    }
+    g.lineStyle(3, 0xb1e4ba, 0.22);
+    g.strokeRoundedRect(8, 8, width - 16, height - 16, 20);
+  }
+
+  private createStarterLevel() {
+    const entries: Array<{ kind: ObjectKind; x: number; y: number; overrides?: Partial<EditorObject> }> = [
+      { kind: "hero", x: 122, y: 223, overrides: { name: "حارس البلورات", health: 130, speed: 220, damage: 34, size: 1.12, color: "#f1b94f" } },
+      { kind: "enemy", x: 674, y: 223, overrides: { name: "حارس الوحل", health: 90, speed: 96, damage: 8, size: 1.08, color: "#78c99d" } },
+      { kind: "coin", x: 260, y: 205, overrides: { name: "بلورة النور", size: 1.05 } },
+      { kind: "coin", x: 355, y: 244, overrides: { name: "بلورة النور", size: 1.05 } },
+      { kind: "coin", x: 450, y: 205, overrides: { name: "بلورة النور", size: 1.05 } },
+      { kind: "coin", x: 545, y: 244, overrides: { name: "بلورة النور", size: 1.05 } }
+    ];
+    const defaults: Record<ObjectKind, { name: string; color: string }> = {
+      hero: { name: "بطلي", color: "#f1b94f" },
+      enemy: { name: "عدو", color: "#78c99d" },
+      crate: { name: "صندوق", color: "#c47a45" },
+      platform: { name: "منصة", color: "#719eae" },
+      coin: { name: "بلورة", color: "#ffd34e" }
+    };
+    for (const entry of entries) {
+      const base = defaults[entry.kind];
+      const data: EditorObject = {
+        id: "object-" + this.nextId++,
+        kind: entry.kind,
+        x: entry.x,
+        y: entry.y,
+        name: base.name,
+        health: 100,
+        speed: 180,
+        damage: 20,
+        size: 1,
+        color: base.color,
+        ...entry.overrides
+      };
+      this.createView(data);
+    }
+    this.refreshDepths();
+  }
+
+  buildStarterGame() {
+    if (this.previewing) this.stopPreview();
+    this.recordHistory();
+    for (const item of this.objects.values()) item.view.destroy();
+    this.objects.clear();
+    this.selectedId = null;
+    this.nextId = 1;
+    this.createStarterLevel();
+    this.emitChange();
+    this.save();
+    setStatus("أصبحت رحلة البلورات جاهزة للتعديل واللعب");
+  }
+
+  addCoins(count: number) {
+    if (this.previewing) this.stopPreview();
+    const safeCount = Phaser.Math.Clamp(Math.floor(count), 1, 20);
+    this.recordHistory();
+    for (let i = 0; i < safeCount; i++) {
+      const x = 128 + (i % 9) * 66;
+      const y = 205 + (Math.floor(i / 9) % 2) * 55;
+      this.createView({
+        id: "object-" + this.nextId++,
+        kind: "coin",
+        x,
+        y,
+        name: "بلورة النور",
+        health: 100,
+        speed: 180,
+        damage: 20,
+        size: 1,
+        color: "#ffd34e"
+      });
+    }
+    this.emitChange();
+    setStatus("أضيفت " + safeCount + " بلورات إلى الساحة");
+  }
+
+  updateFirst(kind: ObjectKind, changes: Partial<EditorObject>): boolean {
+    const item = [...this.objects.values()].find(entry => entry.data.kind === kind);
+    if (!item) return false;
+    this.select(item.data.id);
+    this.updateProperties(changes);
+    return true;
+  }
+
+  updateSelectedProperties(changes: Partial<EditorObject>): boolean {
+    if (!this.getSelected()) return false;
+    this.updateProperties(changes);
+    return true;
   }
 
   addPreset(preset: "coins" | "barricade" | "rival") {
@@ -160,60 +324,92 @@ class EditorScene extends Phaser.Scene {
 
   private createView(data: EditorObject) {
     const parts: Phaser.GameObjects.GameObject[] = [];
-    if (data.kind === "hero" || data.kind === "enemy") {
+    const isCreature = data.kind === "hero" || data.kind === "enemy";
+    const bodyColor = Phaser.Display.Color.HexStringToColor(data.color || "#f1b94f").color;
+
+    if (isCreature) {
       const isHero = data.kind === "hero";
-      const bodyColor = Phaser.Display.Color.HexStringToColor(data.color || (isHero ? "#ffbd59" : "#ff6b72")).color;
-      const trimColor = isHero ? 0x8de2cf : 0xffc0b9;
-      parts.push(this.add.ellipse(0, 24, 62, 21, 0x06111a, 0.42));
-      parts.push(this.add.ellipse(0, 18, 43, 13, 0x07131b, 0.22));
-      parts.push(this.add.circle(0, 0, 27, isHero ? 0x3d8e7d : 0x9b4b56, 0.26));
-      parts.push(this.add.circle(0, 0, 23, bodyColor).setStrokeStyle(4, isHero ? 0xffe5ad : 0xffd4cd));
-      parts.push(this.add.arc(0, 0, 27, 205, 335, false, trimColor, 1).setStrokeStyle(4, trimColor));
-      parts.push(this.add.ellipse(-8, -9, 13, 7, 0xffffff, 0.22));
+      parts.push(this.add.ellipse(0, 34, 76, 20, 0x071b1b, 0.40));
+      parts.push(this.add.ellipse(0, 31, 50, 12, 0x061414, 0.28));
       if (isHero) {
-        parts.push(this.add.star(0, -36, 5, 4, 9, 0x9cf0d5).setStrokeStyle(2, 0xe3fff2));
-        parts.push(this.add.rectangle(0, 17, 28, 7, 0x477d73).setStrokeStyle(1, 0x9be0c9));
+        parts.push(this.add.triangle(0, 13, -22, -13, 22, -13, 0, 43, 0x397f73).setStrokeStyle(3, 0x9ce3c7));
+        parts.push(this.add.ellipse(-10, 27, 16, 19, 0x33485b));
+        parts.push(this.add.ellipse(10, 27, 16, 19, 0x33485b));
+        parts.push(this.add.ellipse(-11, 35, 21, 10, 0x26394b).setStrokeStyle(2, 0x829cab));
+        parts.push(this.add.ellipse(11, 35, 21, 10, 0x26394b).setStrokeStyle(2, 0x829cab));
+        parts.push(this.add.ellipse(-24, 10, 15, 24, 0x398c7d).setStrokeStyle(2, 0x9fe6cc));
+        parts.push(this.add.ellipse(24, 10, 15, 24, 0x398c7d).setStrokeStyle(2, 0x9fe6cc));
+        parts.push(this.add.circle(-29, 20, 8, 0xf1b94f).setStrokeStyle(2, 0xffe6a1));
+        parts.push(this.add.circle(29, 20, 8, 0xf1b94f).setStrokeStyle(2, 0xffe6a1));
+        parts.push(this.add.ellipse(0, 16, 39, 36, 0x2e796e).setStrokeStyle(4, 0xa3e9ce));
+        parts.push(this.add.ellipse(0, 8, 23, 12, 0x78c9ab, 0.8));
+        parts.push(this.add.rectangle(0, 28, 29, 6, 0x9c6840).setStrokeStyle(1, 0xf1cf8c));
+        parts.push(this.add.circle(0, -10, 26, bodyColor).setStrokeStyle(4, 0xffe5a1));
+        parts.push(this.add.arc(0, -11, 27, 195, 345, false, 0x8d653e, 1).setStrokeStyle(6, 0xffdf91));
+        parts.push(this.add.ellipse(-8, -18, 13, 7, 0xffffff, 0.55));
+        parts.push(this.add.circle(-8, -7, 5, 0xffffff));
+        parts.push(this.add.circle(8, -7, 5, 0xffffff));
+        parts.push(this.add.circle(-7, -6, 2.2, 0x26374a));
+        parts.push(this.add.circle(9, -6, 2.2, 0x26374a));
+        parts.push(this.add.arc(0, 3, 8, 20, 160, false, 0x5b3a32).setStrokeStyle(2, 0x5b3a32));
+        parts.push(this.add.star(0, -39, 5, 5, 10, 0x8ce6d0).setStrokeStyle(2, 0xe0fff5));
+        parts.push(this.add.rectangle(35, 5, 7, 30, 0xdaf5ef).setStrokeStyle(2, 0x6ca6a0).setAngle(25));
+        parts.push(this.add.rectangle(31, 18, 17, 5, 0x9c6840).setAngle(25));
+        parts.push(this.add.circle(37, -12, 4, 0xffffff, 0.8));
       } else {
-        parts.push(this.add.triangle(0, -30, -12, 0, 12, 0, 0, -17, 0xffd0c9).setStrokeStyle(2, 0xffeee9));
-        parts.push(this.add.arc(0, 3, 13, 200, 340, false, 0x4c2630).setStrokeStyle(3, 0x4c2630));
+        parts.push(this.add.ellipse(0, 14, 61, 48, bodyColor).setStrokeStyle(4, 0xd2f5c4));
+        parts.push(this.add.triangle(-18, -11, -9, 8, 9, 8, 0, -13, 0x4b9b7b).setStrokeStyle(2, 0xc5f6d1));
+        parts.push(this.add.triangle(18, -11, -9, 8, 9, 8, 0, -13, 0x4b9b7b).setStrokeStyle(2, 0xc5f6d1));
+        parts.push(this.add.ellipse(-17, 18, 11, 8, 0x5cae8b, 0.8));
+        parts.push(this.add.ellipse(17, 18, 11, 8, 0x5cae8b, 0.8));
+        parts.push(this.add.ellipse(-9, 8, 12, 17, 0xffffff));
+        parts.push(this.add.ellipse(9, 8, 12, 17, 0xffffff));
+        parts.push(this.add.circle(-7, 10, 3.5, 0x213e3b));
+        parts.push(this.add.circle(11, 10, 3.5, 0x213e3b));
+        parts.push(this.add.arc(1, 26, 9, 15, 165, false, 0x31534a).setStrokeStyle(3, 0x31534a));
+        parts.push(this.add.circle(-19, -1, 3, 0xe5fff0, 0.8));
+        parts.push(this.add.circle(20, -3, 4, 0xe5fff0, 0.75));
+        parts.push(this.add.star(0, -30, 5, 3, 7, 0xe6f9b2).setStrokeStyle(1, 0xffffff));
       }
-      parts.push(this.add.ellipse(0, -2, 27, 21, 0x27364a));
-      parts.push(this.add.circle(-6, -5, 3, 0xffffff));
-      parts.push(this.add.circle(6, -5, 3, 0xffffff));
-      parts.push(this.add.circle(-5, -5, 1.2, 0x243344));
-      parts.push(this.add.circle(7, -5, 1.2, 0x243344));
-      parts.push(this.add.arc(0, 5, 7, 20, 160, false, 0x241e2b).setStrokeStyle(2, 0x241e2b));
     } else if (data.kind === "crate") {
-      parts.push(this.add.ellipse(0, 27, 64, 17, 0x07131b, 0.38));
-      parts.push(this.add.rectangle(0, 1, 53, 49, 0x8f542f).setStrokeStyle(4, 0xf4c18c));
-      parts.push(this.add.rectangle(0, -2, 43, 39, 0xc9824a).setStrokeStyle(2, 0xf7d0a1));
-      parts.push(this.add.rectangle(0, -2, 9, 39, 0x9b6038));
-      parts.push(this.add.rectangle(0, -2, 43, 8, 0x9b6038));
-      parts.push(this.add.line(0, 0, -18, -17, 18, 17, 0xf0b77d, 0.9).setLineWidth(3));
-      parts.push(this.add.line(0, 0, 18, -17, -18, 17, 0xf0b77d, 0.9).setLineWidth(3));
+      parts.push(this.add.ellipse(0, 28, 66, 17, 0x07131b, 0.36));
+      parts.push(this.add.rectangle(0, 1, 55, 51, 0x80502f).setStrokeStyle(4, 0xf1c18e));
+      parts.push(this.add.rectangle(0, -2, 45, 39, bodyColor).setStrokeStyle(2, 0xffd7a2));
+      parts.push(this.add.rectangle(0, -2, 9, 39, 0x98613a));
+      parts.push(this.add.rectangle(0, -2, 44, 7, 0x98613a));
+      parts.push(this.add.line(0, 0, -18, -17, 18, 17, 0xffd4a0, 0.95).setLineWidth(4));
+      parts.push(this.add.line(0, 0, 18, -17, -18, 17, 0xffd4a0, 0.95).setLineWidth(4));
+      for (const x of [-20, 20]) for (const y of [-17, 17]) parts.push(this.add.circle(x, y, 2.5, 0xffe5b9));
     } else if (data.kind === "coin") {
-      parts.push(this.add.circle(0, 2, 23, 0xffd34e, 0.16));
-      parts.push(this.add.ellipse(0, 23, 40, 12, 0x07131b, 0.34));
-      parts.push(this.add.circle(0, 0, 18, 0xe99b27).setStrokeStyle(5, 0xffef9b));
-      parts.push(this.add.circle(0, 0, 12, 0xffd34e).setStrokeStyle(2, 0xfff8ca));
-      parts.push(this.add.star(0, 0, 5, 3, 8, 0x9a681d));
-      parts.push(this.add.circle(-6, -7, 3, 0xffffff, 0.65));
+      parts.push(this.add.circle(0, 1, 29, 0xffd95b, 0.12));
+      parts.push(this.add.ellipse(0, 24, 42, 13, 0x07131b, 0.32));
+      parts.push(this.add.circle(0, 0, 20, 0xb97824).setStrokeStyle(5, 0xffe68c));
+      parts.push(this.add.circle(0, -2, 15, bodyColor).setStrokeStyle(2, 0xfff8d6));
+      parts.push(this.add.star(0, -2, 5, 3, 9, 0xfff0a5).setStrokeStyle(1, 0xfffbe0));
+      parts.push(this.add.circle(-7, -10, 4, 0xffffff, 0.75));
+      parts.push(this.add.circle(7, 9, 2, 0xfff9d5, 0.8));
     } else {
-      const platformColor = Phaser.Display.Color.HexStringToColor(data.color).color;
-      parts.push(this.add.ellipse(0, 15, data.kind === "platform" ? 116 : 58, 15, 0x07131b, 0.30));
-      parts.push(this.add.rectangle(0, 0, data.kind === "platform" ? 112 : 52, data.kind === "platform" ? 30 : 48, 0x203b4c).setStrokeStyle(3, 0xd4e6ef));
-      parts.push(this.add.rectangle(0, -4, data.kind === "platform" ? 108 : 46, data.kind === "platform" ? 20 : 42, platformColor).setStrokeStyle(2, 0xa9d8e7));
-      if (data.kind === "platform") {
-        parts.push(this.add.rectangle(0, 7, 100, 4, 0x294d5c));
-        for (let x = -42; x <= 42; x += 28) parts.push(this.add.circle(x, -4, 3, 0xd8f3f7, 0.8));
-      }
+      parts.push(this.add.ellipse(0, 18, 124, 17, 0x07131b, 0.28));
+      parts.push(this.add.rectangle(0, 1, 116, 34, 0x354e58).setStrokeStyle(3, 0xb7d5d7));
+      parts.push(this.add.rectangle(0, -4, 108, 25, bodyColor).setStrokeStyle(2, 0xe4f6ed));
+      parts.push(this.add.rectangle(0, 8, 98, 4, 0x315363));
+      for (let x = -42; x <= 42; x += 28) parts.push(this.add.circle(x, -5, 3, 0xe4fff7, 0.85));
     }
-    const label = this.add.text(0, data.kind === "hero" || data.kind === "enemy" ? 43 : 40, data.name || data.kind, { fontFamily: "Tahoma, Arial", fontSize: "11px", fontStyle: "bold", color: "#ffffff", stroke: "#102030", strokeThickness: 4, shadow: { offsetX: 0, offsetY: 2, color: "#000000", blur: 5, fill: true } }).setOrigin(0.5);
+
+    const label = this.add.text(0, isCreature ? 53 : 43, data.name || data.kind, {
+      fontFamily: "Tahoma, Arial",
+      fontSize: "11px",
+      fontStyle: "bold",
+      color: "#ffffff",
+      stroke: "#17302f",
+      strokeThickness: 4,
+      shadow: { offsetX: 0, offsetY: 2, color: "#000000", blur: 5, fill: true }
+    }).setOrigin(0.5);
     parts.push(label);
     const view = this.add.container(data.x, data.y, parts);
-    view.setSize(70, 90);
+    view.setSize(isCreature ? 88 : 76, isCreature ? 112 : 84);
     view.setScale(data.size || 1);
-    view.setInteractive(new Phaser.Geom.Rectangle(-58, -48, 116, 96), Phaser.Geom.Rectangle.Contains);
+    view.setInteractive(new Phaser.Geom.Rectangle(-58, -48, 116, 105), Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(view);
     view.on("pointerdown", () => this.select(data.id));
     this.objects.set(data.id, { data, view });
@@ -456,7 +652,7 @@ class EditorScene extends Phaser.Scene {
     document.querySelector("#touch-controls")?.removeAttribute("hidden");
     document.querySelector("#stage-shell")?.classList.add("is-previewing");
     this.previewHint = this.add.text(400, 18, "وضع المعاينة  •  حرّك بطلك", { fontFamily: "Tahoma, Arial", fontSize: "14px", fontStyle: "bold", color: "#ffffff", backgroundColor: "#123b3b", padding: {x:15,y:8} }).setOrigin(0.5,0).setDepth(30);
-    this.previewScoreLabel = this.add.text(400, 56, `العملات: 0 / ${this.previewCoinsTotal}`, { fontFamily: "Tahoma, Arial", fontSize: "12px", color: "#ffe7a8", backgroundColor: "#3c3020", padding: {x:10,y:5} }).setOrigin(0.5,0).setDepth(30);
+    this.previewScoreLabel = this.add.text(400, 56, "البلورات: 0 / " + this.previewCoinsTotal, { fontFamily: "Tahoma, Arial", fontSize: "12px", color: "#ffe7a8", backgroundColor: "#3c3020", padding: {x:10,y:5} }).setOrigin(0.5,0).setDepth(30);
     setStatus("المعاينة تعمل — يمكنك تجربة الحركة وجمع العملات");
     document.querySelector("#preview-button")?.setAttribute("hidden", "true");
     document.querySelector("#stop-preview")?.removeAttribute("hidden");
@@ -481,7 +677,7 @@ class EditorScene extends Phaser.Scene {
     }
     document.querySelector("#preview-button")?.removeAttribute("hidden");
     document.querySelector("#stop-preview")?.setAttribute("hidden", "true");
-    document.querySelector("#stage-hint")!.textContent = "اختر كائنًا أو اسحبه. اضغط «معاينة اللعبة» لتجربة تحريك الشخصية.";
+    document.querySelector("#stage-hint")!.textContent = "اجمع البلورات الأربع، واحذر حارس الوحل. هذه ساحة جاهزة للتعديل واللعب."
     setStatus("انتهت المعاينة — تمت استعادة المشهد الأصلي");
     this.emitChange();
   }
@@ -515,8 +711,16 @@ class EditorScene extends Phaser.Scene {
         item.view.destroy();
         this.objects.delete(id);
         this.previewScore += 1;
-        this.previewScoreLabel?.setText(`العملات: ${this.previewScore} / ${this.previewCoinsTotal}`);
-        setStatus("أحسنت! جمعت عملة ✦");
+        this.previewScoreLabel?.setText("البلورات: " + this.previewScore + " / " + this.previewCoinsTotal);
+        const sparkle = this.add.star(item.view.x, item.view.y, 6, 3, 15, 0xffe58a).setDepth(35);
+        this.tweens.add({ targets: sparkle, y: sparkle.y - 28, alpha: 0, scale: 2.2, duration: 360, onComplete: () => sparkle.destroy() });
+        if (this.previewScore >= this.previewCoinsTotal && this.previewCoinsTotal > 0) {
+          this.previewHint?.setText("أكملت رحلة البلورات! ✦");
+          setStatus("رائع! جمعت كل البلورات الأربع — اكتمل التحدي");
+          this.tweens.add({ targets: hero.view, scale: 1.22, yoyo: true, repeat: 2, duration: 150 });
+        } else {
+          setStatus("أحسنت! جمعت بلورة ✦");
+        }
         this.emitChange();
       }
     }
@@ -569,6 +773,62 @@ const game = new Phaser.Game({
 });
 
 
+
+function runLocalAssistant(raw: string) {
+  const response = document.querySelector<HTMLElement>("#assistant-response");
+  const result = resolveLocalCommand(raw);
+  if (!result) {
+    if (response) response.textContent = "لم أتعرف على هذا الأمر بعد. جرّب: «أضف 4 عملات»، «اجعل البطل أسرع»، «اجعل العدو أضعف»، أو اكتب «ساعدني».";
+    setStatus("المساعد المحلي: لم يتعرف على الأمر");
+    return;
+  }
+
+  const scene = editorScene;
+  const action: LocalAssistantAction = result.action;
+  let completed = true;
+  if (!scene && action.type !== "help") completed = false;
+  else if (scene) {
+    switch (action.type) {
+      case "prepare-game": scene.buildStarterGame(); break;
+      case "add-object": scene.addObject(action.kind); break;
+      case "add-coins": scene.addCoins(action.count); break;
+      case "tune":
+        completed = action.target === "selected"
+          ? scene.updateSelectedProperties(action.values)
+          : scene.updateFirst(action.target, action.values);
+        break;
+      case "color":
+        completed = action.target === "selected"
+          ? scene.updateSelectedProperties({ color: action.color })
+          : scene.updateFirst(action.target, { color: action.color });
+        break;
+      case "ease-game":
+        completed = scene.updateFirst("enemy", { health: 55, speed: 90, damage: 8 });
+        scene.updateFirst("hero", { health: 160, speed: 245 });
+        break;
+      case "delete-selected":
+        if (!scene.getSelected()) completed = false;
+        else scene.deleteSelected();
+        break;
+      case "duplicate-selected":
+        if (!scene.getSelected()) completed = false;
+        else scene.duplicateSelected();
+        break;
+      case "undo": scene.undo(); break;
+      case "redo": scene.redo(); break;
+      case "start-preview": scene.startPreview(); break;
+      case "stop-preview": scene.stopPreview(); break;
+      case "help": break;
+    }
+  }
+
+  const finalMessage = completed
+    ? result.reply
+    : "لم أنفّذ الأمر لأن العنصر المطلوب غير موجود أو لا يوجد عنصر محدد. اختر عنصرًا أو أعد تجهيز اللعبة أولًا.";
+  if (response) response.textContent = finalMessage;
+  if (completed) setStatus("المساعد المحلي: " + finalMessage);
+}
+
 function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
   const undo = document.querySelector<HTMLButtonElement>("#undo-button");
   const redo = document.querySelector<HTMLButtonElement>("#redo-button");
@@ -602,6 +862,19 @@ function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
 game.events.on("editor-change", renderEditor);
 game.events.once("ready", () => { if (editorScene) renderEditor(editorScene.getObjects(), editorScene.getSelected()); });
 
+
+const assistantForm = document.querySelector<HTMLFormElement>("#assistant-form");
+const assistantInput = document.querySelector<HTMLInputElement>("#assistant-input");
+assistantForm?.addEventListener("submit", event => {
+  event.preventDefault();
+  const command = assistantInput?.value.trim() ?? "";
+  if (!command) return;
+  runLocalAssistant(command);
+  if (assistantInput) assistantInput.value = "";
+});
+document.querySelectorAll<HTMLButtonElement>("[data-assistant-command]").forEach(button => {
+  button.addEventListener("click", () => runLocalAssistant(button.dataset.assistantCommand ?? ""));
+});
 document.querySelector("#preset-coins")?.addEventListener("click", () => editorScene?.addPreset("coins"));
 document.querySelector("#preset-barricade")?.addEventListener("click", () => editorScene?.addPreset("barricade"));
 document.querySelector("#preset-rival")?.addEventListener("click", () => editorScene?.addPreset("rival"));
