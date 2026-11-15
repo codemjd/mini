@@ -103,7 +103,7 @@ test("canvas pointer editing moves objects and undo restores the prior position"
   await expect(page.locator("#position-y")).toHaveValue("223");
 });
 
-test("legacy v2 local projects migrate to schema v4 without losing objects or script", async ({ page }) => {
+test("legacy v2 local projects migrate to schema v5 without losing objects or script", async ({ page }) => {
   const legacyProject = {
     version: 2,
     title: "Old project",
@@ -132,8 +132,8 @@ test("legacy v2 local projects migrate to schema v4 without losing objects or sc
   await expect(page.locator("#object-count")).toHaveText("1");
   await expect(page.locator("#object-name")).toHaveValue("Legacy hero");
   await expect(page.locator("#spark-script")).toHaveValue('note("migrated");');
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v4") || "null"));
-  expect(stored.version).toBe(4);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "null"));
+  expect(stored.version).toBe(5);
   expect(stored.objects).toHaveLength(1);
   expect(stored.scriptSource).toBe('note("migrated");');
 });
