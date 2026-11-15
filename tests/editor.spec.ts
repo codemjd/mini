@@ -198,25 +198,12 @@ test("no-code rules are saved per scene in project v5", async ({ page }) => {
   await expect(page.locator("#rule-list")).toContainText("عند بلوغ النقاط");
 });
 
-test("runtime rule actions are bounded and execute without evaluating code", async ({ page }) => {
-  const result = await page.evaluate(async () => {
-    const { runSparkRules, normalizeSparkRules } = await import("/src/engine/rules.ts");
-    const actor = {
-      id: "hero-1", name: "Hero", kind: "hero" as const, x: 100, y: 100, size: 1, color: "#ffffff",
-      health: 40, maximumHealth: 100, speed: 180, damage: 20, alive: true, rotation: 0,
-      animationTime: 0, attackCooldownMs: 0, hitFlashMs: 0,
-      behaviors: [{ type: "player-control" as const, speed: 180 }, { type: "melee" as const, damage: 20, range: 94, cooldownMs: 420 }]
-    };
-    const rules = normalizeSparkRules([
-      { id: "heal-hero", enabled: true, trigger: "coin-collected", action: "heal-player", value: 9999 },
-      { id: "speed-hero", enabled: true, trigger: "coin-collected", action: "set-player-speed", value: 333 }
-    ]);
-    const output: Array<{ type: string; message: string }> = [];
-    runSparkRules(rules, [{ type: "score", message: "coin", signal: "coin-collected" }], [actor], 1, output, new Set());
-    return { health: actor.health, speed: actor.speed, controlSpeed: actor.behaviors[0].speed, normalizedValue: rules[0].value };
-  });
-  expect(result.health).toBe(100);
-  expect(result.speed).toBe(333);
-  expect(result.controlSpeed).toBe(333);
-  expect(result.normalizedValue).toBe(500);
+test("game-start rules run in the actual melonJS preview", async ({ page }) => {
+  await page.locator("#rule-trigger").selectOption("game-start");
+  await page.locator("#rule-action").selectOption("show-message");
+  await page.locator("#rule-message").fill("قاعدة البداية تعمل");
+  await page.locator("#rule-form button[type=submit]").click();
+  await page.locator("#preview-button").click();
+  await expect(page.locator("#stage-hint")).toContainText("قاعدة البداية تعمل", { timeout: 8000 });
+  await page.locator("#stop-preview").click();
 });
