@@ -94,13 +94,13 @@ test("scenes can be duplicated, renamed, and deleted while preserving one scene"
   await expect(page.locator("#scene-count")).toContainText("1");
 });
 
-test("multi-scene project exports as v4 and reloads the active scene", async ({ page }) => {
+test("multi-scene project exports as v5 and reloads the active scene", async ({ page }) => {
   page.once("dialog", dialog => dialog.accept("المشهد الثاني"));
   await page.locator("#scene-new").click();
   await page.locator("#add-enemy").click();
   await page.locator("#save-button").click();
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v4") || "{}"));
-  expect(stored.version).toBe(4);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}"));
+  expect(stored.version).toBe(5);
   expect(stored.scenes).toHaveLength(2);
   expect(stored.scenes.find((scene: { id: string }) => scene.id === stored.activeSceneId).objects).toHaveLength(1);
 
@@ -134,7 +134,7 @@ test("object motion and enemy AI settings persist across reloads", async ({ page
   await page.locator("#save-button").click();
 
   const saved = await page.evaluate(() => {
-    const project = JSON.parse(localStorage.getItem("spark-workshop-mini-project-v4") || "{}");
+    const project = JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}");
     return project.scenes[0].objects.find((item: { kind: string }) => item.kind === "enemy");
   });
   expect(saved.motion).toBe("float");
@@ -152,7 +152,7 @@ test("scene backgrounds are isolated and persist with their scene", async ({ pag
   await expect(page.locator("#background-theme")).toHaveValue("crystal-garden");
   await page.locator("#background-theme").selectOption("frost-cavern");
   await page.waitForFunction(() => {
-    const raw = localStorage.getItem("spark-workshop-mini-project-v4");
+    const raw = localStorage.getItem("spark-workshop-mini-project-v5");
     if (!raw) return false;
     try {
       const project = JSON.parse(raw);
@@ -162,7 +162,7 @@ test("scene backgrounds are isolated and persist with their scene", async ({ pag
     }
   });
 
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v4") || "{}"));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}"));
   expect(saved.scenes[0].background).toBe("sunset-ruins");
   expect(saved.scenes[1].background).toBe("frost-cavern");
 
@@ -171,4 +171,52 @@ test("scene backgrounds are isolated and persist with their scene", async ({ pag
   await page.locator("#save-button").click();
   await page.reload();
   await expect(page.locator("#background-theme")).toHaveValue("sunset-ruins");
+});
+
+
+test("no-code rules are saved per scene in project v5", async ({ page }) => {
+  await page.locator("#rule-trigger").selectOption("score-reached");
+  await page.locator("#rule-action").selectOption("heal-player");
+  await page.locator("#rule-threshold").fill("7");
+  await page.locator("#rule-value").fill("40");
+  await page.locator("#rule-form button[type=submit]").click();
+  await expect(page.locator("#rule-list .rule-card")).toHaveCount(1);
+  await expect(page.locator("#rules-count")).toHaveText("1 / 24 قاعدة");
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}"));
+  expect(saved.version).toBe(5);
+  expect(saved.scenes[0].rules).toHaveLength(1);
+  expect(saved.scenes[0].rules[0].trigger).toBe("score-reached");
+  expect(saved.scenes[0].rules[0].threshold).toBe(7);
+  expect(saved.scenes[0].rules[0].value).toBe(40);
+  page.once("dialog", dialog => dialog.accept("مرحلة بلا قواعد"));
+  await page.locator("#scene-new").click();
+  await expect(page.locator("#rule-list .rule-card")).toHaveCount(0);
+  await page.locator(".scene-tab").first().click();
+  await expect(page.locator("#rule-list .rule-card")).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator("#rule-list .rule-card")).toHaveCount(1);
+  await expect(page.locator("#rule-list")).toContainText("عند بلوغ النقاط");
+});
+
+test("runtime rule actions are bounded and execute without evaluating code", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { runSparkRules, normalizeSparkRules } = await import("/src/engine/rules.ts");
+    const actor = {
+      id: "hero-1", name: "Hero", kind: "hero" as const, x: 100, y: 100, size: 1, color: "#ffffff",
+      health: 40, maximumHealth: 100, speed: 180, damage: 20, alive: true, rotation: 0,
+      animationTime: 0, attackCooldownMs: 0, hitFlashMs: 0,
+      behaviors: [{ type: "player-control" as const, speed: 180 }, { type: "melee" as const, damage: 20, range: 94, cooldownMs: 420 }]
+    };
+    const rules = normalizeSparkRules([
+      { id: "heal-hero", enabled: true, trigger: "coin-collected", action: "heal-player", value: 9999 },
+      { id: "speed-hero", enabled: true, trigger: "coin-collected", action: "set-player-speed", value: 333 }
+    ]);
+    const output: Array<{ type: string; message: string }> = [];
+    runSparkRules(rules, [{ type: "score", message: "coin", signal: "coin-collected" }], [actor], 1, output, new Set());
+    return { health: actor.health, speed: actor.speed, controlSpeed: actor.behaviors[0].speed, normalizedValue: rules[0].value };
+  });
+  expect(result.health).toBe(100);
+  expect(result.speed).toBe(333);
+  expect(result.controlSpeed).toBe(333);
+  expect(result.normalizedValue).toBe(500);
 });
