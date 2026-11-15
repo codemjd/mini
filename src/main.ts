@@ -1,6 +1,7 @@
 import { createSparkProjectDocument, type SparkBackgroundKind } from "./editor/project-document";
 import { SPARK_ASSETS, findSparkAsset, type SparkAssetCategory } from "./editor/asset-catalog";
 import { DEFAULT_SPARK_SCRIPT } from "./scripting/spark-script";
+import type { SparkGameRule, SparkRuleTrigger, SparkRuleAction } from "./engine/model";
 import { SparkEditorController, type EditorObject, type ObjectKind } from "./editor/editor-controller";
 import { resolveLocalCommand, type LocalAssistantAction } from "./local-assistant";
 import "./style.css";
@@ -66,6 +67,25 @@ app.innerHTML = `
           </form>
           <div class="assistant-footnote"><span>●</span> مساعد قواعد محلي — لا يرسل نصوصك إلى أي خادم، ولا يدّعي فهم أوامر خارج قائمته.</div>
         </div>
+      </section>
+      <section class="rules-workbench" aria-label="قواعد اللعب المرئية">
+        <div class="rules-heading">
+          <div><span class="eyebrow">دون كتابة كود</span><h2>قواعد اللعب والأحداث</h2><p>اختر حدثًا ثم إجراءً. تُحفظ القواعد مع المشهد وتعمل داخل معاينة اللعبة.</p></div>
+          <span class="rules-limit" id="rules-count">0 / 24 قاعدة</span>
+        </div>
+        <form id="rule-form" class="rules-form">
+          <label>عندما يحدث<select id="rule-trigger">
+            <option value="game-start">تبدأ المرحلة</option><option value="coin-collected">يجمع اللاعب بلورة</option><option value="enemy-defeated">يهزم اللاعب عدوًا</option><option value="player-hit">يتلقى اللاعب ضربة</option><option value="score-reached">تصل النقاط إلى حد معين</option>
+          </select></label>
+          <label>نفّذ الإجراء<select id="rule-action">
+            <option value="show-message">اعرض رسالة</option><option value="heal-player">عالج صحة اللاعب</option><option value="set-player-speed">غيّر سرعة اللاعب</option><option value="set-player-damage">غيّر ضرر اللاعب</option><option value="finish-level">أنه المرحلة</option>
+          </select></label>
+          <label id="rule-threshold-field" hidden>عدد النقاط المطلوب<input id="rule-threshold" type="number" min="1" max="99999" value="5"></label>
+          <label id="rule-value-field" hidden>قيمة الإجراء<input id="rule-value" type="number" min="1" max="1000" value="25"></label>
+          <label id="rule-message-field">نص الرسالة<input id="rule-message" type="text" maxlength="120" value="أحسنت! استمر في التقدم"></label>
+          <button type="submit" class="add-rule-button">＋ إضافة القاعدة</button>
+        </form>
+        <div id="rule-list" class="rule-list" aria-live="polite"></div>
       </section>
       <section class="code-workbench" aria-label="مساحة البرمجة المتقدمة">
         <div class="code-workbench-heading">
@@ -229,8 +249,53 @@ function renderSceneManager() {
   if (count) count.textContent = scenes.length + (scenes.length === 1 ? " مشهد" : " مشاهد");
 }
 
+const ruleTriggerLabels: Record<SparkRuleTrigger, string> = {
+  "game-start": "عند بدء المرحلة", "coin-collected": "عند جمع بلورة", "enemy-defeated": "عند هزيمة عدو",
+  "player-hit": "عند إصابة اللاعب", "score-reached": "عند بلوغ النقاط"
+};
+const ruleActionLabels: Record<SparkRuleAction, string> = {
+  "show-message": "اعرض رسالة", "heal-player": "عالج صحة اللاعب", "set-player-speed": "غيّر سرعة اللاعب",
+  "set-player-damage": "غيّر ضرر اللاعب", "finish-level": "أنه المرحلة"
+};
+function renderRules() {
+  const list = document.querySelector<HTMLDivElement>("#rule-list");
+  const count = document.querySelector<HTMLElement>("#rules-count");
+  if (!list || !editorScene) return;
+  const rules = editorScene.getRules();
+  if (count) count.textContent = rules.length + " / 24 قاعدة";
+  list.replaceChildren();
+  if (!rules.length) {
+    const empty = document.createElement("p");
+    empty.className = "rules-empty";
+    empty.textContent = "لا توجد قواعد بعد. أنشئ أول قاعدة لتغيير طريقة اللعب دون برمجة.";
+    list.append(empty); return;
+  }
+  for (const rule of rules) {
+    const card = document.createElement("article"); card.className = "rule-card";
+    const summary = document.createElement("div"); summary.className = "rule-summary";
+    const trigger = document.createElement("strong"); trigger.textContent = ruleTriggerLabels[rule.trigger];
+    const action = document.createElement("span"); action.textContent = ruleActionLabels[rule.action];
+    const detail = document.createElement("small");
+    detail.textContent = rule.action === "show-message" ? (rule.message ?? "") : rule.action === "finish-level" ? "إنهاء المرحلة" : "القيمة: " + (rule.value ?? 0);
+    summary.append(trigger, action, detail);
+    const remove = document.createElement("button"); remove.type = "button"; remove.className = "remove-rule-button";
+    remove.dataset.ruleDelete = rule.id; remove.textContent = "حذف"; remove.setAttribute("aria-label", "حذف القاعدة: " + trigger.textContent);
+    card.append(summary, remove); list.append(card);
+  }
+}
+function updateRuleFormFields() {
+  const trigger = document.querySelector<HTMLSelectElement>("#rule-trigger")?.value;
+  const action = document.querySelector<HTMLSelectElement>("#rule-action")?.value;
+  const threshold = document.querySelector<HTMLElement>("#rule-threshold-field");
+  const value = document.querySelector<HTMLElement>("#rule-value-field");
+  const message = document.querySelector<HTMLElement>("#rule-message-field");
+  if (threshold) threshold.hidden = trigger !== "score-reached";
+  if (value) value.hidden = !["heal-player", "set-player-speed", "set-player-damage"].includes(action ?? "");
+  if (message) message.hidden = action !== "show-message";
+}
 function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
   renderSceneManager();
+  renderRules();
   const backgroundSelect = document.querySelector<HTMLSelectElement>("#background-theme");
   if (backgroundSelect) backgroundSelect.value = editorScene?.getBackground() ?? "crystal-garden";
   const undo = document.querySelector<HTMLButtonElement>("#undo-button");
@@ -283,6 +348,29 @@ assistantForm?.addEventListener("submit", event => {
 });
 document.querySelectorAll<HTMLButtonElement>("[data-assistant-command]").forEach(button => {
   button.addEventListener("click", () => runLocalAssistant(button.dataset.assistantCommand ?? ""));
+});
+document.querySelector<HTMLSelectElement>("#rule-trigger")?.addEventListener("change", updateRuleFormFields);
+document.querySelector<HTMLSelectElement>("#rule-action")?.addEventListener("change", updateRuleFormFields);
+updateRuleFormFields();
+document.querySelector<HTMLFormElement>("#rule-form")?.addEventListener("submit", event => {
+  event.preventDefault();
+  const trigger = document.querySelector<HTMLSelectElement>("#rule-trigger")?.value as SparkRuleTrigger | undefined;
+  const action = document.querySelector<HTMLSelectElement>("#rule-action")?.value as SparkRuleAction | undefined;
+  if (!trigger || !action) return;
+  const threshold = Number(document.querySelector<HTMLInputElement>("#rule-threshold")?.value ?? 5);
+  const value = Number(document.querySelector<HTMLInputElement>("#rule-value")?.value ?? 25);
+  const message = document.querySelector<HTMLInputElement>("#rule-message")?.value ?? "";
+  const rule: Omit<SparkGameRule, "id"> = {
+    enabled: true, trigger, action,
+    ...(trigger === "score-reached" ? { threshold } : {}),
+    ...(action === "show-message" ? { message } : {}),
+    ...(["heal-player", "set-player-speed", "set-player-damage"].includes(action) ? { value } : {})
+  };
+  editorScene?.addRule(rule);
+});
+document.querySelector<HTMLDivElement>("#rule-list")?.addEventListener("click", event => {
+  const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-rule-delete]");
+  if (target?.dataset.ruleDelete) editorScene?.removeRule(target.dataset.ruleDelete);
 });
 document.querySelector("#scene-new")?.addEventListener("click", () => {
   const name = window.prompt("اسم المشهد الجديد", "مشهد جديد");
