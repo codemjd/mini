@@ -7,6 +7,8 @@ import {
   type SparkSceneDocument,
   type SparkBackgroundKind
 } from "./project-document";
+import type { SparkGameRule } from "../engine/model";
+import { normalizeSparkRules } from "../engine/rules";
 import { executeSparkScript } from "../scripting/spark-script";
 import { EditorCanvasObjectView, SparkEditorCanvas } from "./editor-canvas";
 
@@ -19,9 +21,10 @@ export interface SparkEditorControllerOptions {
   setStatus(message: string): void;
 }
 
-const STORAGE_KEY = "spark-workshop-mini-project-v4";
-const LEGACY_STORAGE_KEY = "spark-workshop-mini-project-v3";
-const OLDER_STORAGE_KEY = "spark-workshop-mini-project-v2";
+const STORAGE_KEY = "spark-workshop-mini-project-v5";
+const LEGACY_STORAGE_KEY = "spark-workshop-mini-project-v4";
+const OLDER_STORAGE_KEY = "spark-workshop-mini-project-v3";
+const OLDEST_STORAGE_KEY = "spark-workshop-mini-project-v2";
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
@@ -35,6 +38,7 @@ export class SparkEditorController {
   private scenes: SparkSceneDocument[] = [];
   private activeSceneId = "scene-1";
   private background: SparkBackgroundKind = "crystal-garden";
+  private rules: SparkGameRule[] = [];
   private canvasRenderer: SparkEditorCanvas | null = null;
   private listeners = new Set<(objects: EditorObject[], selected: EditorObject | null) => void>();
   private gridVisible = true;
@@ -73,7 +77,7 @@ export class SparkEditorController {
     this.canvasRenderer.mount(host);
     this.loadProject();
     if (this.objects.size === 0) this.createStarterLevel();
-    if (this.scenes.length === 0) this.scenes = [{ id: this.activeSceneId, name: "المشهد الأول", objects: this.getObjects(), scriptSource: this.options.getScriptSource(), background: this.background }];
+    if (this.scenes.length === 0) this.scenes = [{ id: this.activeSceneId, name: "المشهد الأول", objects: this.getObjects(), scriptSource: this.options.getScriptSource(), background: this.background, rules: [] }];
     this.canvasRenderer.setBackground(this.background);
     if (!this.selectedId) this.select(this.objects.keys().next().value ?? null);
     this.emitChange();
@@ -385,7 +389,7 @@ export class SparkEditorController {
 
   private captureActiveScene() {
     const active = this.scenes.find(scene => scene.id === this.activeSceneId);
-    const snapshot = { id: this.activeSceneId, name: active?.name ?? "المشهد الأول", objects: this.getObjects().map(item => ({ ...item })), scriptSource: this.options.getScriptSource(), background: this.background };
+    const snapshot = { id: this.activeSceneId, name: active?.name ?? "المشهد الأول", objects: this.getObjects().map(item => ({ ...item })), scriptSource: this.options.getScriptSource(), background: this.background, rules: this.getRules() };
     const index = this.scenes.findIndex(scene => scene.id === this.activeSceneId);
     if (index >= 0) this.scenes[index] = snapshot;
     else this.scenes.push(snapshot);
@@ -397,6 +401,24 @@ export class SparkEditorController {
   }
 
   getActiveSceneId() { return this.activeSceneId; }
+
+  getRules(): SparkGameRule[] { return this.rules.map(rule => ({ ...rule })); }
+
+  addRule(input: Omit<SparkGameRule, "id">): boolean {
+    if (this.previewing) this.stopPreview();
+    if (this.rules.length >= 24) { this.options.setStatus("الحد الأقصى 24 قاعدة في المشهد"); return false; }
+    const candidate = normalizeSparkRules([{ ...input, id: "rule-" + this.nextId++ }])[0];
+    if (!candidate) { this.options.setStatus("تعذر إنشاء القاعدة — تحقق من الحدث والإجراء"); return false; }
+    this.rules.push(candidate); this.captureActiveScene(); this.save(); this.emitChange();
+    this.options.setStatus("أُضيفت قاعدة لعب جديدة"); return true;
+  }
+
+  removeRule(id: string): boolean {
+    const next = this.rules.filter(rule => rule.id !== id);
+    if (next.length === this.rules.length) return false;
+    this.rules = next; this.captureActiveScene(); this.save(); this.emitChange();
+    this.options.setStatus("تم حذف قاعدة اللعب"); return true;
+  }
 
   getProjectDocument() { return this.projectDocument(); }
 
@@ -412,7 +434,7 @@ export class SparkEditorController {
     const base = name.trim().slice(0, 40) || "مشهد جديد";
     let candidate = base, suffix = 2;
     while (this.scenes.some(scene => scene.name === candidate)) candidate = base.slice(0, 32) + " " + suffix++;
-    const scene: SparkSceneDocument = { id: "scene-" + Date.now().toString(36) + "-" + (this.scenes.length + 1), name: candidate, objects: [], scriptSource: "", background: "crystal-garden" };
+    const scene: SparkSceneDocument = { id: "scene-" + Date.now().toString(36) + "-" + (this.scenes.length + 1), name: candidate, objects: [], scriptSource: "", background: "crystal-garden", rules: [] };
     this.scenes.push(scene);
     this.activateScene(scene);
     this.options.setStatus("تم إنشاء " + candidate);
@@ -430,7 +452,8 @@ export class SparkEditorController {
       name: (source.name + " نسخة").slice(0, 40),
       objects: source.objects.map(item => ({ ...item, id: "object-" + this.nextId++ })),
       scriptSource: source.scriptSource,
-      background: source.background ?? "crystal-garden"
+      background: source.background ?? "crystal-garden",
+      rules: source.rules.map(rule => ({ ...rule, id: "rule-" + this.nextId++ }))
     };
     this.scenes.push(copy);
     this.activateScene(copy);
@@ -480,6 +503,7 @@ export class SparkEditorController {
   private activateScene(scene: SparkSceneDocument) {
     this.activeSceneId = scene.id;
     this.background = scene.background ?? "crystal-garden";
+    this.rules = normalizeSparkRules(scene.rules);
     this.canvasRenderer?.setBackground(this.background);
     this.undoStack = [];
     this.redoStack = [];
@@ -495,6 +519,7 @@ export class SparkEditorController {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.projectDocument()));
       localStorage.removeItem(LEGACY_STORAGE_KEY);
       localStorage.removeItem(OLDER_STORAGE_KEY);
+      localStorage.removeItem(OLDEST_STORAGE_KEY);
       this.options.setStatus("تم حفظ المشروع وجميع مشاهده على هذا الجهاز");
     } catch {
       this.options.setStatus("تعذر الحفظ — مساحة التخزين قد تكون ممتلئة");
@@ -509,9 +534,11 @@ export class SparkEditorController {
     }
     this.scenes = parsed.document.scenes.map(scene => ({
       ...scene,
-      objects: scene.objects.map(item => ({ ...item, id: "object-" + this.nextId++ }))
+      objects: scene.objects.map(item => ({ ...item, id: "object-" + this.nextId++ })),
+      rules: normalizeSparkRules(scene.rules).map(rule => ({ ...rule, id: "rule-" + this.nextId++ }))
     }));
     const active = this.scenes.find(scene => scene.id === parsed.document.activeSceneId) ?? this.scenes[0];
+    this.rules = normalizeSparkRules(active.rules);
     this.undoStack = [];
     this.redoStack = [];
     this.activeSceneId = active.id;
@@ -527,7 +554,8 @@ export class SparkEditorController {
       const currentRaw = localStorage.getItem(STORAGE_KEY);
       const previousRaw = currentRaw ? null : localStorage.getItem(LEGACY_STORAGE_KEY);
       const olderRaw = currentRaw || previousRaw ? null : localStorage.getItem(OLDER_STORAGE_KEY);
-      const legacyRaw = previousRaw ?? olderRaw;
+      const oldestRaw = currentRaw || previousRaw || olderRaw ? null : localStorage.getItem(OLDEST_STORAGE_KEY);
+      const legacyRaw = previousRaw ?? olderRaw ?? oldestRaw;
       const raw = currentRaw ?? legacyRaw;
       if (!raw) return;
       const parsed = parseSparkProjectDocument(raw);
@@ -537,9 +565,11 @@ export class SparkEditorController {
       }
       this.scenes = parsed.document.scenes.map(scene => ({
         ...scene,
-        objects: scene.objects.map(item => ({ ...item, id: "object-" + this.nextId++ }))
+        objects: scene.objects.map(item => ({ ...item, id: "object-" + this.nextId++ })),
+        rules: normalizeSparkRules(scene.rules).map(rule => ({ ...rule, id: "rule-" + this.nextId++ }))
       }));
       const active = this.scenes.find(scene => scene.id === parsed.document.activeSceneId) ?? this.scenes[0];
+      this.rules = normalizeSparkRules(active.rules);
       this.activeSceneId = active.id;
       this.background = active.background ?? "crystal-garden";
       this.canvasRenderer?.setBackground(this.background);
@@ -549,6 +579,7 @@ export class SparkEditorController {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.projectDocument()));
         localStorage.removeItem(LEGACY_STORAGE_KEY);
         localStorage.removeItem(OLDER_STORAGE_KEY);
+        localStorage.removeItem(OLDEST_STORAGE_KEY);
       }
     } catch {
       this.options.setStatus("تعذر قراءة الحفظ السابق");
@@ -593,7 +624,7 @@ export class SparkEditorController {
     if (editorCanvas) editorCanvas.style.visibility = "hidden";
 
     try {
-      const runtimeScene = createRuntimeSceneFromObjects(this.getObjects(), this.background);
+      const runtimeScene = createRuntimeSceneFromObjects(this.getObjects(), this.background, this.getRules());
       this.runtime = new SparkGameRuntime(host, runtimeScene, {
         onStatus: (message) => {
           this.options.setStatus(message);
