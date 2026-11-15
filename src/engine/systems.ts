@@ -102,7 +102,7 @@ export class CombatSystem implements RuntimeSystem {
         target.hitFlashMs = 180;
         if (target.health <= 0) {
           target.alive = false;
-          context.events.push({ type: "status", message: "هُزم العدو! ✦" });
+          context.events.push({ type: "status", message: "هُزم العدو! ✦", signal: "enemy-defeated" });
         } else {
           context.events.push({ type: "status", message: "أصبت العدو — صحته " + target.health });
         }
@@ -116,6 +116,7 @@ export class CombatSystem implements RuntimeSystem {
       enemy.attackCooldownMs = melee.cooldownMs;
       hero.health = Math.max(0, hero.health - Math.max(1, enemy.damage));
       hero.hitFlashMs = 180;
+      context.events.push({ type: "status", message: "تلقى بطلك ضربة!", signal: "player-hit" });
       if (hero.health <= 0) {
         hero.health = getBehavior(hero, "health")?.maximum ?? 100;
         hero.x = context.width / 2;
@@ -144,7 +145,8 @@ export class CollectibleSystem implements RuntimeSystem {
         type: complete ? "complete" : "score",
         message: complete ? "أكملت رحلة البلورات! ✦" : "أحسنت! جمعت بلورة ✦",
         score: context.score,
-        total: context.totalCollectibles
+        total: context.totalCollectibles,
+        signal: "coin-collected"
       });
     }
   }
