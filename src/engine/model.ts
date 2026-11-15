@@ -10,6 +10,9 @@ export type SparkBehavior =
 export type SparkMotionKind = "idle" | "float" | "pulse" | "bounce" | "wobble";
 export type SparkEnemyAiMode = "chase" | "guard";
 export type SparkSceneBackground = "crystal-garden" | "sunset-ruins" | "frost-cavern" | "desert-dunes";
+export type SparkRuleTrigger = "game-start" | "coin-collected" | "enemy-defeated" | "player-hit" | "score-reached";
+export type SparkRuleAction = "show-message" | "heal-player" | "set-player-speed" | "set-player-damage" | "finish-level";
+export interface SparkGameRule { id: string; enabled: boolean; trigger: SparkRuleTrigger; action: SparkRuleAction; threshold?: number; value?: number; message?: string; }
 
 export interface SparkObjectDefinition {
   id: string;
@@ -35,6 +38,7 @@ export interface SparkSceneDefinition {
   height: number;
   background: SparkSceneBackground;
   objects: SparkObjectDefinition[];
+  rules: SparkGameRule[];
 }
 
 export interface SparkInputState { x: number; y: number; }
@@ -53,4 +57,5 @@ export interface RuntimeEvent {
   message: string;
   score?: number;
   total?: number;
+  signal?: SparkRuleTrigger;
 }
