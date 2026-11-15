@@ -1,3 +1,6 @@
+import type { SparkGameRule } from "../engine/model";
+import { normalizeSparkRules } from "../engine/rules";
+
 export type SparkEditorObjectKind = "hero" | "enemy" | "crate" | "coin" | "platform";
 
 export type SparkMotionKind = "idle" | "float" | "pulse" | "bounce" | "wobble";
@@ -26,10 +29,11 @@ export interface SparkSceneDocument {
   objects: SparkEditorObject[];
   scriptSource: string;
   background?: SparkBackgroundKind;
+  rules: SparkGameRule[];
 }
 
 export interface SparkProjectDocument {
-  version: 4;
+  version: 5;
   title: string;
   width: 800;
   height: 450;
@@ -103,17 +107,18 @@ export function createSparkProjectDocument(
 ): SparkProjectDocument {
   const normalizedScenes = (scenes?.length ? scenes : [{
     id: "scene-1", name: "المشهد الأول",
-    objects: objects.map(item => ({ ...item })), scriptSource
+    objects: objects.map(item => ({ ...item })), scriptSource, rules: []
   }]).slice(0, SCENE_LIMIT).map((scene, index) => ({
     id: safeSceneId(scene.id, index),
     name: (scene.name || "مشهد " + (index + 1)).slice(0, 40),
     objects: scene.objects.slice(0, OBJECT_LIMIT).map(item => ({ ...item })),
     scriptSource: scene.scriptSource.slice(0, SCRIPT_LIMIT),
-    background: ["crystal-garden", "sunset-ruins", "frost-cavern", "desert-dunes"].includes(String(scene.background)) ? scene.background : "crystal-garden"
+    background: ["crystal-garden", "sunset-ruins", "frost-cavern", "desert-dunes"].includes(String(scene.background)) ? scene.background : "crystal-garden",
+    rules: normalizeSparkRules(scene.rules)
   }));
   const active = normalizedScenes.find(scene => scene.id === activeSceneId) ?? normalizedScenes[0];
   return {
-    version: 4, title: "ورشة الشرارات - مشروعي", width: 800, height: 450,
+    version: 5, title: "ورشة الشرارات - مشروعي", width: 800, height: 450,
     scenes: normalizedScenes, activeSceneId: active.id,
     objects: active.objects.map(item => ({ ...item })),
     scriptSource: active.scriptSource
@@ -130,16 +135,16 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
       title?: unknown; scenes?: unknown; activeSceneId?: unknown;
     };
     const version = Number(project.version);
-    if (![1, 2, 3, 4].includes(version)) return { ok: false, error: "إصدار المشروع غير مدعوم" };
+    if (![1, 2, 3, 4, 5].includes(version)) return { ok: false, error: "إصدار المشروع غير مدعوم" };
 
     let scenes: SparkSceneDocument[] = [];
-    if (version === 4) {
+    if (version === 4 || version === 5) {
       if (!Array.isArray(project.scenes) || project.scenes.length < 1 || project.scenes.length > SCENE_LIMIT) {
         return { ok: false, error: "قائمة المشاهد غير صالحة أو تتجاوز 30 مشهدًا" };
       }
       const ids = new Set<string>();
       for (let index = 0; index < project.scenes.length; index += 1) {
-        const candidate = project.scenes[index] as { id?: unknown; name?: unknown; objects?: unknown; scriptSource?: unknown; background?: unknown };
+        const candidate = project.scenes[index] as { id?: unknown; name?: unknown; objects?: unknown; scriptSource?: unknown; background?: unknown; rules?: unknown };
         if (!candidate || typeof candidate !== "object") continue;
         const id = safeSceneId(candidate.id, index);
         if (ids.has(id)) return { ok: false, error: "توجد معرفات مشاهد مكررة في الملف" };
@@ -147,7 +152,7 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
         const objects = parseObjects(candidate.objects);
         const scriptSource = cleanScript(candidate.scriptSource);
         if (!objects || scriptSource === null) return { ok: false, error: "بيانات أحد المشاهد غير صالحة أو تتجاوز الحدود" };
-        scenes.push({ id, name: typeof candidate.name === "string" ? candidate.name.slice(0, 40) : "مشهد " + (index + 1), objects, scriptSource, background: ["crystal-garden", "sunset-ruins", "frost-cavern", "desert-dunes"].includes(String(candidate.background)) ? candidate.background as SparkBackgroundKind : "crystal-garden" });
+        scenes.push({ id, name: typeof candidate.name === "string" ? candidate.name.slice(0, 40) : "مشهد " + (index + 1), objects, scriptSource, background: ["crystal-garden", "sunset-ruins", "frost-cavern", "desert-dunes"].includes(String(candidate.background)) ? candidate.background as SparkBackgroundKind : "crystal-garden", rules: normalizeSparkRules(candidate.rules) });
       }
       if (!scenes.length) return { ok: false, error: "لا يحتوي المشروع على مشاهد صالحة" };
     } else {
@@ -155,7 +160,7 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
       const scriptValue = cleanScript(typeof project.scriptSource === "string" ? project.scriptSource : project.script);
       if (!objects) return { ok: false, error: "قائمة العناصر غير صالحة أو تتجاوز 500 عنصر" };
       if (scriptValue === null) return { ok: false, error: "المقتطف البرمجي يتجاوز 12 ألف حرف" };
-      scenes = [{ id: "scene-1", name: "المشهد الأول", objects, scriptSource: scriptValue, background: "crystal-garden" }];
+      scenes = [{ id: "scene-1", name: "المشهد الأول", objects, scriptSource: scriptValue, background: "crystal-garden", rules: [] }];
     }
 
     const requestedActive = typeof project.activeSceneId === "string" ? project.activeSceneId : "";
@@ -163,7 +168,7 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
     return {
       ok: true,
       document: {
-        version: 4,
+        version: 5,
         title: typeof project.title === "string" ? project.title.slice(0, 80) : "ورشة الشرارات - مشروعي",
         width: 800, height: 450,
         scenes: scenes.map(scene => ({ ...scene, objects: scene.objects.map(item => ({ ...item })) })),
