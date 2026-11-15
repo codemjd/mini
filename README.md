@@ -1,6 +1,6 @@
 # ورشة الشرارات Mini
 
-ورشة عربية لصناعة ألعاب 2D من الهاتف والمتصفح. الإصدار 0.9 يوسّع المحرر متعدد المشاهد بمكتبة عناصر متجهية وحركات وسلوك عدو قابلة للحفظ. يركز المشروع على ثلاث أولويات: **مشهد مرسوم بعناية، لعبة مصغّرة قابلة للعب، ومساعد أوامر محلي لا يعتمد على الذكاء الاصطناعي**.
+ورشة عربية لصناعة ألعاب 2D من الهاتف والمتصفح. الإصدار 0.9 يضم محرر مشاهد متعددًا، مكتبة عناصر متجهية، حركات أساسية، خلفيات مستقلة، ونظامًا أوليًا لتأليف قواعد اللعب دون كتابة كود. يركز المشروع على ثلاث أولويات: **مشهد مرسوم بعناية، لعبة مصغّرة قابلة للعب، ومساعد أوامر محلي لا يعتمد على الذكاء الاصطناعي**.
 
 ## جرّب الورشة
 
@@ -24,11 +24,12 @@ https://codemjd.github.io/mini/
 - محرر المشاهد مستقل عن Phaser ويستخدم `SparkEditorCanvas`.
 - وحدة `SparkEditorController` مستقلة عن نقطة تشغيل الواجهة.
 - melonJS 20.15.1 مسؤول عن المعاينة القابلة للعب، مع إدخال لوحة المفاتيح واللمس.
-- نموذج المشروع من الإصدار الرابع متعدد المشاهد، مع ترحيل تلقائي من صيغ v1 وv2 وv3.
+- نموذج المشروع من الإصدار الخامس متعدد المشاهد، مع ترحيل تلقائي من صيغ v1 إلى v4.
 - إدارة حتى 30 مشهدًا داخل المشروع: إنشاء، تبديل، نسخ، إعادة تسمية، وحذف مع حماية المشهد الأخير.
 - لكل مشهد عناصره وSpark Script الخاص به، مع حفظ تلقائي مستقل وتصدير/استيراد المشروع كاملًا.
 - تصدير/استيراد JSON، والتراجع والإعادة، وقفل العناصر وترتيبها.
 - مساحة Spark Script الاختيارية لتنفيذ أوامر محددة وآمنة.
+- محرر قواعد مرئي لكل مشهد: 5 أحداث و5 إجراءات، بحد أقصى 24 قاعدة، مع حفظ مستقل وتشغيلها في معاينة melonJS.
 
 ## المساعد المحلي
 
@@ -67,7 +68,7 @@ npm run test:e2e
 
 ## الحدود الحالية
 
-هذه بداية وليست محرك ألعاب مكتملًا. المكتبة الحالية متجهية وبرمجية وليست بعد مستودع Sprite Sheets أو ملفات PNG/WebP مرخصة. ينقصها محرر أحداث مرئي، وتحديد متعدد، وخلفيات قابلة للتبديل، وأنظمة تصادم ومنصات متقدمة، وتصدير HTML5/ZIP مستقل وإصدار APK موقّع للنشر. يوجد الآن مسار CI يُنتج APK تجريبيًا (Debug)، لكنه لم يُعتمد بعد بعد اختبار التثبيت والتشغيل على جهاز Android فعلي. الرسومات الحالية مرسومة برمجيًا داخل المشهد وليست حزمة رسومات تجارية أو مولّدة. المساعد يعمل بقائمة أوامر محددة، وليس ذكاءً اصطناعيًا حرًا.
+هذه بداية وليست محرك ألعاب مكتملًا. المكتبة الحالية متجهية وبرمجية وليست بعد مستودع Sprite Sheets أو ملفات PNG/WebP مرخصة. يوجد الآن محرر أولي لقواعد الحدث/الإجراء، لكنه لا يوفر بعد شروطًا مركبة أو محرر عقد أو شروطًا مخصصة. كما ينقصها تحديد متعدد، ومحرر تصادم ومنصات متقدم، وتصدير HTML5/ZIP مستقل وإصدار APK موقّع للنشر. يوجد الآن مسار CI يُنتج APK تجريبيًا (Debug)، لكنه لم يُعتمد بعد بعد اختبار التثبيت والتشغيل على جهاز Android فعلي. الرسومات الحالية مرسومة برمجيًا داخل المشهد وليست حزمة رسومات تجارية أو مولّدة. المساعد يعمل بقائمة أوامر محددة، وليس ذكاءً اصطناعيًا حرًا.
 
 ملف JSON يحفظ بيانات المشروع ولا يمثل تطبيقًا قابلًا للتثبيت. بناء APK التجريبي متاح عبر GitHub Actions؛ أما اعتماد إصدار قابل للتوزيع فيتطلب اختبارًا على جهاز فعلي وإعداد توقيع إصدار مناسب.
 
@@ -98,7 +99,7 @@ The preview runtime now uses melonJS 20.15.1 with:
 
 Android packaging is configured through Capacitor 8. CI scaffolds a clean Android project, builds a debug APK and uploads it as an artifact. This does not replace testing on a physical Android device.
 
-The editor is now split into a dedicated Canvas 2D renderer and `SparkEditorController`; project storage is versioned as v4 with automatic v1/v2/v3 migration. Multi-scene editing is now implemented with a 30-scene project limit, isolated object/script state, scene duplication/renaming/deletion, and whole-project persistence. Remaining product work includes multi-select, richer asset workflows, visual behaviors, and physical-device validation.
+The editor is now split into a dedicated Canvas 2D renderer and `SparkEditorController`; project storage is versioned as v5 with automatic v1/v2/v3/v4 migration. Multi-scene editing is implemented with a 30-scene project limit, isolated object/script/rule state, scene duplication/renaming/deletion, and whole-project persistence. A first no-code event/action rule editor supports five triggers and five fixed actions per scene (24-rule cap), with bounded values and no arbitrary code execution. Remaining product work includes multi-select, richer asset workflows, composite rule conditions/node graphs, and physical-device validation.
 
 
 ## Optional professional editing — Spark Script
@@ -114,7 +115,7 @@ The scene editor canvas and pointer/drag handling are now Spark-owned Canvas 2D 
 ## Stage 1 foundation — editor separation and project lifecycle
 
 - The scene editor controller is isolated in `src/editor/editor-controller.ts`; the main entry point now wires UI events and renders the inspector/list only.
-- Project persistence uses schema v4 with up to 30 scenes under a versioned storage key. Existing v1/v2/v3 local saves migrate automatically on first open.
+- Project persistence uses schema v5 with up to 30 scenes under a versioned storage key. Existing v1/v2/v3/v4 local saves migrate automatically on first open; rules are empty when migrating older scenes.
 - Imported object IDs are normalized to a safe character set and made unique before they can reach editor list markup.
 - Status messages use text nodes, not HTML string interpolation.
 - The optional Spark Script remains a restricted command language, and script edits participate in undo/redo.
