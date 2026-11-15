@@ -454,3 +454,25 @@ button:disabled{cursor:not-allowed}
 .background-picker select{max-width:132px;min-height:29px;padding:4px 7px;border:1px solid #3a5961;border-radius:7px;background:#10252d;color:#e9f4ef;font:inherit;font-size:10px}
 .background-picker select:focus{outline:2px solid #82dfc0;outline-offset:2px}
 @media(max-width:720px){.background-picker{font-size:9px}.background-picker select{max-width:118px;font-size:9px}}
+
+
+/* 0.10 — mobile-first no-code event and action rules */
+.rules-workbench{margin-top:20px;padding:16px;border:1px solid #446b62;border-radius:15px;background:linear-gradient(145deg,#1b3838,#172d36);box-shadow:0 14px 38px #0002}
+.rules-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px}
+.rules-heading h2{font-size:15px;margin:3px 0;color:#edf7f1}
+.rules-heading p{margin:0;color:#9db9b0;font-size:10px;line-height:1.8}
+.rules-limit{flex:none;padding:5px 9px;border:1px solid #4d7668;border-radius:20px;color:#bce8d2;font-size:9px}
+.rules-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end}
+.rules-form label{display:grid;gap:5px;color:#b9cec5;font-size:10px}
+.rules-form select,.rules-form input{width:100%;min-height:38px;border:1px solid #3c5e5c;border-radius:8px;background:#10252d;color:#eef8f3;padding:7px 9px;font:inherit;font-size:12px}
+.rules-form select:focus,.rules-form input:focus{outline:2px solid #82dfc0;outline-offset:2px}
+.add-rule-button{min-height:38px;border:1px solid #92caaa;border-radius:9px;background:linear-gradient(135deg,#bde7c9,#87c6a4);color:#15372d;font:800 11px "Cairo",Tahoma,sans-serif;cursor:pointer}
+.rule-list{display:grid;gap:7px;margin-top:12px}
+.rules-empty{margin:0;padding:12px;border:1px dashed #46665f;border-radius:9px;color:#91aca4;font-size:10px;text-align:center}
+.rule-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid #385c56;border-radius:10px;background:#142b32}
+.rule-summary{display:grid;gap:2px;min-width:0}
+.rule-summary strong{font-size:10px;color:#f2d39b}
+.rule-summary span{font-size:10px;color:#c4ddd0}
+.rule-summary small{font-size:9px;color:#90aaa1;overflow-wrap:anywhere}
+.remove-rule-button{flex:none;min-width:50px;min-height:32px;border:1px solid #79515a;border-radius:8px;background:#412e37;color:#ffc7c7;font:10px "Cairo",Tahoma,sans-serif;cursor:pointer}
+@media(max-width:650px){.rules-workbench{padding:12px}.rules-heading{flex-direction:column;gap:6px}.rules-form{grid-template-columns:1fr}.add-rule-button{width:100%}}
