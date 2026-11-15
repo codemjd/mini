@@ -1,4 +1,5 @@
 import type { RuntimeActor, RuntimeEvent, SparkInputState, SparkSceneDefinition } from "./model";
+import { runSparkRules } from "./rules";
 import { SparkTimeManager } from "./time-manager";
 import {
   CollectibleSystem,
@@ -29,6 +30,8 @@ export class SparkRuntimeWorld {
     new CollectibleSystem()
   ].sort((a, b) => a.priority - b.priority);
   private pendingEvents: RuntimeEvent[] = [];
+  private processedRuleEvents = 0;
+  private readonly firedRules = new Set<string>();
   private readonly activeContacts = new Set<string>();
 
   private contactKey(a: string, b: string): string {
@@ -61,6 +64,7 @@ export class SparkRuntimeWorld {
       hitFlashMs: 0
     }));
     this.totalCollectibles = this.actors.filter((actor) => actor.kind === "coin").length;
+    this.pendingEvents.push({ type: "status", message: "بدأت المرحلة", signal: "game-start" });
   }
 
   setInput(input: SparkInputState): void {
@@ -92,6 +96,9 @@ export class SparkRuntimeWorld {
       this.attackRequested = false;
       for (const system of this.systems) system.update(context);
       this.score = context.score;
+      const newSignals = this.pendingEvents.slice(this.processedRuleEvents).filter(event => event.signal);
+      runSparkRules(this.scene.rules ?? [], newSignals, this.actors, this.score, this.pendingEvents, this.firedRules);
+      this.processedRuleEvents = this.pendingEvents.length;
       this.accumulator -= FIXED_STEP_MS;
       steps += 1;
     }
@@ -103,6 +110,7 @@ export class SparkRuntimeWorld {
   consumeEvents(): RuntimeEvent[] {
     const events = this.pendingEvents;
     this.pendingEvents = [];
+    this.processedRuleEvents = 0;
     return events;
   }
 
