@@ -403,3 +403,17 @@ test("project parser round-trips valid components and rejects incompatible or un
   expect(result.legacyOk).toBe(true);
   expect(result.legacyComponents).toHaveLength(0);
 });
+
+
+test("project parser rejects unknown normalized schema versions without attempting migration", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const docs = await import("/src/editor/project-document.ts");
+    return docs.parseSparkProjectDocument({
+      version: 5, schemaVersion: 99, scenes: [{
+        id: "scene-1", name: "Unknown schema", objects: [], scriptSource: "", rules: []
+      }]
+    });
+  });
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.error).toContain("بنية بيانات المشروع");
+});
