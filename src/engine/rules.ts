@@ -29,6 +29,13 @@ export function normalizeSparkRules(raw: unknown): SparkGameRule[] {
     if (rule.action === "set-player-speed") rule.value = bounded(item.value, 220, 1, 1000);
     if (rule.action === "set-player-damage") rule.value = bounded(item.value, 30, 1, 500);
     if (rule.action === "show-message") rule.message = typeof item.message === "string" && item.message.trim() ? item.message.trim().slice(0, 120) : "حدث شيء جديد!";
+    if (item.conditions && typeof item.conditions === "object") {
+      const rawConditions = item.conditions as { playerHealthAtMost?: unknown; aliveEnemiesAtMost?: unknown };
+      const conditions: NonNullable<SparkGameRule["conditions"]> = {};
+      if (rawConditions.playerHealthAtMost !== undefined) conditions.playerHealthAtMost = bounded(rawConditions.playerHealthAtMost, 50, 1, 10000);
+      if (rawConditions.aliveEnemiesAtMost !== undefined) conditions.aliveEnemiesAtMost = bounded(rawConditions.aliveEnemiesAtMost, 0, 0, 500);
+      if (Object.keys(conditions).length) rule.conditions = conditions;
+    }
     result.push(rule);
   }
   return result;
@@ -55,6 +62,12 @@ export function runSparkRules(
       ? signals.some(event => event.signal === "coin-collected") && score >= (rule.threshold ?? 5)
       : signals.some(event => event.signal === rule.trigger);
     if (!matched) continue;
+    const conditions = rule.conditions;
+    if (conditions?.playerHealthAtMost !== undefined && (!hero || hero.health > conditions.playerHealthAtMost)) continue;
+    if (conditions?.aliveEnemiesAtMost !== undefined) {
+      const aliveEnemies = actors.filter(actor => actor.alive && actor.kind === "enemy").length;
+      if (aliveEnemies > conditions.aliveEnemiesAtMost) continue;
+    }
     if (rule.trigger === "game-start" || rule.trigger === "score-reached" || rule.action === "finish-level") firedOnce.add(rule.id);
     switch (rule.action) {
       case "show-message":
