@@ -344,6 +344,8 @@ function renderComponentWorkbench(selected: EditorObject | null) {
     const status = document.createElement("small");
     status.className = "component-runtime-status";
     const fullyConnected = ["movement", "health", "combat", "collectible", "enemy-brain"].includes(definition.id);
+    const partiallyConnected = definition.id === "player-input" || definition.id === "animation";
+    status.classList.add(fullyConnected ? "is-live" : partiallyConnected ? "is-partial" : "is-config-only");
     status.textContent = fullyConnected ? "● يؤثر في معاينة اللعبة" : definition.id === "player-input" ? "◐ التفعيل يعمل؛ نمط الإدخال محفوظ فقط" : definition.id === "animation" ? "◐ نمط الحركة يعمل؛ السرعة محفوظة فقط" : "○ إعداد محفوظ — لم يُربط بالتشغيل بعد";
     card.append(heading, description, status);
     for (const property of definition.properties) {
