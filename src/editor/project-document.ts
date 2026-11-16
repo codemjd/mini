@@ -1,4 +1,5 @@
 import type { SparkGameRule } from "../engine/model";
+import { validateSparkComponent, type SparkComponentInstance } from "../engine/component-registry";
 import { normalizeSparkRules } from "../engine/rules";
 
 export type SparkEditorObjectKind = "hero" | "enemy" | "crate" | "coin" | "platform";
@@ -21,6 +22,7 @@ export interface SparkEditorObject {
   locked?: boolean;
   motion?: SparkMotionKind;
   aiMode?: SparkEnemyAiMode;
+  components?: SparkComponentInstance[];
 }
 
 export interface SparkSceneDocument {
@@ -81,6 +83,19 @@ function parseObjects(raw: unknown): SparkEditorObject[] | null {
     while (ids.has(id)) id = baseId.slice(0, 68) + "-imported-" + duplicateSuffix++;
     ids.add(id);
     const color = typeof item.color === "string" && /^#[0-9a-fA-F]{6}$/.test(item.color) ? item.color : "#ffbd59";
+    const components: SparkComponentInstance[] = [];
+    if (item.components !== undefined) {
+      if (!Array.isArray(item.components) || item.components.length > 32) return null;
+      const componentIds = new Set<string>();
+      for (const rawComponent of item.components) {
+        const candidateComponent = rawComponent as { id?: unknown };
+        const componentId = typeof candidateComponent?.id === "string" ? candidateComponent.id : "";
+        const definition = validateSparkComponent(item.kind as SparkEditorObjectKind, rawComponent);
+        if (!definition.ok || componentIds.has(componentId)) return null;
+        componentIds.add(componentId);
+        components.push(definition.value!);
+      }
+    }
     objects.push({
       id, kind: item.kind as SparkEditorObjectKind,
       x: clamp(item.x, 400, 0, 800), y: clamp(item.y, 225, 0, 450),
@@ -89,7 +104,8 @@ function parseObjects(raw: unknown): SparkEditorObject[] | null {
       damage: clamp(item.damage, 20, 1, 500), size: clamp(item.size, 1, 0.5, 2.5),
       color, locked: item.locked === true,
       motion: ["idle", "float", "pulse", "bounce", "wobble"].includes(String(item.motion)) ? item.motion as SparkMotionKind : "idle",
-      aiMode: item.kind === "enemy" && item.aiMode === "guard" ? "guard" : "chase"
+      aiMode: item.kind === "enemy" && item.aiMode === "guard" ? "guard" : "chase",
+      ...(components.length ? { components } : {})
     });
   }
   if (raw.length > 0 && objects.length === 0) return null;
