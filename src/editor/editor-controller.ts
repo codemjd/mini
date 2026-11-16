@@ -486,6 +486,31 @@ export class SparkEditorController {
     this.options.setStatus("تم حذف قاعدة اللعب"); return true;
   }
 
+  toggleRule(id: string): boolean {
+    const index = this.rules.findIndex(rule => rule.id === id);
+    if (index < 0) return false;
+    const rule = this.rules[index];
+    this.rules = this.rules.map((item, itemIndex) => itemIndex === index ? { ...item, enabled: !item.enabled } : item);
+    this.captureActiveScene();
+    this.save();
+    this.emitChange();
+    this.options.setStatus(this.rules[index].enabled ? "تم تفعيل قاعدة اللعب" : "تم تعطيل قاعدة اللعب");
+    return true;
+  }
+
+  updateRule(id: string, changes: Partial<Omit<SparkGameRule, "id">>): boolean {
+    const index = this.rules.findIndex(rule => rule.id === id);
+    if (index < 0) return false;
+    const candidate = normalizeSparkRules([{ ...this.rules[index], ...changes, id }])[0];
+    if (!candidate) return false;
+    this.rules = this.rules.map((item, itemIndex) => itemIndex === index ? candidate : item);
+    this.captureActiveScene();
+    this.save();
+    this.emitChange();
+    this.options.setStatus("تم تحديث قاعدة اللعب");
+    return true;
+  }
+
   getProjectDocument() { return this.projectDocument(); }
 
   private projectDocument() {
