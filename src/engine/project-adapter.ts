@@ -67,9 +67,9 @@ export function createRuntimeSceneFromObjects(objects: LegacyEditorObject[], bac
     const normalized = {
       x: safeNumber(item.x, 400, 0, 800),
       y: safeNumber(item.y, 225, 0, 450),
-      health: safeNumber(item.health, 100, 1, 10000),
+      health: safeNumber(componentNumber(item, "health", "current", item.health), 100, 0, 10000),
       speed: safeNumber(item.speed, 180, 0, 2000),
-      damage: safeNumber(item.damage, 20, 0, 2000),
+      damage: safeNumber(componentNumber(item, "combat", "damage", item.damage), 20, 0, 2000),
       size: safeNumber(item.size, 1, 0.25, 4)
     };
     return {
