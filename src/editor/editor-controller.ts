@@ -11,6 +11,7 @@ import type { SparkGameRule } from "../engine/model";
 import { normalizeSparkRules } from "../engine/rules";
 import { executeSparkScript } from "../scripting/spark-script";
 import { EditorCanvasObjectView, SparkEditorCanvas } from "./editor-canvas";
+import { createSparkComponentInstance, getSparkComponent, validateSparkComponent } from "../engine/component-registry";
 
 export type EditorObject = SparkEditorObject;
 export type ObjectKind = SparkEditorObjectKind;
@@ -198,6 +199,60 @@ export class SparkEditorController {
   updateSelectedProperties(changes: Partial<EditorObject>): boolean {
     if (!this.getSelected()) return false;
     this.updateProperties(changes);
+    return true;
+  }
+
+  addSelectedComponent(componentId: string): boolean {
+    const selected = this.getSelected();
+    if (!selected || this.previewing) return false;
+    const definition = getSparkComponent(componentId);
+    if (!definition || !definition.compatibleKinds.includes(selected.kind)) return false;
+    const current = selected.components ?? [];
+    if (definition.unique && current.some(component => component.id === componentId)) {
+      this.options.setStatus("هذا المكوّن موجود بالفعل على الكائن");
+      return false;
+    }
+    const instance = createSparkComponentInstance(componentId, componentId);
+    if (!instance) return false;
+    this.recordHistory();
+    selected.components = [...current, instance];
+    this.save();
+    this.emitChange();
+    this.options.setStatus("أُضيف مكوّن " + definition.label + " إلى " + selected.name);
+    return true;
+  }
+
+  removeSelectedComponent(index: number): boolean {
+    const selected = this.getSelected();
+    if (!selected || this.previewing || !selected.components?.[index]) return false;
+    this.recordHistory();
+    const definition = getSparkComponent(selected.components[index].id);
+    selected.components = selected.components.filter((_, itemIndex) => itemIndex !== index);
+    if (!selected.components.length) delete selected.components;
+    this.save();
+    this.emitChange();
+    this.options.setStatus("تم حذف مكوّن " + (definition?.label ?? ""));
+    return true;
+  }
+
+  updateSelectedComponentProperty(index: number, propertyKey: string, value: unknown): boolean {
+    const selected = this.getSelected();
+    const instance = selected?.components?.[index];
+    if (!selected || !instance || this.previewing) return false;
+    const definition = getSparkComponent(instance.id);
+    const property = definition?.properties.find(item => item.key === propertyKey);
+    if (!definition || !property) return false;
+    const candidate = { id: instance.id, properties: { ...instance.properties, [propertyKey]: value } };
+    const validation = validateSparkComponent(selected.kind, candidate);
+    if (!validation.ok) {
+      this.options.setStatus(validation.errors.join("، "));
+      return false;
+    }
+    this.recordHistory();
+    selected.components![index] = validation.value!;
+    this.save();
+    this.emitChange();
+    this.options.setStatus("تم تحديث إعداد " + property.label);
     return true;
   }
 
