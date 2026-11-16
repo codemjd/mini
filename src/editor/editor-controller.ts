@@ -214,6 +214,17 @@ export class SparkEditorController {
     }
     const instance = createSparkComponentInstance(componentId, componentId);
     if (!instance) return false;
+    if (componentId === "movement") instance.properties.speed = selected.speed;
+    if (componentId === "health") {
+      instance.properties.maximum = selected.health;
+      instance.properties.current = selected.health;
+    }
+    if (componentId === "combat") instance.properties.damage = selected.damage;
+    if (componentId === "enemy-brain") {
+      instance.properties.mode = selected.aiMode ?? "chase";
+      instance.properties.speed = selected.speed;
+    }
+    if (componentId === "animation") instance.properties.motion = selected.motion ?? "idle";
     this.recordHistory();
     selected.components = [...current, instance];
     this.save();
