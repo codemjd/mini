@@ -303,3 +303,44 @@ test("normalized project documents declare a schema version while retaining v5 c
   expect(normalized.version).toBe(5);
   expect(normalized.schemaVersion).toBe(1);
 });
+
+
+test("component registry exposes audited definitions and validates compatibility safely", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const registry = await import("/src/engine/component-registry.ts");
+    const heroComponents = registry.listSparkComponents("hero");
+    const enemyComponents = registry.listSparkComponents("enemy");
+    const heroControl = registry.createSparkComponentInstance("player-input", "control-1");
+    const invalidOnCoin = registry.validateSparkComponent("coin", {
+      id: "player-input",
+      properties: { enabled: true, scheme: "touch" }
+    });
+    const validHealth = registry.validateSparkComponent("hero", {
+      id: "health",
+      properties: { maximum: 150, current: 90, injectedCode: "should-not-survive" }
+    });
+    const invalidRange = registry.validateSparkComponent("enemy", {
+      id: "health",
+      properties: { maximum: 999999, current: 10 }
+    });
+    return {
+      total: registry.SPARK_COMPONENTS.length,
+      uniqueIds: new Set(registry.SPARK_COMPONENTS.map((item: { id: string }) => item.id)).size,
+      heroHasPlayerInput: heroComponents.some((item: { id: string }) => item.id === "player-input"),
+      enemyHasPlayerInput: enemyComponents.some((item: { id: string }) => item.id === "player-input"),
+      heroControl,
+      invalidOnCoin,
+      validHealth,
+      invalidRange
+    };
+  });
+  expect(result.total).toBe(12);
+  expect(result.uniqueIds).toBe(12);
+  expect(result.heroHasPlayerInput).toBe(true);
+  expect(result.enemyHasPlayerInput).toBe(false);
+  expect(result.heroControl).toEqual({ id: "player-input", properties: { enabled: true, scheme: "touch-and-keyboard" } });
+  expect(result.invalidOnCoin.ok).toBe(false);
+  expect(result.validHealth.ok).toBe(true);
+  expect(result.validHealth.value.properties.injectedCode).toBeUndefined();
+  expect(result.invalidRange.ok).toBe(false);
+});
