@@ -476,3 +476,24 @@ button:disabled{cursor:not-allowed}
 .rule-summary small{font-size:9px;color:#90aaa1;overflow-wrap:anywhere}
 .remove-rule-button{flex:none;min-width:50px;min-height:32px;border:1px solid #79515a;border-radius:8px;background:#412e37;color:#ffc7c7;font:10px "Cairo",Tahoma,sans-serif;cursor:pointer}
 @media(max-width:650px){.rules-workbench{padding:12px}.rules-heading{flex-direction:column;gap:6px}.rules-form{grid-template-columns:1fr}.add-rule-button{width:100%}}
+
+
+/* Component inspector — editable, schema-driven component cards */
+.component-workbench{margin-top:14px;padding-top:10px;border-top:1px solid #3a555b}
+.component-workbench .field-help{font-size:9px;line-height:1.7;color:#8fa8a7;margin:5px 0 9px}
+.component-add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}
+.component-add-row select,.component-property input,.component-property select{min-width:0;width:100%;padding:7px 8px;border:1px solid #3a5960;border-radius:7px;background:#10232b;color:#eaf4ef;font:10px "Cairo",Tahoma,sans-serif}
+.component-add-row button,.component-remove{border:1px solid #4b806e;border-radius:7px;background:#1e493d;color:#c7f4dc;padding:6px 9px;font:700 10px "Cairo",Tahoma,sans-serif;cursor:pointer}
+.component-add-row button:disabled{opacity:.4;cursor:not-allowed}
+.component-list{display:grid;gap:8px;margin-top:9px}
+.component-empty{font-size:9px;color:#829a9b;line-height:1.8;margin:5px 0}
+.component-card{padding:9px;border:1px solid #38575c;border-radius:9px;background:linear-gradient(145deg,#1b363b,#152c34)}
+.component-card-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.component-card-heading strong{font-size:10px;color:#ffdb9a}
+.component-card>p{margin:3px 0 7px;font-size:8px;color:#8fa9a8;line-height:1.6}
+.component-remove{padding:3px 7px;border-color:#754e4b;background:#402b30;color:#ffc1b8;font-size:9px}
+.component-property{display:block;margin:7px 0;font-size:9px;color:#b4c8c2}
+.component-property input,.component-property select{display:block;margin-top:4px}
+.component-property input[type=checkbox]{width:18px;height:18px;accent-color:#75c9a7}
+.component-property input[type=color]{height:32px;padding:3px}
+@media(max-width:650px){.component-workbench{grid-column:1/-1}.component-card{padding:8px}.component-property{margin:6px 0}}
