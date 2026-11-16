@@ -417,3 +417,41 @@ test("project parser rejects unknown normalized schema versions without attempti
   expect(result.ok).toBe(false);
   if (!result.ok) expect(result.error).toContain("بنية بيانات المشروع");
 });
+
+
+test("component inspector adds, edits, removes, and persists schema-validated components", async ({ page }) => {
+  await page.locator("#object-list .object-row").filter({ hasText: "شخصية لاعب" }).first().click();
+  await expect(page.locator("#component-picker option")).toContainText(["التحويل", "المظهر", "الحركة"]);
+  await page.locator("#component-picker").selectOption("health");
+  await page.locator("#component-add").click();
+  await expect(page.locator("#component-list .component-card")).toHaveCount(1);
+  await expect(page.locator("#component-list .component-card")).toContainText("الصحة");
+
+  await page.locator('[data-component-property="maximum"]').fill("240");
+  await page.locator('[data-component-property="maximum"]').dispatchEvent("change");
+  await page.locator("#save-button").click();
+  const saved = await page.evaluate(() => {
+    const project = JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}");
+    return project.scenes[0].objects.find((item: { kind: string }) => item.kind === "hero");
+  });
+  expect(saved.components).toHaveLength(1);
+  expect(saved.components[0].properties.maximum).toBe(240);
+
+  await page.reload();
+  await page.locator("#object-list .object-row").filter({ hasText: "شخصية لاعب" }).first().click();
+  await expect(page.locator("#component-list .component-card")).toHaveCount(1);
+  await expect(page.locator('[data-component-property="maximum"]')).toHaveValue("240");
+  await page.locator("[data-component-remove]").click();
+  await expect(page.locator("#component-list .component-card")).toHaveCount(0);
+});
+
+test("component picker respects object compatibility and unique component rules", async ({ page }) => {
+  await page.locator("#object-list .object-row").filter({ hasText: "عملة" }).first().click();
+  await expect(page.locator("#component-picker")).toContainText("عنصر قابل للجمع");
+  await expect(page.locator("#component-picker")).not.toContainText("تحكم اللاعب");
+  await page.locator("#component-picker").selectOption("collectible");
+  await page.locator("#component-add").click();
+  await expect(page.locator("#component-list .component-card")).toHaveCount(1);
+  await expect(page.locator("#component-picker")).toHaveValue("");
+  await expect(page.locator("#component-picker option")).toHaveCount(1);
+});
