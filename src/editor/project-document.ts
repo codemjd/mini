@@ -33,6 +33,8 @@ export interface SparkSceneDocument {
 }
 
 export interface SparkProjectDocument {
+  /** Version of the normalized project data shape; independent from the legacy file version. */
+  schemaVersion: 1;
   version: 5;
   title: string;
   width: 800;
@@ -118,7 +120,7 @@ export function createSparkProjectDocument(
   }));
   const active = normalizedScenes.find(scene => scene.id === activeSceneId) ?? normalizedScenes[0];
   return {
-    version: 5, title: "ورشة الشرارات - مشروعي", width: 800, height: 450,
+    schemaVersion: 1, version: 5, title: "ورشة الشرارات - مشروعي", width: 800, height: 450,
     scenes: normalizedScenes, activeSceneId: active.id,
     objects: active.objects.map(item => ({ ...item })),
     scriptSource: active.scriptSource
@@ -168,6 +170,7 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
     return {
       ok: true,
       document: {
+        schemaVersion: 1,
         version: 5,
         title: typeof project.title === "string" ? project.title.slice(0, 80) : "ورشة الشرارات - مشروعي",
         width: 800, height: 450,
