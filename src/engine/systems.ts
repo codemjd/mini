@@ -88,11 +88,12 @@ export class CombatSystem implements RuntimeSystem {
     if (!hero) return;
 
     if (context.attackRequested && hero.attackCooldownMs <= 0) {
-      hero.attackCooldownMs = 420;
+      const heroMelee = getBehavior(hero, "melee");
+      hero.attackCooldownMs = heroMelee?.cooldownMs ?? 420;
       const target = context.actors
         .filter((actor) => actor.alive && actor.kind === "enemy")
         .map((actor) => ({ actor, distance: distance(hero, actor) }))
-        .filter((item) => context.isTouching(hero, item.actor) || item.distance <= 94)
+        .filter((item) => context.isTouching(hero, item.actor) || item.distance <= (heroMelee?.range ?? 94))
         .sort((a, b) => a.distance - b.distance)[0]?.actor;
       if (!target) {
         context.events.push({ type: "status", message: "لا يوجد عدو قريب — اقترب منه ثم هاجم" });
