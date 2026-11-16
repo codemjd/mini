@@ -12,7 +12,14 @@ export type SparkEnemyAiMode = "chase" | "guard";
 export type SparkSceneBackground = "crystal-garden" | "sunset-ruins" | "frost-cavern" | "desert-dunes";
 export type SparkRuleTrigger = "game-start" | "coin-collected" | "enemy-defeated" | "player-hit" | "score-reached";
 export type SparkRuleAction = "show-message" | "heal-player" | "set-player-speed" | "set-player-damage" | "finish-level";
-export interface SparkGameRule { id: string; enabled: boolean; trigger: SparkRuleTrigger; action: SparkRuleAction; threshold?: number; value?: number; message?: string; }
+export interface SparkRuleConditions {
+  playerHealthAtMost?: number;
+  aliveEnemiesAtMost?: number;
+}
+export interface SparkGameRule {
+  id: string; enabled: boolean; trigger: SparkRuleTrigger; action: SparkRuleAction;
+  threshold?: number; value?: number; message?: string; conditions?: SparkRuleConditions;
+}
 
 export interface SparkObjectDefinition {
   id: string;
