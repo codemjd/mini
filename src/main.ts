@@ -1,11 +1,14 @@
-import Phaser from "phaser";
+import { createSparkProjectDocument, type SparkBackgroundKind } from "./editor/project-document";
+import { SPARK_ASSETS, findSparkAsset, type SparkAssetCategory } from "./editor/asset-catalog";
+import { DEFAULT_SPARK_SCRIPT } from "./scripting/spark-script";
+import type { SparkGameRule, SparkRuleTrigger, SparkRuleAction } from "./engine/model";
+import { SparkEditorController, type EditorObject, type ObjectKind } from "./editor/editor-controller";
 import { resolveLocalCommand, type LocalAssistantAction } from "./local-assistant";
 import "./style.css";
 
-type ObjectKind = "hero" | "crate" | "enemy" | "coin" | "platform";
-type EditorObject = { id: string; kind: ObjectKind; x: number; y: number; name: string; health: number; speed: number; damage: number; size: number; color: string; locked?: boolean };
-
-const STORAGE_KEY = "spark-workshop-mini-project-v2";
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
+}
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("تعذر العثور على مساحة التطبيق");
 
@@ -19,24 +22,30 @@ app.innerHTML = `
       <div class="side-heading"><span>مساحة العمل</span><span class="muted">01</span></div>
       <button class="nav-item active"><span>▦</span> محرر المشهد</button>
       <button class="nav-item" disabled><span>♟</span> الشخصيات <em>لاحقًا</em></button>
-      <button class="nav-item" disabled><span>◇</span> مكتبة الأصول <em>لاحقًا</em></button>
+      <button class="nav-item" id="nav-assets"><span>◇</span> مكتبة الأصول</button>
       <button class="nav-item" disabled><span>⌘</span> السلوكيات <em>لاحقًا</em></button>
       <div class="side-divider"></div>
       <div class="sidebar-note"><span>✦</span><p>أضف كائنًا، حدده، ثم اسحبه داخل ساحة اللعب. احفظ مشروعك لتعود إليه لاحقًا على هذا الجهاز.</p></div>
     </aside>
     <section class="editor">
-      <div class="editor-heading"><div><span class="eyebrow">محرر الألعاب</span><h1>محرر المشهد</h1><p>أضف العناصر إلى لعبتك ورتّبها مباشرة داخل الساحة.</p></div><span class="version-tag">الإصدار 0.4 — أول لعبة مصغّرة</span></div>
+      <div class="editor-heading"><div><span class="eyebrow">محرر الألعاب</span><h1>محرر المشهد</h1><p>أضف العناصر إلى لعبتك ورتّبها مباشرة داخل الساحة.</p></div><span class="version-tag">الإصدار 0.9 — مكتبة وتحريك وخلفيات</span></div>
       <div class="editor-layout">
         <div class="scene-column">
-          <div class="stage-toolbar"><span>المشهد 01 <b>/</b> جزيرة البلورات</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><span class="stage-size">جزيرة البلورات · 800 × 450</span></div></div>
-          <div class="stage-shell" id="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><button data-dir="up" aria-label="أعلى">▲</button><div><button data-dir="left" aria-label="يسار">◀</button><button data-dir="down" aria-label="أسفل">▼</button><button data-dir="right" aria-label="يمين">▶</button></div><button class="touch-attack" id="touch-attack" aria-label="هجوم">⚔ هجوم</button></div>
+          <div class="stage-toolbar"><span>المشهد 01 <b>/</b> جزيرة البلورات</span><div class="stage-tools"><button id="grid-toggle" class="mini-tool" aria-pressed="true">شبكة ✓</button><button id="snap-toggle" class="mini-tool" aria-pressed="true">محاذاة ✓</button><button id="reset-view" class="mini-tool">إعادة العرض</button><label class="background-picker">الخلفية <select id="background-theme"><option value="crystal-garden">حديقة البلورات</option><option value="sunset-ruins">أطلال الغروب</option><option value="frost-cavern">كهف الجليد</option><option value="desert-dunes">كثبان الصحراء</option></select></label><span class="stage-size">800 × 450</span></div></div>
+          <section class="scene-manager" aria-label="إدارة المشاهد">
+            <div class="scene-manager-heading"><div><strong>مشاهد المشروع</strong><small>كل مشهد له عناصره وأوامره الخاصة</small></div><div class="scene-manager-actions"><button id="scene-new" type="button">＋ جديد</button><button id="scene-duplicate" type="button">نسخ</button><button id="scene-rename" type="button">إعادة تسمية</button><button id="scene-delete" type="button">حذف</button></div></div>
+            <div id="scene-tabs" class="scene-tabs" role="tablist" aria-label="مشاهد المشروع"></div>
+            <div class="scene-manager-foot"><span id="scene-count">مشهد واحد</span><span>الحد الأقصى 30 مشهدًا · حفظ تلقائي مستقل</span></div>
+          </section>
+          <div class="stage-shell" id="stage-shell"><div id="game-stage" aria-label="مساحة تصميم اللعبة"></div></div><div id="touch-controls" class="touch-controls" hidden><span>تحكم اللمس من melonJS: عصا الحركة وزر الهجوم</span></div>
           <div class="hint-row" id="stage-hint" role="status" aria-live="polite"><span>✦</span> اجمع البلورات الأربع، واحذر حارس الوحل. هذه ساحة جاهزة للتعديل واللعب.</div>
         </div>
         <aside class="tools-panel">
           <div class="panel-section"><h2>إضافة عناصر</h2><button class="tool-button" id="add-hero"><span class="tool-icon hero-icon">●</span><span><strong>شخصية اللاعب</strong><small>الشخصية التي تتحكم بها</small></span><b>＋</b></button><button class="tool-button" id="add-enemy"><span class="tool-icon enemy-icon">◆</span><span><strong>عدو</strong><small>هدف للتجربة</small></span><b>＋</b></button><button class="tool-button" id="add-crate"><span class="tool-icon crate-icon">▧</span><span><strong>صندوق</strong><small>عنصر ثابت</small></span><b>＋</b></button><button class="tool-button" id="add-platform"><span class="tool-icon platform-icon">▬</span><span><strong>منصة</strong><small>سطح للمشهد</small></span><b>＋</b></button><button class="tool-button" id="add-coin"><span class="tool-icon coin-icon">●</span><span><strong>بلورة</strong><small>عنصر قابل للجمع في المعاينة</small></span><b>＋</b></button></div>
-          <div class="panel-section asset-library"><h2>تركيبات جاهزة</h2><button class="preset-button" id="preset-coins"><span>✦</span><span><strong>مسار البلورات</strong><small>أربع بلورات لامعة</small></span></button><button class="preset-button" id="preset-barricade"><span>▤</span><span><strong>حاجز خشبي</strong><small>منصة وصندوقان</small></span></button><button class="preset-button" id="preset-rival"><span>⚔</span><span><strong>خصم للتحدي</strong><small>عدو بخصائص محسّنة</small></span></button></div>
+          <div class="panel-section vector-assets"><div class="asset-heading"><h2>مكتبة العناصر المتجهية</h2><span class="asset-count">12 عنصرًا</span></div><label class="asset-search-label" for="asset-search">ابحث في المكتبة</label><input id="asset-search" class="asset-search" type="search" placeholder="اسم العنصر..." autocomplete="off"><select id="asset-category" class="asset-category" aria-label="تصنيف العناصر"><option value="all">كل التصنيفات</option><option value="characters">الشخصيات</option><option value="enemies">الأعداء</option><option value="environment">البيئة</option><option value="collectibles">المقتنيات</option></select><div id="asset-grid" class="asset-grid" aria-live="polite"></div><p class="asset-note">عناصر متجهية مدمجة تُرسم داخل المحرر ويمكن تعديل لونها وحجمها بعد الإضافة.</p></div>
+          <div class="panel-section asset-library"><h2>تركيبات جاهزة</h2><button class="preset-button" id="preset-coins"><span>✦</span><span><strong>مسار البلورات</strong><small>أربع بلورات لامعة</small></span></button><button class="preset-button" id="preset-barricade"><span>▤</span><span><strong>حاجز خشبي</strong><small>منصة وصندوقان</small></span></button><button class="preset-button" id="preset-rival"><span>⚔</span><span><strong>خصم للتحدي</strong><small>عدو بخصائص محسّنة</small></span></button><button class="preset-button" id="preset-camp"><span>⌂</span><span><strong>مخيم المستكشف</strong><small>مؤن وموقد وعناصر ديكور</small></span></button><button class="preset-button" id="preset-gate"><span>▥</span><span><strong>بوابة قديمة</strong><small>مدخل حجري مع ختم</small></span></button><button class="preset-button" id="preset-crystal-garden"><span>✧</span><span><strong>حديقة البلورات</strong><small>مجموعة بلورات بألوان مختلفة</small></span></button></div>
           <div class="panel-section object-manager"><h2>الكائنات في المشهد <span class="muted" id="object-count">0</span></h2><div id="object-list" class="object-list"></div></div>
-          <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>اسم الكائن<input id="object-name" type="text" maxlength="24"></label><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><div id="appearance-properties"><div class="inspector-subtitle">المظهر</div><label>الحجم<input id="creature-size" type="number" min="0.5" max="2.5" step="0.1"></label><label>لون العنصر<input id="creature-color" type="color"></label></div><div id="creature-properties"><div class="inspector-subtitle">خصائص الشخصية</div><label>الصحة (HP)<input id="creature-health" type="number" min="1" max="1000"></label><label>السرعة<input id="creature-speed" type="number" min="1" max="1000"></label><label>الضرر<input id="creature-damage" type="number" min="1" max="500"></label></div><div class="inspector-actions inspector-layer-actions"><button class="secondary-button" id="lock-object">قفل الكائن</button><button class="secondary-button" id="bring-forward">للأمام ↑</button><button class="secondary-button" id="send-backward">للخلف ↓</button></div><div class="inspector-actions"><button class="secondary-button" id="duplicate-object">نسخ الكائن</button><button class="danger-button" id="delete-object">حذف الكائن</button></div></div></div>
+          <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>اسم الكائن<input id="object-name" type="text" maxlength="24"></label><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><div id="appearance-properties"><div class="inspector-subtitle">المظهر</div><label>الحجم<input id="creature-size" type="number" min="0.5" max="2.5" step="0.1"></label><label>لون العنصر<input id="creature-color" type="color"></label></div><div id="motion-properties"><div class="inspector-subtitle">التحريك داخل المحرر والمعاينة</div><label>الحركة<select id="object-motion"><option value="idle">ساكنة مع حركة طبيعية</option><option value="float">طفو هادئ</option><option value="pulse">نبض وتوهج بالحجم</option><option value="bounce">قفز متكرر</option><option value="wobble">تمايل جانبي</option></select></label><p class="field-help">تظهر الحركة في المحرر وفي المعاينة القابلة للعب، وتُحفظ مع المشروع.</p></div><div id="enemy-ai-properties" hidden><div class="inspector-subtitle">سلوك العدو</div><label>نمط الذكاء<select id="enemy-ai-mode"><option value="chase">مطاردة اللاعب</option><option value="guard">حراسة الموقع</option></select></label></div><div id="creature-properties"><div class="inspector-subtitle">خصائص الشخصية</div><label>الصحة (HP)<input id="creature-health" type="number" min="1" max="1000"></label><label>السرعة<input id="creature-speed" type="number" min="1" max="1000"></label><label>الضرر<input id="creature-damage" type="number" min="1" max="500"></label></div><div class="inspector-actions inspector-layer-actions"><button class="secondary-button" id="lock-object">قفل الكائن</button><button class="secondary-button" id="bring-forward">للأمام ↑</button><button class="secondary-button" id="send-backward">للخلف ↓</button></div><div class="inspector-actions"><button class="secondary-button" id="duplicate-object">نسخ الكائن</button><button class="danger-button" id="delete-object">حذف الكائن</button></div></div></div>
         </aside>
       </div>
       <section class="assistant-panel" aria-label="مساعد الورشة المحلي">
@@ -59,767 +68,68 @@ app.innerHTML = `
           <div class="assistant-footnote"><span>●</span> مساعد قواعد محلي — لا يرسل نصوصك إلى أي خادم، ولا يدّعي فهم أوامر خارج قائمته.</div>
         </div>
       </section>
+      <section class="rules-workbench" aria-label="قواعد اللعب المرئية">
+        <div class="rules-heading">
+          <div><span class="eyebrow">دون كتابة كود</span><h2>قواعد اللعب والأحداث</h2><p>اختر حدثًا ثم إجراءً. تُحفظ القواعد مع المشهد وتعمل داخل معاينة اللعبة.</p></div>
+          <span class="rules-limit" id="rules-count">0 / 24 قاعدة</span>
+        </div>
+        <form id="rule-form" class="rules-form">
+          <label>عندما يحدث<select id="rule-trigger">
+            <option value="game-start">تبدأ المرحلة</option><option value="coin-collected">يجمع اللاعب بلورة</option><option value="enemy-defeated">يهزم اللاعب عدوًا</option><option value="player-hit">يتلقى اللاعب ضربة</option><option value="score-reached">تصل النقاط إلى حد معين</option>
+          </select></label>
+          <label>نفّذ الإجراء<select id="rule-action">
+            <option value="show-message">اعرض رسالة</option><option value="heal-player">عالج صحة اللاعب</option><option value="set-player-speed">غيّر سرعة اللاعب</option><option value="set-player-damage">غيّر ضرر اللاعب</option><option value="finish-level">أنه المرحلة</option>
+          </select></label>
+          <label id="rule-threshold-field" hidden>عدد النقاط المطلوب<input id="rule-threshold" type="number" min="1" max="99999" value="5"></label>
+          <label id="rule-value-field" hidden>قيمة الإجراء<input id="rule-value" type="number" min="1" max="1000" value="25"></label>
+          <label id="rule-message-field">نص الرسالة<input id="rule-message" type="text" maxlength="120" value="أحسنت! استمر في التقدم"></label>
+          <button type="submit" class="add-rule-button">＋ إضافة القاعدة</button>
+        </form>
+        <div id="rule-list" class="rule-list" aria-live="polite"></div>
+      </section>
+      <section class="code-workbench" aria-label="مساحة البرمجة المتقدمة">
+        <div class="code-workbench-heading">
+          <div><span class="eyebrow">للمستخدمين المتقدمين</span><h2>برمجة مخصصة · Spark Script</h2><p>اكتب أوامر صغيرة لتعديل عناصر المشهد تلقائيًا. بقية الورشة لا تحتاج إلى برمجة.</p></div>
+          <span class="code-safety">واجهة أوامر محدودة وآمنة</span>
+        </div>
+        <textarea id="spark-script" class="spark-script-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="مقتطف Spark Script"># إعداد بسيط للمشهد — الأوامر المدعومة فقط
+set(&quot;hero&quot;, &quot;speed&quot;, 260);
+set(&quot;enemy&quot;, &quot;health&quot;, 75);
+spawn(&quot;coin&quot;, 420, 225);
+note(&quot;تم تجهيز تحدٍ أسرع مع بلورة إضافية&quot;);</textarea>
+        <div class="code-workbench-actions"><button type="button" class="run-script-button" id="run-script">▶ تنفيذ المقتطف</button><button type="button" class="reset-script-button" id="reset-script">استعادة المثال</button><span id="script-output" role="status" aria-live="polite">الأوامر: set · spawn · remove · note</span></div>
+        <p class="code-workbench-footnote">Spark Script ليست JavaScript كاملًا: لا تستخدم eval ولا تتيح الشبكة أو الملفات أو واجهات المتصفح. كل مقتطف يُفحص أولًا، ويُنفّذ فقط عبر أوامر محددة على بيانات المشهد.</p>
+      </section>
       <section class="welcome-panel"><div class="welcome-icon">✧</div><div><strong>مساحة صناعة ألعاب تتوسع باستمرار</strong><p>جرّب الأصول الجاهزة، عدّل مظهر كل عنصر، رتّب الطبقات، واستخدم التراجع والاستيراد والتصدير لحماية عملك.</p></div></section>
     </section>
   </main>
   <footer><span>ورشة الشرارات Mini</span><span>نبني الألعاب خطوة بخطوة ✦</span></footer>
 `;
 
-let editorScene: EditorScene | null = null;
+let editorScene: SparkEditorController | null = null;
 
-class EditorScene extends Phaser.Scene {
-  private objects = new Map<string, { data: EditorObject; view: Phaser.GameObjects.Container }>();
-  private selectedId: string | null = null;
-  private previewing = false;
-  private previewKeys?: Record<string, Phaser.Input.Keyboard.Key>;
-  private previewHint?: Phaser.GameObjects.Text;
-  private previewScoreLabel?: Phaser.GameObjects.Text;
-  private previewSnapshot: EditorObject[] | null = null;
-  private previewScore = 0;
-  private previewCoinsTotal = 0;
-  private attackCooldown = 0;
-  private enemyAttackCooldown = 0;
-  private attackRequested = false;
-  private autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
-  private gridGraphics?: Phaser.GameObjects.Graphics;
-  private touchDirection = { x: 0, y: 0 };
-  private nextId = 1;
-  private snapToGrid = true;
-  private undoStack: EditorObject[][] = [];
-  private redoStack: EditorObject[][] = [];
-  private readonly historyLimit = 60;
-  constructor() { super("EditorScene"); }
 
-  create() {
-    editorScene = this;
-    const { width, height } = this.scale;
-    this.createWorldBackground(width, height);
-    const grid = this.add.graphics().setDepth(-10);
-    this.gridGraphics = grid;
-    grid.lineStyle(1, 0xa6d8c8, 0.10);
-    for (let x = 0; x <= width; x += 40) grid.lineBetween(x, 0, x, height);
-    for (let y = 0; y <= height; y += 40) grid.lineBetween(0, y, width, y);
-    const border = this.add.graphics().setDepth(-9);
-    border.lineStyle(3, 0x8ac7b7, 0.22);
-    border.strokeRoundedRect(8, 8, width - 16, height - 16, 18);
-    this.add.text(16, 14, "جزيرة البلورات", { fontFamily: "Tahoma, Arial", fontSize: "14px", color: "#e4fff4", backgroundColor: "#102436", padding: { x: 9, y: 6 } }).setDepth(20);
-    this.loadProject();
-    if (this.objects.size === 0) this.createStarterLevel();
-    this.input.on("dragstart", (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
-      const item = [...this.objects.values()].find(entry => entry.view === gameObject);
-      if (!this.previewing && item && !item.data.locked) this.recordHistory();
-    });
-    this.input.on("drag", (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject, dragX: number, dragY: number) => {
-      if (this.previewing) return;
-      const item = [...this.objects.values()].find(entry => entry.view === gameObject);
-      if (!item || item.data.locked) return;
-      const snap = (value: number) => this.snapToGrid ? Math.round(value / 20) * 20 : value;
-      item.view.x = Phaser.Math.Clamp(snap(dragX), 28, width - 28);
-      item.view.y = Phaser.Math.Clamp(snap(dragY), 28, height - 28);
-      item.data.x = Math.round(item.view.x);
-      item.data.y = Math.round(item.view.y);
-      this.emitChange();
-    });
-    this.input.on("dragend", () => this.emitChange());
-  }
 
-  private createWorldBackground(width: number, height: number) {
-    const g = this.add.graphics().setDepth(-30);
-    g.fillGradientStyle(0x153b43, 0x285b50, 0x37684c, 0x173b3f, 1);
-    g.fillRect(0, 0, width, height);
-    g.fillStyle(0x8bd5a6, 0.08);
-    g.fillCircle(145, 105, 118);
-    g.fillCircle(650, 350, 150);
-    g.fillStyle(0x102f34, 0.22);
-    g.fillEllipse(400, 30, 620, 105);
-    g.fillEllipse(400, 430, 700, 90);
-    g.fillStyle(0x183c3b, 0.82);
-    g.fillRoundedRect(34, 164, 732, 122, 58);
-    g.fillStyle(0x837f64, 0.96);
-    g.fillRoundedRect(39, 169, 722, 112, 54);
-    g.fillStyle(0xb6a982, 0.98);
-    g.fillRoundedRect(46, 175, 708, 100, 48);
-    g.fillStyle(0xe3d4a6, 0.16);
-    g.fillRoundedRect(54, 181, 692, 11, 6);
-    g.fillStyle(0x696f5a, 0.22);
-    for (let x = 70; x < 750; x += 68) g.fillRoundedRect(x, 190 + ((x / 68) % 2) * 7, 34, 70, 13);
-    g.fillStyle(0xefe0b5, 0.20);
-    for (let i = 0; i < 46; i++) {
-      const x = 58 + (i * 137) % 685;
-      const y = 184 + (i * 47) % 84;
-      g.fillCircle(x, y, i % 5 === 0 ? 2 : 1);
-    }
-    for (let i = 0; i < 22; i++) {
-      const x = 22 + (i * 79) % 756;
-      const topY = 34 + (i * 17) % 43;
-      const bottomY = 397 + (i * 13) % 35;
-      const radius = 23 + (i % 4) * 5;
-      g.fillStyle(0x143a35, 0.90);
-      g.fillCircle(x + 3, topY + 5, radius + 3);
-      g.fillCircle(x + 3, bottomY + 5, radius + 3);
-      g.fillStyle(i % 2 ? 0x2d7654 : 0x36815d, 0.96);
-      g.fillCircle(x, topY, radius);
-      g.fillCircle(x, bottomY, radius);
-      g.fillStyle(0xa5d989, 0.18);
-      g.fillEllipse(x - 5, topY - 6, radius, 10);
-      g.fillEllipse(x - 5, bottomY - 6, radius, 10);
-    }
-    for (const x of [58, 142, 658, 742]) {
-      const y = x < 400 ? 112 : 337;
-      g.fillStyle(0x3b4938, 0.95);
-      g.fillRoundedRect(x - 6, y - 3, 13, 40, 6);
-      g.fillStyle(0x194637, 0.98);
-      g.fillCircle(x, y - 13, 31);
-      g.fillStyle(0x347b56, 0.98);
-      g.fillCircle(x - 12, y - 22, 20);
-      g.fillCircle(x + 13, y - 19, 19);
-      g.fillStyle(0x9bd783, 0.36);
-      g.fillCircle(x - 8, y - 29, 7);
-    }
-    g.fillStyle(0x8fe9df, 0.12);
-    g.fillCircle(400, 92, 70);
-    g.fillStyle(0x8df5e6, 0.78);
-    g.fillTriangle(384, 105, 400, 71, 416, 105);
-    g.fillStyle(0xd9fff7, 0.9);
-    g.fillTriangle(400, 71, 407, 97, 400, 105);
-    g.fillStyle(0x9ee7ee, 0.13);
-    g.fillCircle(205, 350, 34);
-    g.fillStyle(0x70d5db, 0.8);
-    g.fillTriangle(194, 358, 205, 330, 216, 358);
-    g.fillStyle(0xd9ffff, 0.9);
-    g.fillTriangle(205, 330, 211, 351, 205, 358);
-    g.lineStyle(2, 0xa4d78d, 0.45);
-    for (let i = 0; i < 34; i++) {
-      const x = 18 + (i * 53) % 764;
-      const y = i % 2 ? 132 + (i * 19) % 24 : 294 + (i * 23) % 30;
-      g.lineBetween(x, y + 7, x - 3, y);
-      g.lineBetween(x, y + 7, x + 5, y - 1);
-    }
-    g.lineStyle(3, 0xb1e4ba, 0.22);
-    g.strokeRoundedRect(8, 8, width - 16, height - 16, 20);
-  }
-
-  private createStarterLevel() {
-    const entries: Array<{ kind: ObjectKind; x: number; y: number; overrides?: Partial<EditorObject> }> = [
-      { kind: "hero", x: 122, y: 223, overrides: { name: "حارس البلورات", health: 130, speed: 220, damage: 34, size: 1.12, color: "#f1b94f" } },
-      { kind: "enemy", x: 674, y: 223, overrides: { name: "حارس الوحل", health: 90, speed: 96, damage: 8, size: 1.08, color: "#78c99d" } },
-      { kind: "coin", x: 260, y: 205, overrides: { name: "بلورة النور", size: 1.05 } },
-      { kind: "coin", x: 355, y: 244, overrides: { name: "بلورة النور", size: 1.05 } },
-      { kind: "coin", x: 450, y: 205, overrides: { name: "بلورة النور", size: 1.05 } },
-      { kind: "coin", x: 545, y: 244, overrides: { name: "بلورة النور", size: 1.05 } }
-    ];
-    const defaults: Record<ObjectKind, { name: string; color: string }> = {
-      hero: { name: "بطلي", color: "#f1b94f" },
-      enemy: { name: "عدو", color: "#78c99d" },
-      crate: { name: "صندوق", color: "#c47a45" },
-      platform: { name: "منصة", color: "#719eae" },
-      coin: { name: "بلورة", color: "#ffd34e" }
-    };
-    for (const entry of entries) {
-      const base = defaults[entry.kind];
-      const data: EditorObject = {
-        id: "object-" + this.nextId++,
-        kind: entry.kind,
-        x: entry.x,
-        y: entry.y,
-        name: base.name,
-        health: 100,
-        speed: 180,
-        damage: 20,
-        size: 1,
-        color: base.color,
-        ...entry.overrides
-      };
-      this.createView(data);
-    }
-    this.refreshDepths();
-  }
-
-  buildStarterGame() {
-    if (this.previewing) this.stopPreview();
-    this.recordHistory();
-    for (const item of this.objects.values()) item.view.destroy();
-    this.objects.clear();
-    this.selectedId = null;
-    this.nextId = 1;
-    this.createStarterLevel();
-    this.emitChange();
-    this.save();
-    setStatus("أصبحت رحلة البلورات جاهزة للتعديل واللعب");
-  }
-
-  addCoins(count: number) {
-    if (this.previewing) this.stopPreview();
-    const safeCount = Phaser.Math.Clamp(Math.floor(count), 1, 20);
-    this.recordHistory();
-    for (let i = 0; i < safeCount; i++) {
-      const x = 128 + (i % 9) * 66;
-      const y = 205 + (Math.floor(i / 9) % 2) * 55;
-      this.createView({
-        id: "object-" + this.nextId++,
-        kind: "coin",
-        x,
-        y,
-        name: "بلورة النور",
-        health: 100,
-        speed: 180,
-        damage: 20,
-        size: 1,
-        color: "#ffd34e"
-      });
-    }
-    this.emitChange();
-    setStatus("أضيفت " + safeCount + " بلورات إلى الساحة");
-  }
-
-  updateFirst(kind: ObjectKind, changes: Partial<EditorObject>): boolean {
-    const item = [...this.objects.values()].find(entry => entry.data.kind === kind);
-    if (!item) return false;
-    this.select(item.data.id);
-    this.updateProperties(changes);
-    return true;
-  }
-
-  updateSelectedProperties(changes: Partial<EditorObject>): boolean {
-    if (!this.getSelected()) return false;
-    this.updateProperties(changes);
-    return true;
-  }
-
-  addPreset(preset: "coins" | "barricade" | "rival") {
-    if (this.previewing) this.stopPreview();
-    const presets: Record<typeof preset, Array<{ kind: ObjectKind; x: number; y: number; overrides?: Partial<EditorObject> }>> = {
-      coins: [260, 350, 440, 530].map(x => ({ kind: "coin", x, y: 225 })),
-      barricade: [
-        { kind: "platform", x: 400, y: 280, overrides: { name: "حاجز حجري", color: "#5d91a8", size: 1.25 } },
-        { kind: "crate", x: 350, y: 280, overrides: { name: "صندوق الحاجز" } },
-        { kind: "crate", x: 450, y: 280, overrides: { name: "صندوق الحاجز" } }
-      ],
-      rival: [{ kind: "enemy", x: 560, y: 225, overrides: { name: "حارس الساحة", health: 180, speed: 145, damage: 32, color: "#e65d72", size: 1.15 } }]
-    };
-    const items = presets[preset];
-    this.recordHistory();
-    let lastId: string | null = null;
-    for (const entry of items) {
-      const defaults: Record<ObjectKind, { name: string; color: string }> = { hero: { name: "بطلي", color: "#ffbd59" }, enemy: { name: "عدو", color: "#ff6b72" }, crate: { name: "صندوق", color: "#c47a45" }, platform: { name: "منصة", color: "#5d91a8" }, coin: { name: "عملة", color: "#ffd34e" } };
-      const data: EditorObject = { id: `object-${this.nextId++}`, kind: entry.kind, x: entry.x, y: entry.y, name: defaults[entry.kind].name, health: 100, speed: 180, damage: 20, size: 1, color: defaults[entry.kind].color, ...entry.overrides };
-      this.createView(data);
-      lastId = data.id;
-    }
-    if (lastId) this.select(lastId);
-    this.emitChange();
-    setStatus("تمت إضافة التركيبة الجاهزة — يمكنك تعديل كل عنصر");
-  }
-
-  addObject(kind: ObjectKind, x?: number, y?: number, overrides: Partial<EditorObject> = {}) {
-    if (this.previewing) this.stopPreview();
-    this.recordHistory();
-    const id = `object-${this.nextId++}`;
-    const defaults: Record<ObjectKind, { name: string; color: string }> = { hero: { name: "بطلي", color: "#ffbd59" }, enemy: { name: "عدو", color: "#ff6b72" }, crate: { name: "صندوق", color: "#c47a45" }, platform: { name: "منصة", color: "#5d91a8" }, coin: { name: "عملة", color: "#ffd34e" } };
-    const data: EditorObject = { kind, x: x ?? Phaser.Math.Between(150, 650), y: y ?? Phaser.Math.Between(110, 340), name: defaults[kind].name, health: 100, speed: 180, damage: 20, size: 1, color: defaults[kind].color, ...overrides, id };
-    this.createView(data);
-    this.select(id);
-    this.emitChange();
-  }
-
-  private createView(data: EditorObject) {
-    const parts: Phaser.GameObjects.GameObject[] = [];
-    const isCreature = data.kind === "hero" || data.kind === "enemy";
-    const bodyColor = Phaser.Display.Color.HexStringToColor(data.color || "#f1b94f").color;
-
-    if (isCreature) {
-      const isHero = data.kind === "hero";
-      parts.push(this.add.ellipse(0, 34, 76, 20, 0x071b1b, 0.40));
-      parts.push(this.add.ellipse(0, 31, 50, 12, 0x061414, 0.28));
-      if (isHero) {
-        parts.push(this.add.triangle(0, 13, -22, -13, 22, -13, 0, 43, 0x397f73).setStrokeStyle(3, 0x9ce3c7));
-        parts.push(this.add.ellipse(-10, 27, 16, 19, 0x33485b));
-        parts.push(this.add.ellipse(10, 27, 16, 19, 0x33485b));
-        parts.push(this.add.ellipse(-11, 35, 21, 10, 0x26394b).setStrokeStyle(2, 0x829cab));
-        parts.push(this.add.ellipse(11, 35, 21, 10, 0x26394b).setStrokeStyle(2, 0x829cab));
-        parts.push(this.add.ellipse(-24, 10, 15, 24, 0x398c7d).setStrokeStyle(2, 0x9fe6cc));
-        parts.push(this.add.ellipse(24, 10, 15, 24, 0x398c7d).setStrokeStyle(2, 0x9fe6cc));
-        parts.push(this.add.circle(-29, 20, 8, 0xf1b94f).setStrokeStyle(2, 0xffe6a1));
-        parts.push(this.add.circle(29, 20, 8, 0xf1b94f).setStrokeStyle(2, 0xffe6a1));
-        parts.push(this.add.ellipse(0, 16, 39, 36, 0x2e796e).setStrokeStyle(4, 0xa3e9ce));
-        parts.push(this.add.ellipse(0, 8, 23, 12, 0x78c9ab, 0.8));
-        parts.push(this.add.rectangle(0, 28, 29, 6, 0x9c6840).setStrokeStyle(1, 0xf1cf8c));
-        parts.push(this.add.circle(0, -10, 26, bodyColor).setStrokeStyle(4, 0xffe5a1));
-        parts.push(this.add.arc(0, -11, 27, 195, 345, false, 0x8d653e, 1).setStrokeStyle(6, 0xffdf91));
-        parts.push(this.add.ellipse(-8, -18, 13, 7, 0xffffff, 0.55));
-        parts.push(this.add.circle(-8, -7, 5, 0xffffff));
-        parts.push(this.add.circle(8, -7, 5, 0xffffff));
-        parts.push(this.add.circle(-7, -6, 2.2, 0x26374a));
-        parts.push(this.add.circle(9, -6, 2.2, 0x26374a));
-        parts.push(this.add.arc(0, 3, 8, 20, 160, false, 0x5b3a32).setStrokeStyle(2, 0x5b3a32));
-        parts.push(this.add.star(0, -39, 5, 5, 10, 0x8ce6d0).setStrokeStyle(2, 0xe0fff5));
-        parts.push(this.add.rectangle(35, 5, 7, 30, 0xdaf5ef).setStrokeStyle(2, 0x6ca6a0).setAngle(25));
-        parts.push(this.add.rectangle(31, 18, 17, 5, 0x9c6840).setAngle(25));
-        parts.push(this.add.circle(37, -12, 4, 0xffffff, 0.8));
-      } else {
-        parts.push(this.add.ellipse(0, 14, 61, 48, bodyColor).setStrokeStyle(4, 0xd2f5c4));
-        parts.push(this.add.triangle(-18, -11, -9, 8, 9, 8, 0, -13, 0x4b9b7b).setStrokeStyle(2, 0xc5f6d1));
-        parts.push(this.add.triangle(18, -11, -9, 8, 9, 8, 0, -13, 0x4b9b7b).setStrokeStyle(2, 0xc5f6d1));
-        parts.push(this.add.ellipse(-17, 18, 11, 8, 0x5cae8b, 0.8));
-        parts.push(this.add.ellipse(17, 18, 11, 8, 0x5cae8b, 0.8));
-        parts.push(this.add.ellipse(-9, 8, 12, 17, 0xffffff));
-        parts.push(this.add.ellipse(9, 8, 12, 17, 0xffffff));
-        parts.push(this.add.circle(-7, 10, 3.5, 0x213e3b));
-        parts.push(this.add.circle(11, 10, 3.5, 0x213e3b));
-        parts.push(this.add.arc(1, 26, 9, 15, 165, false, 0x31534a).setStrokeStyle(3, 0x31534a));
-        parts.push(this.add.circle(-19, -1, 3, 0xe5fff0, 0.8));
-        parts.push(this.add.circle(20, -3, 4, 0xe5fff0, 0.75));
-        parts.push(this.add.star(0, -30, 5, 3, 7, 0xe6f9b2).setStrokeStyle(1, 0xffffff));
-      }
-    } else if (data.kind === "crate") {
-      parts.push(this.add.ellipse(0, 28, 66, 17, 0x07131b, 0.36));
-      parts.push(this.add.rectangle(0, 1, 55, 51, 0x80502f).setStrokeStyle(4, 0xf1c18e));
-      parts.push(this.add.rectangle(0, -2, 45, 39, bodyColor).setStrokeStyle(2, 0xffd7a2));
-      parts.push(this.add.rectangle(0, -2, 9, 39, 0x98613a));
-      parts.push(this.add.rectangle(0, -2, 44, 7, 0x98613a));
-      parts.push(this.add.line(0, 0, -18, -17, 18, 17, 0xffd4a0, 0.95).setLineWidth(4));
-      parts.push(this.add.line(0, 0, 18, -17, -18, 17, 0xffd4a0, 0.95).setLineWidth(4));
-      for (const x of [-20, 20]) for (const y of [-17, 17]) parts.push(this.add.circle(x, y, 2.5, 0xffe5b9));
-    } else if (data.kind === "coin") {
-      parts.push(this.add.circle(0, 1, 29, 0xffd95b, 0.12));
-      parts.push(this.add.ellipse(0, 24, 42, 13, 0x07131b, 0.32));
-      parts.push(this.add.circle(0, 0, 20, 0xb97824).setStrokeStyle(5, 0xffe68c));
-      parts.push(this.add.circle(0, -2, 15, bodyColor).setStrokeStyle(2, 0xfff8d6));
-      parts.push(this.add.star(0, -2, 5, 3, 9, 0xfff0a5).setStrokeStyle(1, 0xfffbe0));
-      parts.push(this.add.circle(-7, -10, 4, 0xffffff, 0.75));
-      parts.push(this.add.circle(7, 9, 2, 0xfff9d5, 0.8));
-    } else {
-      parts.push(this.add.ellipse(0, 18, 124, 17, 0x07131b, 0.28));
-      parts.push(this.add.rectangle(0, 1, 116, 34, 0x354e58).setStrokeStyle(3, 0xb7d5d7));
-      parts.push(this.add.rectangle(0, -4, 108, 25, bodyColor).setStrokeStyle(2, 0xe4f6ed));
-      parts.push(this.add.rectangle(0, 8, 98, 4, 0x315363));
-      for (let x = -42; x <= 42; x += 28) parts.push(this.add.circle(x, -5, 3, 0xe4fff7, 0.85));
-    }
-
-    const label = this.add.text(0, isCreature ? 53 : 43, data.name || data.kind, {
-      fontFamily: "Tahoma, Arial",
-      fontSize: "11px",
-      fontStyle: "bold",
-      color: "#ffffff",
-      stroke: "#17302f",
-      strokeThickness: 4,
-      shadow: { offsetX: 0, offsetY: 2, color: "#000000", blur: 5, fill: true }
-    }).setOrigin(0.5);
-    parts.push(label);
-    const view = this.add.container(data.x, data.y, parts);
-    view.setSize(isCreature ? 88 : 76, isCreature ? 112 : 84);
-    if (isCreature) {
-      this.tweens.add({ targets: view, y: data.y - 3, duration: 920, yoyo: true, repeat: -1, ease: "Sine.InOut" });
-    } else if (data.kind === "coin") {
-      this.tweens.add({ targets: view, angle: 360, duration: 2600, repeat: -1, ease: "Linear" });
-      this.tweens.add({ targets: view, scaleX: (data.size || 1) * 1.12, scaleY: (data.size || 1) * 0.94, duration: 720, yoyo: true, repeat: -1, ease: "Sine.InOut" });
-    }
-    view.setScale(data.size || 1);
-    view.setInteractive(new Phaser.Geom.Rectangle(-58, -48, 116, 105), Phaser.Geom.Rectangle.Contains);
-    this.input.setDraggable(view);
-    view.on("pointerdown", () => this.select(data.id));
-    this.objects.set(data.id, { data, view });
-    this.refreshDepths();
-  }
-
-  private refreshDepths() {
-    let depth = 0;
-    for (const item of this.objects.values()) item.view.setDepth(depth++ / 1000);
-  }
-
-  private recordHistory() {
-    this.undoStack.push(this.getObjects().map(item => ({ ...item })));
-    if (this.undoStack.length > this.historyLimit) this.undoStack.shift();
-    this.redoStack = [];
-    this.updateHistoryButtons();
-  }
-
-  private updateHistoryButtons() {
-    const undo = document.querySelector<HTMLButtonElement>("#undo-button");
-    const redo = document.querySelector<HTMLButtonElement>("#redo-button");
-    if (undo) undo.disabled = this.undoStack.length === 0;
-    if (redo) redo.disabled = this.redoStack.length === 0;
-  }
-
-  private restoreObjects(snapshot: EditorObject[]) {
-    for (const item of this.objects.values()) item.view.destroy();
-    this.objects.clear();
-    this.selectedId = null;
-    for (const data of snapshot) this.createView({ ...data });
-    this.refreshDepths();
-    this.emitChange();
-    this.updateHistoryButtons();
-  }
-
-  undo() {
-    if (!this.undoStack.length || this.previewing) return;
-    this.redoStack.push(this.getObjects().map(item => ({ ...item })));
-    this.restoreObjects(this.undoStack.pop()!);
-    setStatus("تم التراجع عن آخر تعديل");
-  }
-
-  redo() {
-    if (!this.redoStack.length || this.previewing) return;
-    this.undoStack.push(this.getObjects().map(item => ({ ...item })));
-    this.restoreObjects(this.redoStack.pop()!);
-    setStatus("تمت إعادة التعديل");
-  }
-
-  moveLayer(direction: -1 | 1) {
-    if (!this.selectedId || this.previewing) return;
-    const entries = [...this.objects.entries()];
-    const index = entries.findIndex(([id]) => id === this.selectedId);
-    const next = index + direction;
-    if (index < 0 || next < 0 || next >= entries.length) return;
-    this.recordHistory();
-    [entries[index], entries[next]] = [entries[next], entries[index]];
-    this.objects = new Map(entries);
-    this.refreshDepths();
-    this.emitChange();
-    setStatus(direction === 1 ? "تم تقديم الكائن في الطبقات" : "تم إرجاع الكائن في الطبقات");
-  }
-
-  toggleSelectedLock() {
-    const item = this.selectedId ? this.objects.get(this.selectedId) : undefined;
-    if (!item) return;
-    this.recordHistory();
-    item.data.locked = !item.data.locked;
-    this.emitChange();
-    setStatus(item.data.locked ? "تم قفل الكائن — لن يتحرك بالسحب" : "تم فتح قفل الكائن");
-  }
-
-  setSnapToGrid(enabled: boolean) {
-    this.snapToGrid = enabled;
-    setStatus(enabled ? "محاذاة العناصر إلى شبكة 20 بكسل" : "المحاذاة إلى الشبكة متوقفة");
-  }
-
-  select(id: string | null) {
-    this.selectedId = id;
-    for (const [key, item] of this.objects) {
-      item.view.setScale((item.data.size || 1) * (key === id ? 1.06 : 1));
-      item.view.setAlpha(key === id ? 1 : 0.9);
-    }
-    this.emitChange();
-  }
-
-  deleteSelected() {
-    if (!this.selectedId) return;
-    this.recordHistory();
-    const item = this.objects.get(this.selectedId);
-    if (item) item.view.destroy();
-    this.objects.delete(this.selectedId);
-    this.selectedId = null;
-    this.emitChange();
-  }
-
-  updatePosition(x: number, y: number) {
-    const item = this.selectedId ? this.objects.get(this.selectedId) : undefined;
-    if (!item || item.data.locked || !Number.isFinite(x) || !Number.isFinite(y)) return;
-    const nextX = Phaser.Math.Clamp(Math.round(x), 0, 800);
-    const nextY = Phaser.Math.Clamp(Math.round(y), 0, 450);
-    if (item.data.x === nextX && item.data.y === nextY) return;
-    this.recordHistory();
-    item.data.x = nextX;
-    item.data.y = nextY;
-    item.view.setPosition(item.data.x, item.data.y);
-    this.emitChange();
-  }
-
-  updateProperties(changes: Partial<EditorObject>) {
-    const item = this.selectedId ? this.objects.get(this.selectedId) : undefined;
-    if (!item) return;
-    this.recordHistory();
-    Object.assign(item.data, changes);
-    const wasSelected = this.selectedId === item.data.id;
-    const originalOrder = [...this.objects.keys()];
-    item.view.destroy();
-    this.objects.delete(item.data.id);
-    this.createView(item.data);
-    const refreshed = this.objects.get(item.data.id)!;
-    this.objects = new Map(originalOrder.map(key => [key, key === item.data.id ? refreshed : this.objects.get(key)!]));
-    this.refreshDepths();
-    if (wasSelected) this.select(item.data.id);
-    this.emitChange();
-  }
-
-  save() {
-    try {
-      const payload = { version: 2, title: "ورشة الشرارات - مشروعي", width: 800, height: 450, objects: this.getObjects() };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      setStatus("تم حفظ المشروع على هذا الجهاز");
-    } catch {
-      setStatus("تعذر الحفظ — مساحة التخزين قد تكون ممتلئة");
-    }
-  }
-
-  importProject(raw: unknown): boolean {
-    try {
-      const parsed = (typeof raw === "string" ? JSON.parse(raw) : raw) as { version?: unknown; objects?: unknown };
-      if (!parsed || ![1, 2].includes(Number(parsed.version)) || !Array.isArray(parsed.objects) || parsed.objects.length > 500) {
-        setStatus("ملف المشروع غير صالح أو يتجاوز 500 عنصر");
-        return false;
-      }
-      const allowed: ObjectKind[] = ["hero", "enemy", "crate", "coin", "platform"];
-      const imported: EditorObject[] = [];
-      for (const value of parsed.objects) {
-        if (!value || typeof value !== "object") continue;
-        const item = value as Partial<EditorObject>;
-        if (!allowed.includes(item.kind as ObjectKind)) continue;
-        const number = (candidate: unknown, fallback: number, min: number, max: number) => {
-          const parsedNumber = Number(candidate);
-          return Phaser.Math.Clamp(Number.isFinite(parsedNumber) ? parsedNumber : fallback, min, max);
-        };
-        const color = typeof item.color === "string" && /^#[0-9a-fA-F]{6}$/.test(item.color) ? item.color : "#ffbd59";
-        imported.push({
-          id: `object-${this.nextId++}`,
-          kind: item.kind as ObjectKind,
-          x: number(item.x, 400, 0, 800),
-          y: number(item.y, 225, 0, 450),
-          name: typeof item.name === "string" ? item.name.slice(0, 24) : String(item.kind),
-          health: number(item.health, 100, 1, 1000),
-          speed: number(item.speed, 180, 1, 1000),
-          damage: number(item.damage, 20, 1, 500),
-          size: number(item.size, 1, 0.5, 2.5),
-          color,
-          locked: item.locked === true
-        });
-      }
-      if (parsed.objects.length > 0 && imported.length === 0) {
-        setStatus("لم أجد عناصر معروفة في ملف المشروع");
-        return false;
-      }
-      this.recordHistory();
-      this.restoreObjects(imported);
-      if (imported.length) this.select(imported[0].id);
-      this.save();
-      setStatus(`تم استيراد المشروع — ${imported.length} عنصر`);
-      return true;
-    } catch {
-      setStatus("تعذر استيراد الملف — تأكد أنه JSON صالح");
-      return false;
-    }
-  }
-
-  private loadProject() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as { version?: number; objects?: unknown[] };
-      if (![1, 2].includes(Number(parsed.version)) || !Array.isArray(parsed.objects)) return;
-      for (const item of parsed.objects) {
-        if (!item || typeof item !== "object") continue;
-        const candidate = item as Partial<EditorObject>;
-        if (!["hero", "crate", "enemy", "coin", "platform"].includes(String(candidate.kind))) continue;
-        const data: EditorObject = {
-          id: `object-${this.nextId++}`,
-          kind: candidate.kind as ObjectKind,
-          x: Phaser.Math.Clamp(typeof candidate.x === "number" && Number.isFinite(candidate.x) ? candidate.x : 400, 0, 800),
-          y: Phaser.Math.Clamp(typeof candidate.y === "number" && Number.isFinite(candidate.y) ? candidate.y : 225, 0, 450),
-          name: typeof candidate.name === "string" ? candidate.name.slice(0, 24) : String(candidate.kind),
-          health: Phaser.Math.Clamp(Number(candidate.health) || 100, 1, 1000),
-          speed: Phaser.Math.Clamp(Number(candidate.speed) || 180, 1, 1000),
-          damage: Phaser.Math.Clamp(Number(candidate.damage) || 20, 1, 500),
-          size: Phaser.Math.Clamp(Number(candidate.size) || 1, 0.5, 2.5),
-          color: typeof candidate.color === "string" && /^#[0-9a-fA-F]{6}$/.test(candidate.color) ? candidate.color : "#ffbd59",
-          locked: candidate.locked === true
-        };
-        this.createView(data);
-      }
-    } catch { setStatus("تعذر قراءة الحفظ السابق"); }
-  }
-
-  duplicateSelected() {
-    const source = this.selectedId ? this.objects.get(this.selectedId)?.data : undefined;
-    if (!source) return;
-    this.recordHistory();
-    const copy = { ...source, id: `object-${this.nextId++}`, x: Phaser.Math.Clamp(source.x + 36, 20, 780), y: Phaser.Math.Clamp(source.y + 30, 20, 430), name: `${source.name} نسخة`, locked: false };
-    this.createView(copy); this.select(copy.id); this.emitChange();
-  }
-
-  setTouchDirection(x: number, y: number) { this.touchDirection = { x, y }; }
-
-  setGridVisible(visible: boolean) {
-    if (!this.gridGraphics) return;
-    this.gridGraphics.clear();
-    if (visible) { this.gridGraphics.lineStyle(1, 0x8bb9b0, 0.13); for (let x=0;x<=800;x+=40) this.gridGraphics.lineBetween(x,0,x,450); for (let y=0;y<=450;y+=40) this.gridGraphics.lineBetween(0,y,800,y); }
-  }
-
-  startPreview() {
-    if (this.previewing) return;
-    this.previewSnapshot = this.getObjects().map(item => ({ ...item }));
-    this.previewCoinsTotal = this.previewSnapshot.filter(item => item.kind === "coin").length;
-    this.previewScore = 0;
-    this.previewing = true; this.selectedId = null;
-    for (const item of this.objects.values()) {
-      this.tweens.killTweensOf(item.view);
-      item.view.disableInteractive();
-      item.view.setAlpha(1);
-      item.view.setAngle(0);
-      item.view.setScale(item.data.size || 1);
-    }
-    if (this.input.keyboard) this.previewKeys = this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE") as Record<string, Phaser.Input.Keyboard.Key>;
-    this.attackCooldown = 0;
-    this.enemyAttackCooldown = 0;
-    this.attackRequested = false;
-    document.querySelector("#touch-controls")?.removeAttribute("hidden");
-    document.querySelector("#stage-shell")?.classList.add("is-previewing");
-    this.previewHint = this.add.text(400, 18, "وضع المعاينة  •  حرّك بطلك", { fontFamily: "Tahoma, Arial", fontSize: "14px", fontStyle: "bold", color: "#ffffff", backgroundColor: "#123b3b", padding: {x:15,y:8} }).setOrigin(0.5,0).setDepth(30);
-    this.previewScoreLabel = this.add.text(400, 56, "البلورات: 0 / " + this.previewCoinsTotal, { fontFamily: "Tahoma, Arial", fontSize: "12px", color: "#ffe7a8", backgroundColor: "#3c3020", padding: {x:10,y:5} }).setOrigin(0.5,0).setDepth(30);
-    setStatus("المعاينة تعمل — يمكنك تجربة الحركة وجمع البلورات");
-    document.querySelector("#preview-button")?.setAttribute("hidden", "true");
-    document.querySelector("#stop-preview")?.removeAttribute("hidden");
-    document.querySelector("#stage-hint")!.textContent = "المعاينة نشطة: تحرّك بالأسهم أو WASD، واجمع البلورات. إيقاف المعاينة يعيد المشهد كما كان.";
-    this.emitChange();
-  }
-
-  stopPreview() {
-    if (!this.previewing) return;
-    this.previewing = false;
-    this.attackRequested = false;
-    this.previewHint?.destroy(); this.previewHint = undefined;
-    this.previewScoreLabel?.destroy(); this.previewScoreLabel = undefined;
-    this.touchDirection = { x: 0, y: 0 };
-    document.querySelector("#touch-controls")?.setAttribute("hidden", "true");
-    document.querySelector("#stage-shell")?.classList.remove("is-previewing");
-    if (this.previewSnapshot) {
-      for (const item of this.objects.values()) item.view.destroy();
-      this.objects.clear();
-      for (const data of this.previewSnapshot) this.createView({ ...data });
-      this.previewSnapshot = null;
-    }
-    document.querySelector("#preview-button")?.removeAttribute("hidden");
-    document.querySelector("#stop-preview")?.setAttribute("hidden", "true");
-    document.querySelector("#stage-hint")!.textContent = "اجمع البلورات الأربع، واحذر حارس الوحل. هذه ساحة جاهزة للتعديل واللعب.";
-    setStatus("انتهت المعاينة — تمت استعادة المشهد الأصلي");
-    this.emitChange();
-  }
-
-  update(_time: number, delta: number) {
-    if (!this.previewing) return;
-    const hero = [...this.objects.values()].find(item => item.data.kind === "hero");
-    if (!hero) return;
-    const k = this.previewKeys; const speed = Math.max(60, hero.data.speed) * delta / 1000;
-    this.attackCooldown = Math.max(0, this.attackCooldown - delta);
-    this.enemyAttackCooldown = Math.max(0, this.enemyAttackCooldown - delta);
-    if (Phaser.Input.Keyboard.JustDown(k?.SPACE as Phaser.Input.Keyboard.Key) || this.attackRequested) { this.attackRequested = false; this.performAttack(hero); }
-    let dx = this.touchDirection.x, dy = this.touchDirection.y; if (k?.A.isDown || k?.LEFT.isDown) dx--; if (k?.D.isDown || k?.RIGHT.isDown) dx++; if (k?.W.isDown || k?.UP.isDown) dy--; if (k?.S.isDown || k?.DOWN.isDown) dy++;
-    if (dx || dy) {
-      const length = Math.hypot(dx,dy) || 1;
-      hero.view.x = Phaser.Math.Clamp(hero.view.x + dx/length*speed, 25, 775);
-      hero.view.y = Phaser.Math.Clamp(hero.view.y + dy/length*speed, 25, 425);
-      hero.data.x = Math.round(hero.view.x);
-      hero.data.y = Math.round(hero.view.y);
-      hero.view.setAngle(Phaser.Math.Clamp(dx * 3, -7, 7));
-      hero.view.setScale((hero.data.size || 1) * (1 + Math.sin(_time / 42) * 0.025));
-    } else {
-      hero.view.setAngle(0);
-      hero.view.setScale((hero.data.size || 1) * (1 + Math.sin(_time / 310) * 0.012));
-    }
-    for (const [id, item] of this.objects) {
-      if (item.data.kind === "enemy") {
-        const distance = Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y);
-        if (distance > 42) {
-          const step = Math.min(distance - 42, Math.max(35, item.data.speed) * delta / 1000);
-          const moveX = (hero.view.x - item.view.x) / distance * step;
-          const moveY = (hero.view.y - item.view.y) / distance * step;
-          item.view.x += moveX;
-          item.view.y += moveY;
-          item.view.setAngle(Phaser.Math.Clamp(moveX * 2.5, -8, 8));
-          item.view.setScale((item.data.size || 1) * (1 + Math.sin(_time / 48) * 0.025));
-          item.data.x = Math.round(item.view.x); item.data.y = Math.round(item.view.y);
-        } else if (this.enemyAttackCooldown <= 0) {
-          hero.data.health = Math.max(0, hero.data.health - Math.max(1, item.data.damage));
-          this.enemyAttackCooldown = 850;
-          setStatus(`تلقى بطلك ضربة! الصحة ${hero.data.health}`);
-          if (hero.data.health <= 0) { hero.data.health = 100; hero.view.setPosition(400, 225); hero.data.x = 400; hero.data.y = 225; setStatus("سقط بطلك وعاد إلى الساحة — انتبه لصحتك!"); }
-        }
-      }
-      if (item.data.kind === "coin" && Phaser.Math.Distance.Between(hero.view.x, hero.view.y, item.view.x, item.view.y) < 34) {
-        item.view.destroy();
-        this.objects.delete(id);
-        this.previewScore += 1;
-        this.previewScoreLabel?.setText("البلورات: " + this.previewScore + " / " + this.previewCoinsTotal);
-        const burstX = item.view.x;
-        const burstY = item.view.y;
-        for (let particle = 0; particle < 10; particle++) {
-          const angle = (Math.PI * 2 * particle) / 10;
-          const distance = Phaser.Math.Between(24, 48);
-          const sparkle = this.add.star(burstX, burstY, 4, 2, 7, particle % 2 ? 0xfff3b0 : 0x73fff0).setDepth(35);
-          this.tweens.add({
-            targets: sparkle,
-            x: burstX + Math.cos(angle) * distance,
-            y: burstY + Math.sin(angle) * distance,
-            alpha: 0,
-            scale: 0.15,
-            angle: Phaser.Math.Between(-150, 150),
-            duration: Phaser.Math.Between(260, 430),
-            ease: "Cubic.Out",
-            onComplete: () => sparkle.destroy()
-          });
-        }
-        const ring = this.add.circle(burstX, burstY, 10, 0xffffff, 0).setStrokeStyle(3, 0x9effe9, 0.95).setDepth(34);
-        this.tweens.add({ targets: ring, scale: 3.8, alpha: 0, duration: 380, ease: "Cubic.Out", onComplete: () => ring.destroy() });
-        if (this.previewScore >= this.previewCoinsTotal && this.previewCoinsTotal > 0) {
-          this.previewHint?.setText("أكملت رحلة البلورات! ✦");
-          setStatus("رائع! جمعت كل البلورات الأربع — اكتمل التحدي");
-          this.tweens.add({ targets: hero.view, scale: 1.22, yoyo: true, repeat: 2, duration: 150 });
-        } else {
-          setStatus("أحسنت! جمعت بلورة ✦");
-        }
-        this.emitChange();
-      }
-    }
-  }
-
-  requestAttack() { this.attackRequested = true; }
-
-  private performAttack(hero: { data: EditorObject; view: Phaser.GameObjects.Container }) {
-    if (this.attackCooldown > 0) return;
-    this.attackCooldown = 420;
-    let hit = false;
-    for (const [id, enemy] of this.objects) {
-      if (enemy.data.kind !== "enemy") continue;
-      if (Phaser.Math.Distance.Between(hero.view.x, hero.view.y, enemy.view.x, enemy.view.y) > 92) continue;
-      enemy.data.health = Math.max(0, enemy.data.health - Math.max(1, hero.data.damage));
-      enemy.view.setAlpha(0.55);
-      this.cameras.main.shake(85, 0.0035);
-      const impact = this.add.circle(enemy.view.x, enemy.view.y - 8, 12, 0xfff0b0, 0.75).setDepth(40);
-      this.tweens.add({ targets: impact, scale: 3.1, alpha: 0, duration: 220, ease: "Cubic.Out", onComplete: () => impact.destroy() });
-      this.tweens.add({ targets: enemy.view, x: enemy.view.x + 7, yoyo: true, repeat: 3, duration: 34, onComplete: () => { if (enemy.view.active) enemy.view.setPosition(enemy.data.x, enemy.data.y); } });
-      this.time.delayedCall(110, () => { if (enemy.view.active) enemy.view.setAlpha(1); });
-      hit = true;
-      if (enemy.data.health <= 0) { enemy.view.destroy(); this.objects.delete(id); setStatus("هُزم العدو! ✦"); }
-      else setStatus(`أصبت العدو — صحته ${enemy.data.health}`);
-      break;
-    }
-    if (!hit) setStatus("لا يوجد عدو قريب — اقترب منه ثم هاجم");
-    this.emitChange();
-  }
-
-  getSelected() { return this.selectedId ? this.objects.get(this.selectedId)?.data ?? null : null; }
-  getObjects() { return [...this.objects.values()].map(item => item.data); }
-  private emitChange() {
-    this.game.events.emit("editor-change", this.getObjects(), this.getSelected());
-    if (this.previewing) return;
-    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
-    this.autoSaveTimer = setTimeout(() => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, title: "ورشة الشرارات - مشروعي", width: 800, height: 450, objects: this.getObjects() })); }
-      catch { setStatus("تعذر الحفظ التلقائي — استخدم حفظ المشروع"); }
-    }, 650);
-  }
+function getSparkScriptSource(): string {
+  return document.querySelector<HTMLTextAreaElement>("#spark-script")?.value ?? "";
 }
 
 function setStatus(message: string) {
   const status = document.querySelector<HTMLElement>("#save-state");
-  if (status) status.innerHTML = `<i></i> ${message}`;
+  if (!status) return;
+  const indicator = document.createElement("i");
+  status.replaceChildren(indicator, document.createTextNode(" " + message));
 }
 
-const game = new Phaser.Game({
-  type: Phaser.AUTO, parent: "game-stage", width: 800, height: 450,
-  backgroundColor: "#172d43", scene: [EditorScene],
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  render: { antialias: true, pixelArt: false }
+editorScene = new SparkEditorController({
+  getScriptSource: getSparkScriptSource,
+  setScriptSource: source => {
+    const editor = document.querySelector<HTMLTextAreaElement>("#spark-script");
+    if (editor) editor.value = source;
+  },
+  setStatus
 });
+editorScene.create();
 
 
 
@@ -878,11 +188,120 @@ function runLocalAssistant(raw: string) {
   if (completed) setStatus("المساعد المحلي: " + finalMessage);
 }
 
+function renderAssetCatalog() {
+  const grid = document.querySelector<HTMLDivElement>("#asset-grid");
+  const search = document.querySelector<HTMLInputElement>("#asset-search");
+  const category = document.querySelector<HTMLSelectElement>("#asset-category");
+  if (!grid || !search || !category) return;
+  const query = search.value.trim().toLocaleLowerCase("ar");
+  const selectedCategory = category.value as SparkAssetCategory | "all";
+  const assets = SPARK_ASSETS.filter(asset =>
+    (selectedCategory === "all" || asset.category === selectedCategory) &&
+    (asset.name.toLocaleLowerCase("ar").includes(query) || asset.description.toLocaleLowerCase("ar").includes(query))
+  );
+  grid.replaceChildren();
+  for (const asset of assets) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "asset-card";
+    button.dataset.assetId = asset.id;
+    button.setAttribute("aria-label", "إضافة " + asset.name);
+    const preview = document.createElement("span");
+    preview.className = "asset-preview";
+    preview.textContent = asset.icon;
+    preview.style.setProperty("--asset-color", asset.color);
+    const name = document.createElement("strong");
+    name.textContent = asset.name;
+    const description = document.createElement("small");
+    description.textContent = asset.description;
+    button.append(preview, name, description);
+    grid.append(button);
+  }
+  if (!assets.length) {
+    const empty = document.createElement("p");
+    empty.className = "asset-empty";
+    empty.textContent = "لا توجد عناصر مطابقة لبحثك.";
+    grid.append(empty);
+  }
+}
+
+function renderSceneManager() {
+  const sceneList = document.querySelector<HTMLDivElement>("#scene-tabs");
+  const count = document.querySelector<HTMLElement>("#scene-count");
+  if (!sceneList || !editorScene) return;
+  const scenes = editorScene.getScenes();
+  const activeId = editorScene.getActiveSceneId();
+  sceneList.replaceChildren();
+  for (const scene of scenes) {
+    const tab = document.createElement("button");
+    tab.type = "button";
+    tab.className = "scene-tab" + (scene.id === activeId ? " active" : "");
+    tab.dataset.sceneId = scene.id;
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-selected", String(scene.id === activeId));
+    const name = document.createElement("strong");
+    name.textContent = scene.name;
+    const meta = document.createElement("small");
+    meta.textContent = scene.objects.length + " عنصر";
+    tab.append(name, meta);
+    sceneList.append(tab);
+  }
+  if (count) count.textContent = scenes.length + (scenes.length === 1 ? " مشهد" : " مشاهد");
+}
+
+const ruleTriggerLabels: Record<SparkRuleTrigger, string> = {
+  "game-start": "عند بدء المرحلة", "coin-collected": "عند جمع بلورة", "enemy-defeated": "عند هزيمة عدو",
+  "player-hit": "عند إصابة اللاعب", "score-reached": "عند بلوغ النقاط"
+};
+const ruleActionLabels: Record<SparkRuleAction, string> = {
+  "show-message": "اعرض رسالة", "heal-player": "عالج صحة اللاعب", "set-player-speed": "غيّر سرعة اللاعب",
+  "set-player-damage": "غيّر ضرر اللاعب", "finish-level": "أنه المرحلة"
+};
+function renderRules() {
+  const list = document.querySelector<HTMLDivElement>("#rule-list");
+  const count = document.querySelector<HTMLElement>("#rules-count");
+  if (!list || !editorScene) return;
+  const rules = editorScene.getRules();
+  if (count) count.textContent = rules.length + " / 24 قاعدة";
+  list.replaceChildren();
+  if (!rules.length) {
+    const empty = document.createElement("p");
+    empty.className = "rules-empty";
+    empty.textContent = "لا توجد قواعد بعد. أنشئ أول قاعدة لتغيير طريقة اللعب دون برمجة.";
+    list.append(empty); return;
+  }
+  for (const rule of rules) {
+    const card = document.createElement("article"); card.className = "rule-card";
+    const summary = document.createElement("div"); summary.className = "rule-summary";
+    const trigger = document.createElement("strong"); trigger.textContent = ruleTriggerLabels[rule.trigger];
+    const action = document.createElement("span"); action.textContent = ruleActionLabels[rule.action];
+    const detail = document.createElement("small");
+    detail.textContent = rule.action === "show-message" ? (rule.message ?? "") : rule.action === "finish-level" ? "إنهاء المرحلة" : "القيمة: " + (rule.value ?? 0);
+    summary.append(trigger, action, detail);
+    const remove = document.createElement("button"); remove.type = "button"; remove.className = "remove-rule-button";
+    remove.dataset.ruleDelete = rule.id; remove.textContent = "حذف"; remove.setAttribute("aria-label", "حذف القاعدة: " + trigger.textContent);
+    card.append(summary, remove); list.append(card);
+  }
+}
+function updateRuleFormFields() {
+  const trigger = document.querySelector<HTMLSelectElement>("#rule-trigger")?.value;
+  const action = document.querySelector<HTMLSelectElement>("#rule-action")?.value;
+  const threshold = document.querySelector<HTMLElement>("#rule-threshold-field");
+  const value = document.querySelector<HTMLElement>("#rule-value-field");
+  const message = document.querySelector<HTMLElement>("#rule-message-field");
+  if (threshold) threshold.hidden = trigger !== "score-reached";
+  if (value) value.hidden = !["heal-player", "set-player-speed", "set-player-damage"].includes(action ?? "");
+  if (message) message.hidden = action !== "show-message";
+}
 function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
+  renderSceneManager();
+  renderRules();
+  const backgroundSelect = document.querySelector<HTMLSelectElement>("#background-theme");
+  if (backgroundSelect) backgroundSelect.value = editorScene?.getBackground() ?? "crystal-garden";
   const undo = document.querySelector<HTMLButtonElement>("#undo-button");
   const redo = document.querySelector<HTMLButtonElement>("#redo-button");
-  if (undo) undo.disabled = !editorScene || (editorScene as any).undoStack?.length === 0;
-  if (redo) redo.disabled = !editorScene || (editorScene as any).redoStack?.length === 0;
+  if (undo) undo.disabled = !editorScene?.canUndo();
+  if (redo) redo.disabled = !editorScene?.canRedo();
   const list = document.querySelector<HTMLDivElement>("#object-list")!;
   document.querySelector("#object-count")!.textContent = String(objects.length);
   list.innerHTML = objects.slice().reverse().map(item => `<button class="object-row ${selected?.id === item.id ? "selected" : ""}" data-object-id="${item.id}"><span>${({hero:"●",enemy:"◆",crate:"▧",platform:"▬",coin:"✦"} as Record<ObjectKind,string>)[item.kind]}</span>${({hero:"شخصية لاعب",enemy:"عدو",crate:"صندوق",platform:"منصة",coin:"عملة"} as Record<ObjectKind,string>)[item.kind]}<small>${item.locked ? "🔒 " : ""}${item.id.replace("object-", "#")}</small></button>`).join("") || '<p class="empty-list">لا توجد كائنات بعد. أضف أول كائن من الأدوات.</p>';
@@ -899,6 +318,12 @@ function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
     creature.hidden = selected.kind !== "hero" && selected.kind !== "enemy";
     (document.querySelector<HTMLInputElement>("#creature-size")!).value = String(selected.size);
     (document.querySelector<HTMLInputElement>("#creature-color")!).value = selected.color;
+    const motionSelect = document.querySelector<HTMLSelectElement>("#object-motion");
+    if (motionSelect) motionSelect.value = selected.motion ?? "idle";
+    const aiProperties = document.querySelector<HTMLElement>("#enemy-ai-properties");
+    if (aiProperties) aiProperties.hidden = selected.kind !== "enemy";
+    const aiSelect = document.querySelector<HTMLSelectElement>("#enemy-ai-mode");
+    if (aiSelect) aiSelect.value = selected.aiMode ?? "chase";
     if (selected.kind === "hero" || selected.kind === "enemy") {
       (document.querySelector<HTMLInputElement>("#creature-health")!).value = String(selected.health);
       (document.querySelector<HTMLInputElement>("#creature-speed")!).value = String(selected.speed);
@@ -908,8 +333,8 @@ function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
     if (lockButton) lockButton.textContent = selected.locked ? "فتح القفل 🔓" : "قفل الكائن 🔒";
   }
 }
-game.events.on("editor-change", renderEditor);
-game.events.once("ready", () => { if (editorScene) renderEditor(editorScene.getObjects(), editorScene.getSelected()); });
+const disposeEditorRender = editorScene?.onChange(renderEditor);
+if (editorScene) renderEditor(editorScene.getObjects(), editorScene.getSelected());
 
 
 const assistantForm = document.querySelector<HTMLFormElement>("#assistant-form");
@@ -924,9 +349,75 @@ assistantForm?.addEventListener("submit", event => {
 document.querySelectorAll<HTMLButtonElement>("[data-assistant-command]").forEach(button => {
   button.addEventListener("click", () => runLocalAssistant(button.dataset.assistantCommand ?? ""));
 });
+document.querySelector<HTMLSelectElement>("#rule-trigger")?.addEventListener("change", updateRuleFormFields);
+document.querySelector<HTMLSelectElement>("#rule-action")?.addEventListener("change", updateRuleFormFields);
+updateRuleFormFields();
+document.querySelector<HTMLFormElement>("#rule-form")?.addEventListener("submit", event => {
+  event.preventDefault();
+  const trigger = document.querySelector<HTMLSelectElement>("#rule-trigger")?.value as SparkRuleTrigger | undefined;
+  const action = document.querySelector<HTMLSelectElement>("#rule-action")?.value as SparkRuleAction | undefined;
+  if (!trigger || !action) return;
+  const threshold = Number(document.querySelector<HTMLInputElement>("#rule-threshold")?.value ?? 5);
+  const value = Number(document.querySelector<HTMLInputElement>("#rule-value")?.value ?? 25);
+  const message = document.querySelector<HTMLInputElement>("#rule-message")?.value ?? "";
+  const rule: Omit<SparkGameRule, "id"> = {
+    enabled: true, trigger, action,
+    ...(trigger === "score-reached" ? { threshold } : {}),
+    ...(action === "show-message" ? { message } : {}),
+    ...(["heal-player", "set-player-speed", "set-player-damage"].includes(action) ? { value } : {})
+  };
+  editorScene?.addRule(rule);
+});
+document.querySelector<HTMLDivElement>("#rule-list")?.addEventListener("click", event => {
+  const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-rule-delete]");
+  if (target?.dataset.ruleDelete) editorScene?.removeRule(target.dataset.ruleDelete);
+});
+document.querySelector("#scene-new")?.addEventListener("click", () => {
+  const name = window.prompt("اسم المشهد الجديد", "مشهد جديد");
+  if (name !== null) editorScene?.createScene(name);
+});
+document.querySelector("#scene-duplicate")?.addEventListener("click", () => editorScene?.duplicateScene());
+document.querySelector("#scene-rename")?.addEventListener("click", () => {
+  const current = editorScene?.getScenes().find(scene => scene.id === editorScene.getActiveSceneId());
+  if (!current) return;
+  const name = window.prompt("الاسم الجديد للمشهد", current.name);
+  if (name !== null) editorScene?.renameScene(name);
+});
+document.querySelector("#scene-delete")?.addEventListener("click", () => {
+  if (window.confirm("حذف المشهد الحالي؟ لا يمكن التراجع عن حذف المشهد.")) editorScene?.deleteScene();
+});
+document.querySelector("#scene-tabs")?.addEventListener("click", event => {
+  const target = (event.target as HTMLElement).closest<HTMLElement>("[data-scene-id]");
+  if (target?.dataset.sceneId) editorScene?.switchScene(target.dataset.sceneId);
+});
+document.querySelector<HTMLSelectElement>("#background-theme")?.addEventListener("change", event => editorScene?.setBackground((event.currentTarget as HTMLSelectElement).value as SparkBackgroundKind));
+document.querySelector("#nav-assets")?.addEventListener("click", () => { document.querySelector("#asset-grid")?.scrollIntoView({ behavior: "smooth", block: "center" }); document.querySelector<HTMLInputElement>("#asset-search")?.focus(); });
+document.querySelector<HTMLSelectElement>("#object-motion")?.addEventListener("change", event => {
+  const motion = (event.currentTarget as HTMLSelectElement).value as NonNullable<EditorObject["motion"]>;
+  editorScene?.updateSelectedProperties({ motion });
+  setStatus("تم تطبيق حركة " + (event.currentTarget as HTMLSelectElement).selectedOptions[0]?.textContent);
+});
+document.querySelector<HTMLSelectElement>("#enemy-ai-mode")?.addEventListener("change", event => {
+  const aiMode = (event.currentTarget as HTMLSelectElement).value as NonNullable<EditorObject["aiMode"]>;
+  editorScene?.updateSelectedProperties({ aiMode });
+  setStatus(aiMode === "guard" ? "العدو سيحرس موقعه" : "العدو سيطارد اللاعب");
+});
+document.querySelector("#asset-search")?.addEventListener("input", renderAssetCatalog);
+document.querySelector("#asset-category")?.addEventListener("change", renderAssetCatalog);
+document.querySelector("#asset-grid")?.addEventListener("click", event => {
+  const target = (event.target as HTMLElement).closest<HTMLElement>("[data-asset-id]");
+  const asset = target?.dataset.assetId ? findSparkAsset(target.dataset.assetId) : undefined;
+  if (!asset || !editorScene) return;
+  editorScene.addObject(asset.kind, undefined, undefined, { name: asset.name, color: asset.color, size: asset.size });
+  setStatus("أُضيف " + asset.name + " إلى المشهد — يمكنك تحريكه وتعديل خصائصه");
+});
+renderAssetCatalog();
 document.querySelector("#preset-coins")?.addEventListener("click", () => editorScene?.addPreset("coins"));
 document.querySelector("#preset-barricade")?.addEventListener("click", () => editorScene?.addPreset("barricade"));
 document.querySelector("#preset-rival")?.addEventListener("click", () => editorScene?.addPreset("rival"));
+document.querySelector("#preset-camp")?.addEventListener("click", () => editorScene?.addPreset("camp"));
+document.querySelector("#preset-gate")?.addEventListener("click", () => editorScene?.addPreset("gate"));
+document.querySelector("#preset-crystal-garden")?.addEventListener("click", () => editorScene?.addPreset("crystal-garden"));
 document.querySelector("#add-hero")?.addEventListener("click", () => editorScene?.addObject("hero"));
 document.querySelector("#add-crate")?.addEventListener("click", () => editorScene?.addObject("crate"));
 document.querySelector("#save-button")?.addEventListener("click", () => editorScene?.save());
@@ -942,7 +433,7 @@ document.querySelector<HTMLInputElement>("#import-file")?.addEventListener("chan
   if (!file) return;
   if (file.size > 2_000_000) { setStatus("حجم ملف المشروع أكبر من 2 ميغابايت"); input.value = ""; return; }
   try { editorScene?.importProject(await file.text()); }
-  catch { setStatus("تعذر قراءة الملف المحدد"); }
+  catch { setStatus("تعذر استيراد الملف — تعذر قراءة الملف المحدد"); }
   input.value = "";
 });
 document.addEventListener("keydown", event => {
@@ -961,17 +452,22 @@ document.querySelector("#stop-preview")?.addEventListener("click", () => editorS
 document.querySelector("#grid-toggle")?.addEventListener("click", event => { const button = event.currentTarget as HTMLButtonElement; const visible = button.getAttribute("aria-pressed") !== "true"; button.setAttribute("aria-pressed", String(visible)); button.textContent = visible ? "شبكة ✓" : "شبكة"; editorScene?.setGridVisible(visible); });
 document.querySelector("#snap-toggle")?.addEventListener("click", event => { const button = event.currentTarget as HTMLButtonElement; const enabled = button.getAttribute("aria-pressed") !== "true"; button.setAttribute("aria-pressed", String(enabled)); button.textContent = enabled ? "محاذاة ✓" : "محاذاة"; editorScene?.setSnapToGrid(enabled); });
 document.querySelector("#reset-view")?.addEventListener("click", () => { const canvas = document.querySelector<HTMLCanvasElement>("#game-stage canvas"); if (canvas) canvas.scrollIntoView({ behavior: "smooth", block: "center" }); });
-document.querySelector("#export-button")?.addEventListener("click", () => { const payload = { version: 2, title: "ورشة الشرارات - مشروعي", width: 800, height: 450, objects: editorScene?.getObjects() ?? [] }; const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "spark-workshop-project.json"; link.click(); URL.revokeObjectURL(url); setStatus("تم تصدير ملف المشروع"); });
+document.querySelector("#export-button")?.addEventListener("click", () => { const payload = editorScene?.getProjectDocument() ?? createSparkProjectDocument([], getSparkScriptSource()); const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "spark-workshop-project.json"; link.click(); URL.revokeObjectURL(url); setStatus("تم تصدير ملف المشروع"); });
+document.querySelector("#run-script")?.addEventListener("click", () => {
+  const result = editorScene?.applySparkScript(getSparkScriptSource());
+  if (!result) setStatus("تعذر الوصول إلى محرر المشهد");
+});
+document.querySelector("#reset-script")?.addEventListener("click", () => {
+  const editor = document.querySelector<HTMLTextAreaElement>("#spark-script");
+  if (editor) editor.value = DEFAULT_SPARK_SCRIPT;
+  editorScene?.save();
+  const output = document.querySelector<HTMLElement>("#script-output");
+  if (output) output.textContent = "تمت استعادة المثال الجاهز";
+});
+document.querySelector("#spark-script")?.addEventListener("change", () => editorScene?.save());
 document.querySelector("#add-enemy")?.addEventListener("click", () => editorScene?.addObject("enemy"));
 document.querySelector("#add-platform")?.addEventListener("click", () => editorScene?.addObject("platform"));
 document.querySelector("#add-coin")?.addEventListener("click", () => editorScene?.addObject("coin"));
-const touchVectors: Record<string, {x:number;y:number}> = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
-document.querySelector("#touch-attack")?.addEventListener("pointerdown", event => { event.preventDefault(); editorScene?.requestAttack(); });
-document.querySelectorAll<HTMLButtonElement>("#touch-controls button[data-dir]").forEach(button => {
-  const start = (event: Event) => { event.preventDefault(); const direction = touchVectors[button.dataset.dir ?? ""]; if (direction) editorScene?.setTouchDirection(direction.x, direction.y); };
-  const stop = () => editorScene?.setTouchDirection(0, 0);
-  button.addEventListener("pointerdown", start); button.addEventListener("pointerup", stop); button.addEventListener("pointerleave", stop); button.addEventListener("pointercancel", stop);
-});
 document.querySelector("#object-list")?.addEventListener("click", event => {
   const target = (event.target as HTMLElement).closest<HTMLElement>("[data-object-id]");
   if (target) editorScene?.select(target.dataset.objectId ?? null);
@@ -981,7 +477,7 @@ for (const prop of ["health", "speed", "damage", "size"] as const) {
   document.querySelector<HTMLInputElement>(`#creature-${prop}`)?.addEventListener("change", event => {
     const input = event.currentTarget as HTMLInputElement;
     const limits = prop === "size" ? [0.5, 2.5] : prop === "damage" ? [1, 500] : [1, 1000];
-    const value = Phaser.Math.Clamp(Number(input.value) || limits[0], limits[0], limits[1]);
+    const value = clampNumber(Number(input.value) || limits[0], limits[0], limits[1]);
     input.value = String(value);
     if (prop === "size" || editorScene?.getSelected()?.kind === "hero" || editorScene?.getSelected()?.kind === "enemy") editorScene?.updateProperties({ [prop]: value });
   });
@@ -995,4 +491,4 @@ for (const axis of ["x", "y"] as const) {
     editorScene?.updatePosition(axis === "x" ? Number(input.value) : selected.x, axis === "y" ? Number(input.value) : selected.y);
   });
 }
-window.addEventListener("beforeunload", () => game.destroy(true));
+window.addEventListener("beforeunload", () => { disposeEditorRender?.(); editorScene?.destroy(); }, { once: true });

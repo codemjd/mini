@@ -1,0 +1,61 @@
+export type SparkObjectKind = "hero" | "enemy" | "coin" | "crate" | "platform";
+
+export type SparkBehavior =
+  | { type: "player-control"; speed: number }
+  | { type: "follow-target"; speed: number; stopDistance: number }
+  | { type: "collectible"; value: number }
+  | { type: "health"; maximum: number }
+  | { type: "melee"; damage: number; range: number; cooldownMs: number };
+
+export type SparkMotionKind = "idle" | "float" | "pulse" | "bounce" | "wobble";
+export type SparkEnemyAiMode = "chase" | "guard";
+export type SparkSceneBackground = "crystal-garden" | "sunset-ruins" | "frost-cavern" | "desert-dunes";
+export type SparkRuleTrigger = "game-start" | "coin-collected" | "enemy-defeated" | "player-hit" | "score-reached";
+export type SparkRuleAction = "show-message" | "heal-player" | "set-player-speed" | "set-player-damage" | "finish-level";
+export interface SparkGameRule { id: string; enabled: boolean; trigger: SparkRuleTrigger; action: SparkRuleAction; threshold?: number; value?: number; message?: string; }
+
+export interface SparkObjectDefinition {
+  id: string;
+  name: string;
+  kind: SparkObjectKind;
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  health: number;
+  speed: number;
+  damage: number;
+  motion?: SparkMotionKind;
+  aiMode?: SparkEnemyAiMode;
+  behaviors: SparkBehavior[];
+}
+
+export interface SparkSceneDefinition {
+  schemaVersion: 1;
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  background: SparkSceneBackground;
+  objects: SparkObjectDefinition[];
+  rules: SparkGameRule[];
+}
+
+export interface SparkInputState { x: number; y: number; }
+
+export interface RuntimeActor extends SparkObjectDefinition {
+  alive: boolean;
+  maximumHealth: number;
+  rotation: number;
+  animationTime: number;
+  attackCooldownMs: number;
+  hitFlashMs: number;
+}
+
+export interface RuntimeEvent {
+  type: "status" | "score" | "complete";
+  message: string;
+  score?: number;
+  total?: number;
+  signal?: SparkRuleTrigger;
+}

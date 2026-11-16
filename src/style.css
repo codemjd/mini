@@ -18,7 +18,7 @@ button{font:inherit}
 .editor{padding:34px clamp(18px,4vw,58px) 45px;min-width:0}.editor-heading{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:25px}.eyebrow{font-size:10px;color:#eeb76b;font-weight:700}.editor-heading h1{font-size:25px;margin:3px 0 0;font-weight:800}.editor-heading p{font-size:11px;color:#91a4b8;margin:3px 0 0}.version-tag{font-size:10px;color:#9eb0c2;border:1px solid #344456;padding:6px 10px;border-radius:20px}
 .stage-toolbar{display:flex;justify-content:space-between;align-items:center;padding:12px 15px;background:#172536;border:1px solid #304156;border-bottom:0;border-radius:12px 12px 0 0;font-size:11px;color:#d4dfeb}.stage-toolbar b{color:#687e93;margin:0 5px}.stage-size{color:#8fa4b9;font:10px Arial,sans-serif}
 .stage-shell{border:1px solid #304156;border-radius:0 0 12px 12px;background:#0b111b;padding:12px;box-shadow:0 18px 50px #0004}
-#game-stage{width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:7px;background:#172d43}#game-stage canvas{display:block;width:100%!important;height:100%!important;object-fit:contain}
+#game-stage{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:7px;background:#172d43}#game-stage canvas{display:block;width:100%!important;height:100%!important;object-fit:contain}
 .hint-row{font-size:10px;color:#8fa4b9;margin:13px 3px}.hint-row span{color:#f6bd69;margin-left:5px}
 .welcome-panel{display:flex;gap:14px;align-items:flex-start;margin-top:26px;padding:17px;border:1px solid #304156;border-radius:12px;background:linear-gradient(110deg,#1b2b3b,#172333)}.welcome-icon{width:38px;height:38px;flex:none;border-radius:11px;display:grid;place-items:center;background:#3a3b36;color:#ffd080;font-size:24px}.welcome-panel strong{font-size:12px}.welcome-panel p{font-size:10px;line-height:1.9;color:#a0b2c5;margin:5px 0 0}
 footer{height:40px;border-top:1px solid #253244;display:flex;justify-content:space-between;align-items:center;padding:0 4.5%;font-size:9px;color:#74889d}
@@ -77,10 +77,7 @@ footer{height:40px;border-top:1px solid #253244;display:flex;justify-content:spa
 .inspector-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
 .secondary-button{padding:8px;border:1px solid #486078;border-radius:8px;background:#26394c;color:#c9d8e7;font:10px "Cairo",Tahoma,sans-serif;cursor:pointer}
 .inspector-actions .danger-button{margin:0}
-.touch-controls{display:flex;flex-direction:column;align-items:center;gap:5px;margin:12px auto 0;touch-action:none;user-select:none}
-.touch-controls>div{display:flex;gap:6px}
-.touch-controls button{width:45px;height:42px;border:1px solid #6c879b;border-radius:11px;background:#1b3549;color:#e6f6ff;font-size:16px;box-shadow:0 4px 12px #0005;touch-action:none}
-.touch-controls button:active{background:#397b78}
+.touch-controls{display:flex;justify-content:center;align-items:center;min-height:34px;margin:9px auto 0;padding:6px 10px;border:1px solid #304b60;border-radius:12px;background:#14283a;color:#9fc8c0;font-size:10px;pointer-events:none;user-select:none}
 [hidden]{display:none!important}
 @media(max-width:720px){.top-actions{gap:5px}.preview-btn,.stop-preview-btn,.export-btn{font-size:9px;padding:8px 7px}.primary-btn{padding:8px 9px}.stage-tools{gap:4px}.mini-tool{padding:4px 6px;font-size:9px}.stage-size{display:none}}
 @media(max-width:420px){.export-btn{display:block;font-size:8px;padding:6px 5px}.brand{gap:7px}.brand-mark{width:30px;height:30px}.brand strong{font-size:11px}}
@@ -355,3 +352,127 @@ button:disabled{cursor:not-allowed}
   .assistant-examples{display:grid;grid-template-columns:1fr 1fr}
   .command-chip{width:100%}
 }
+
+/* Spark Engine preview canvas — layered above the editor canvas only while playing. */
+#game-stage canvas.spark-preview-canvas{position:absolute!important;inset:0;z-index:4;touch-action:none}
+
+
+/* Optional professional scripting area — secondary to visual editing. */
+.code-workbench{margin-top:20px;padding:16px;border:1px solid #46546a;border-radius:15px;background:linear-gradient(145deg,#182536,#151f2e);box-shadow:0 14px 38px #0002}
+.code-workbench-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.code-workbench-heading h2{font-size:14px;margin:3px 0 2px;color:#eaf1f8}
+.code-workbench-heading p{font-size:10px;color:#91a4b8;margin:0;line-height:1.8}
+.code-safety{flex:none;padding:6px 9px;border:1px solid #4f6d62;border-radius:20px;background:#18392f;color:#b9e7d0;font-size:9px}
+.spark-script-editor{display:block;width:100%;min-height:142px;resize:vertical;direction:ltr;text-align:left;border:1px solid #354b61;border-radius:10px;padding:13px;background:#0b1420;color:#d8e8f5;font:12px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;outline:none}
+.spark-script-editor:focus{border-color:#83b4d0;box-shadow:0 0 0 3px #83b4d01c}
+.code-workbench-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px}
+.run-script-button,.reset-script-button{border:1px solid #45627a;border-radius:9px;padding:8px 12px;cursor:pointer;font-size:10px;font-weight:700}
+.run-script-button{background:#c8e4f1;color:#142b3c;border-color:#a9d2e5}
+.reset-script-button{background:#24364a;color:#d5e2ef}
+#script-output{font-size:10px;color:#a8c4d5;min-width:140px;flex:1}
+.code-workbench-footnote{font-size:9px;line-height:1.8;color:#8297ab;margin:10px 2px 0}
+@media(max-width:650px){.code-workbench{padding:12px}.code-workbench-heading{flex-direction:column}.spark-script-editor{min-height:126px;font-size:11px}.code-workbench-actions{align-items:stretch}.run-script-button,.reset-script-button{flex:1}}
+
+/* Native Spark editor renderer; touch coordinates are handled by the canvas adapter. */
+#game-stage canvas.spark-editor-canvas{display:block;width:100%!important;height:100%!important;object-fit:fill;touch-action:none;user-select:none;-webkit-user-select:none}
+
+
+/* Spark Workshop 0.8 — multi-scene project workspace */
+.scene-manager{
+  margin:0 0 14px;
+  padding:13px;
+  border:1px solid #3d625d;
+  border-radius:13px;
+  background:linear-gradient(135deg,#1b3839,#172c36);
+  box-shadow:0 12px 30px #0002;
+}
+.scene-manager-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.scene-manager-heading strong,.scene-manager-heading small{display:block}
+.scene-manager-heading strong{font-size:12px;color:#f1f7f2}
+.scene-manager-heading small{margin-top:3px;font-size:9px;color:#94b4a9}
+.scene-manager-actions{display:flex;gap:6px;flex-wrap:wrap}
+.scene-manager-actions button{
+  border:1px solid #486d67;border-radius:8px;padding:6px 9px;
+  background:#203f40;color:#d8eee4;font:700 9px "Cairo",Tahoma,sans-serif;cursor:pointer
+}
+.scene-manager-actions button:first-child{background:#d9ad68;border-color:#f0ca8c;color:#35291b}
+.scene-manager-actions button:last-child{border-color:#79515a;background:#412e37;color:#ffc7c7}
+.scene-manager-actions button:hover{filter:brightness(1.14)}
+.scene-tabs{display:flex;gap:7px;overflow-x:auto;padding:12px 1px 5px;scrollbar-width:thin}
+.scene-tab{
+  flex:0 0 auto;min-width:112px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  padding:9px 12px;border:1px solid #3b5b5b;border-radius:9px;background:#142a32;color:#bfd3ca;
+  text-align:right;cursor:pointer
+}
+.scene-tab strong{font-size:10px;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scene-tab small{font-size:8px;color:#89a69f}
+.scene-tab.active{border-color:#e5bb77;background:linear-gradient(135deg,#38564c,#263e40);color:#ffdfa5;box-shadow:0 0 0 1px #e5bb7722}
+.scene-tab:focus-visible,.scene-manager-actions button:focus-visible{outline:2px solid #f5ce88;outline-offset:2px}
+.scene-manager-foot{display:flex;justify-content:space-between;gap:8px;color:#789891;font-size:8px}
+@media(max-width:650px){
+ .scene-manager{padding:10px;margin-bottom:10px}
+ .scene-manager-heading{align-items:flex-start;flex-direction:column;gap:8px}
+ .scene-manager-actions{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+ .scene-manager-actions button{padding:7px 3px;font-size:8px}
+ .scene-tab{min-width:100px;padding:8px 10px}
+ .scene-manager-foot{font-size:7px}
+}
+
+
+/* Built-in vector asset catalogue */
+.vector-assets{border-top:1px solid #344456;padding-top:14px;margin-top:10px}
+.asset-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.asset-heading h2{margin:0}
+.asset-count{font-size:10px;color:#8fa9ae;white-space:nowrap}
+.asset-search-label{display:block;margin:10px 0 5px;color:#a9c0c1;font-size:11px}
+.asset-search,.asset-category{width:100%;min-height:36px;border:1px solid #36535c;border-radius:9px;background:#10252d;color:#eef8f4;padding:7px 10px;font:inherit;font-size:12px}
+.asset-category{margin-top:7px}
+.asset-search:focus,.asset-category:focus{outline:2px solid #82dfc0;outline-offset:2px}
+.asset-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px}
+.asset-card{min-width:0;min-height:93px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:8px;border:1px solid #344d57;border-radius:10px;background:linear-gradient(145deg,#1c3942,#142c34);color:#edf5f3;text-align:right;cursor:pointer}
+.asset-card:hover{border-color:#82dfc0;background:#21434b}
+.asset-card:active{transform:translateY(1px)}
+.asset-preview{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:color-mix(in srgb,var(--asset-color) 22%,#173039);color:var(--asset-color);font-size:21px;text-shadow:0 2px 10px var(--asset-color)}
+.asset-card strong{font-size:11px;line-height:1.4}
+.asset-card small{font-size:9px;line-height:1.5;color:#9db5b7}
+.asset-note,.asset-empty{margin:8px 0 0;color:#8ea8aa;font-size:10px;line-height:1.7}
+.asset-empty{grid-column:1/-1;text-align:center;padding:8px}
+@media(max-width:720px){.vector-assets{grid-column:1/-1;border-top:1px solid #344456;margin-top:3px;padding-top:12px}.asset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.asset-card{min-height:88px;padding:6px}.asset-card strong{font-size:9px}.asset-card small{font-size:8px}}
+@media(max-width:380px){.asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Motion and AI inspector controls */
+#motion-properties,#enemy-ai-properties{margin-top:13px;padding:11px;border:1px solid #344d57;border-radius:10px;background:#112932}
+#motion-properties label,#enemy-ai-properties label{display:grid;gap:5px;margin-top:9px;color:#b8cdca;font-size:11px}
+#object-motion,#enemy-ai-mode{width:100%;min-height:36px;border:1px solid #3b5a61;border-radius:8px;background:#0e222a;color:#eff8f3;padding:6px 9px;font:inherit;font-size:12px}
+#object-motion:focus,#enemy-ai-mode:focus{outline:2px solid #82dfc0;outline-offset:2px}
+.field-help{margin:7px 0 0;color:#91aaad;font-size:10px;line-height:1.65}
+
+
+/* Per-scene background selection */
+.background-picker{display:inline-flex;align-items:center;gap:6px;color:#9fb9b7;font-size:10px;white-space:nowrap}
+.background-picker select{max-width:132px;min-height:29px;padding:4px 7px;border:1px solid #3a5961;border-radius:7px;background:#10252d;color:#e9f4ef;font:inherit;font-size:10px}
+.background-picker select:focus{outline:2px solid #82dfc0;outline-offset:2px}
+@media(max-width:720px){.background-picker{font-size:9px}.background-picker select{max-width:118px;font-size:9px}}
+
+
+/* 0.10 — mobile-first no-code event and action rules */
+.rules-workbench{margin-top:20px;padding:16px;border:1px solid #446b62;border-radius:15px;background:linear-gradient(145deg,#1b3838,#172d36);box-shadow:0 14px 38px #0002}
+.rules-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px}
+.rules-heading h2{font-size:15px;margin:3px 0;color:#edf7f1}
+.rules-heading p{margin:0;color:#9db9b0;font-size:10px;line-height:1.8}
+.rules-limit{flex:none;padding:5px 9px;border:1px solid #4d7668;border-radius:20px;color:#bce8d2;font-size:9px}
+.rules-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end}
+.rules-form label{display:grid;gap:5px;color:#b9cec5;font-size:10px}
+.rules-form select,.rules-form input{width:100%;min-height:38px;border:1px solid #3c5e5c;border-radius:8px;background:#10252d;color:#eef8f3;padding:7px 9px;font:inherit;font-size:12px}
+.rules-form select:focus,.rules-form input:focus{outline:2px solid #82dfc0;outline-offset:2px}
+.add-rule-button{min-height:38px;border:1px solid #92caaa;border-radius:9px;background:linear-gradient(135deg,#bde7c9,#87c6a4);color:#15372d;font:800 11px "Cairo",Tahoma,sans-serif;cursor:pointer}
+.rule-list{display:grid;gap:7px;margin-top:12px}
+.rules-empty{margin:0;padding:12px;border:1px dashed #46665f;border-radius:9px;color:#91aca4;font-size:10px;text-align:center}
+.rule-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid #385c56;border-radius:10px;background:#142b32}
+.rule-summary{display:grid;gap:2px;min-width:0}
+.rule-summary strong{font-size:10px;color:#f2d39b}
+.rule-summary span{font-size:10px;color:#c4ddd0}
+.rule-summary small{font-size:9px;color:#90aaa1;overflow-wrap:anywhere}
+.remove-rule-button{flex:none;min-width:50px;min-height:32px;border:1px solid #79515a;border-radius:8px;background:#412e37;color:#ffc7c7;font:10px "Cairo",Tahoma,sans-serif;cursor:pointer}
+@media(max-width:650px){.rules-workbench{padding:12px}.rules-heading{flex-direction:column;gap:6px}.rules-form{grid-template-columns:1fr}.add-rule-button{width:100%}}

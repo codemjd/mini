@@ -10,9 +10,10 @@ test("workshop renders the current six-object starter scene", async ({ page }) =
   const pageErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
 
-  await expect(page).toHaveTitle("ورشة الشرارات Mini");
+  await expect(page).toHaveTitle("ورشة الشرارات Mini — رحلة البلورات");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.getByRole("heading", { name: "محرر المشهد" })).toBeVisible();
+  await expect(page.locator("#game-stage canvas.spark-editor-canvas")).toHaveCount(1);
   await expect(page.locator("#game-stage canvas")).toHaveCount(1);
   await expect(page.locator("#object-list .object-row")).toHaveCount(6);
   await expect(page.locator("#object-count")).toHaveText("6");
@@ -46,10 +47,112 @@ test("preview starts, exposes touch controls, and restores the editor", async ({
   await page.locator("#preview-button").click();
   await expect(page.locator("#stop-preview")).toBeVisible();
   await expect(page.locator("#touch-controls")).toBeVisible();
+  await expect(page.locator("#game-stage canvas.spark-preview-canvas")).toHaveCount(1);
+  await expect(page.locator("#game-stage")).toHaveAttribute("data-spark-input", "melonjs-gamepad-plugin");
+  await expect(page.locator("#touch-controls")).toContainText("melonJS");
 
   await page.locator("#stop-preview").click();
   await expect(page.locator("#preview-button")).toBeVisible();
   await expect(page.locator("#touch-controls")).toBeHidden();
+  await expect(page.locator("#game-stage canvas.spark-preview-canvas")).toHaveCount(0);
+  await expect(page.locator("#game-stage canvas")).toHaveCount(1);
+  await expect(page.locator("#object-count")).toHaveText("6");
+});
+
+test("Spark Script safely edits and persists the scene", async ({ page }) => {
+  await page.locator("#spark-script").fill([
+    'set("hero", "speed", 260);',
+    'spawn("coin", 320, 220);',
+    'note("custom scene ready");'
+  ].join("\n"));
+  await page.locator("#run-script").click();
+  await expect(page.locator("#object-count")).toHaveText("7");
+  await expect(page.locator("#creature-speed")).toHaveValue("260");
+  await expect(page.locator("#script-output")).toContainText("custom scene ready");
+
+  await page.reload();
+  await expect(page.locator("#object-count")).toHaveText("7");
+  await expect(page.locator("#spark-script")).toHaveValue(/spawn\("coin", 320, 220\);/);
+});
+
+test("Spark Script rejects arbitrary JavaScript atomically", async ({ page }) => {
+  await page.locator("#spark-script").fill('window.alert("not allowed");');
+  await page.locator("#run-script").click();
+  await expect(page.locator("#object-count")).toHaveText("6");
+  await expect(page.locator("#script-output")).toContainText("خطأ:");
+  await expect(page.locator("#spark-script")).toBeVisible();
+});
+
+
+
+test("canvas pointer editing moves objects and undo restores the prior position", async ({ page }) => {
+  await page.locator("#snap-toggle").click();
+  const canvas = page.locator("#game-stage canvas.spark-editor-canvas");
+  const rect = await canvas.boundingBox();
+  expect(rect).not.toBeNull();
+  const start = { x: rect.x + 122 * rect.width / 800, y: rect.y + 223 * rect.height / 450 };
+  const end = { x: rect.x + 204 * rect.width / 800, y: rect.y + 246 * rect.height / 450 };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator("#position-x")).toHaveValue("204");
+  await expect(page.locator("#position-y")).toHaveValue("246");
+  await page.locator("#undo-button").click();
+  await expect(page.locator("#position-x")).toHaveValue("122");
+  await expect(page.locator("#position-y")).toHaveValue("223");
+});
+
+test("legacy v2 local projects migrate to schema v5 without losing objects or script", async ({ page }) => {
+  const legacyProject = {
+    version: 2,
+    title: "Old project",
+    width: 800,
+    height: 450,
+    objects: [{
+      id: "saved-hero",
+      kind: "hero",
+      x: 210,
+      y: 190,
+      name: "Legacy hero",
+      health: 120,
+      speed: 240,
+      damage: 30,
+      size: 1,
+      color: "#55aaff"
+    }],
+    scriptSource: 'note("migrated");'
+  };
+  await page.goto("about:blank");
+  await page.addInitScript(project => {
+    localStorage.clear();
+    localStorage.setItem("spark-workshop-mini-project-v2", JSON.stringify(project));
+  }, legacyProject);
+  await page.goto("/");
+  await expect(page.locator("#object-count")).toHaveText("1");
+  await expect(page.locator("#object-name")).toHaveValue("Legacy hero");
+  await expect(page.locator("#spark-script")).toHaveValue('note("migrated");');
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "null"));
+  expect(stored.version).toBe(5);
+  expect(stored.objects).toHaveLength(1);
+  expect(stored.scriptSource).toBe('note("migrated");');
+});
+
+test("undo and redo cover script-generated changes", async ({ page }) => {
+  await page.locator("#spark-script").fill('spawn("coin", 310, 210);');
+  await page.locator("#run-script").click();
+  await expect(page.locator("#object-count")).toHaveText("7");
+  await page.locator("#undo-button").click();
+  await expect(page.locator("#object-count")).toHaveText("6");
+  await page.locator("#redo-button").click();
+  await expect(page.locator("#object-count")).toHaveText("7");
+});
+
+test("script error text is rendered as text, never injected as HTML", async ({ page }) => {
+  await page.locator("#spark-script").fill('set("<img src=x onerror=alert(1)>", "health", 5);');
+  await page.locator("#run-script").click();
+  await expect(page.locator("#script-output")).toContainText("خطأ:");
+  await expect(page.locator("#save-state img")).toHaveCount(0);
   await expect(page.locator("#object-count")).toHaveText("6");
 });
 
