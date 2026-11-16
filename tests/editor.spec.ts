@@ -431,6 +431,10 @@ test("component inspector adds, edits, removes, and persists schema-validated co
 
   await page.locator('[data-component-property="maximum"]').fill("240");
   await page.locator('[data-component-property="maximum"]').dispatchEvent("change");
+  await page.locator("#undo-button").click();
+  await expect(page.locator('[data-component-property="maximum"]')).toHaveValue("130");
+  await page.locator("#redo-button").click();
+  await expect(page.locator('[data-component-property="maximum"]')).toHaveValue("240");
   await page.locator("#save-button").click();
   const saved = await page.evaluate(() => {
     const project = JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}");
