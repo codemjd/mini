@@ -499,5 +499,5 @@ button:disabled{cursor:not-allowed}
 @media(max-width:650px){.component-workbench{grid-column:1/-1}.component-card{padding:8px}.component-property{margin:6px 0}}
 
 
-.component-runtime-status{display:block;margin:0 0 7px;font-size:8px;color:#8bd8b5;line-height:1.6}
+.component-runtime-status{display:block;margin:0 0 7px;font-size:8px;line-height:1.6}.component-runtime-status.is-live{color:#8bd8b5}.component-runtime-status.is-partial{color:#e9c27b}.component-runtime-status.is-config-only{color:#91a2b2}
 .component-runtime-status:where(:not(:empty)){overflow-wrap:anywhere}
