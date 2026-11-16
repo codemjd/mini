@@ -53,17 +53,26 @@ export class SparkRuntimeWorld {
 
   constructor(scene: SparkSceneDefinition) {
     this.scene = scene;
-    this.actors = scene.objects.map((object) => ({
+    this.actors = scene.objects.map((object) => {
+      const healthBehavior = object.behaviors.find(behavior => behavior.type === "health");
+      const maximumHealth = healthBehavior?.type === "health" ? healthBehavior.maximum : object.health;
+      return {
       ...object,
+      health: Math.min(object.health, maximumHealth),
       behaviors: [...object.behaviors],
       alive: true,
-      maximumHealth: object.health,
+      maximumHealth,
       rotation: 0,
       animationTime: 0,
       attackCooldownMs: 0,
       hitFlashMs: 0
-    }));
-    this.totalCollectibles = this.actors.filter((actor) => actor.kind === "coin").length;
+    };
+    });
+    this.totalCollectibles = this.actors.reduce((total, actor) => {
+      if (actor.kind !== "coin") return total;
+      const collectible = actor.behaviors.find(behavior => behavior.type === "collectible");
+      return total + (collectible?.type === "collectible" ? collectible.value : 1);
+    }, 0);
     this.pendingEvents.push({ type: "status", message: "بدأت المرحلة", signal: "game-start" });
   }
 
