@@ -207,3 +207,80 @@ test("game-start rules run in the actual melonJS preview", async ({ page }) => {
   await expect(page.locator("#stage-hint")).toContainText("قاعدة البداية تعمل", { timeout: 8000 });
   await page.locator("#stop-preview").click();
 });
+
+
+test("legacy v4 multi-scene saves migrate to v5 without losing scene data", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.removeItem("spark-workshop-mini-project-v5");
+    localStorage.setItem("spark-workshop-mini-project-v4", JSON.stringify({
+      version: 4,
+      title: "مشروع قديم",
+      activeSceneId: "legacy-arena",
+      scenes: [{
+        id: "legacy-arena",
+        name: "ساحة قديمة",
+        background: "sunset-ruins",
+        scriptSource: "note legacy",
+        objects: [{
+          id: "legacy-hero",
+          kind: "hero",
+          x: 120, y: 180,
+          name: "بطلي القديم",
+          health: 125, speed: 210, damage: 28, size: 1.1,
+          color: "#f1b94f",
+          motion: "float"
+        }],
+        rules: []
+      }]
+    }));
+  });
+
+  await page.reload();
+  await expect(page.locator("#scene-count")).toContainText("1");
+  await expect(page.locator("#object-count")).toHaveText("1");
+  await expect(page.locator("#object-name")).toHaveValue("بطلي القديم");
+  await expect(page.locator("#background-theme")).toHaveValue("sunset-ruins");
+
+  const migrated = await page.evaluate(() => ({
+    current: JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}"),
+    old: localStorage.getItem("spark-workshop-mini-project-v4")
+  }));
+  expect(migrated.current.version).toBe(5);
+  expect(migrated.current.title).toBe("مشروع قديم");
+  expect(migrated.current.scenes[0].objects[0].name).toBe("بطلي القديم");
+  expect(migrated.current.scenes[0].scriptSource).toBe("note legacy");
+  expect(migrated.old).toBeNull();
+});
+
+test("legacy v3 single-scene saves migrate to v5 and preserve script and object values", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.removeItem("spark-workshop-mini-project-v5");
+    localStorage.setItem("spark-workshop-mini-project-v3", JSON.stringify({
+      version: 3,
+      title: "مشروع الإصدار الثالث",
+      script: "note from v3",
+      objects: [{
+        id: "v3-hero",
+        kind: "hero",
+        x: 90, y: 140,
+        name: "بطل الإصدار الثالث",
+        health: 115, speed: 190, damage: 24, size: 1,
+        color: "#ffbd59"
+      }]
+    }));
+  });
+
+  await page.reload();
+  await expect(page.locator("#object-count")).toHaveText("1");
+  await expect(page.locator("#object-name")).toHaveValue("بطل الإصدار الثالث");
+
+  const migrated = await page.evaluate(() => ({
+    current: JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}"),
+    old: localStorage.getItem("spark-workshop-mini-project-v3")
+  }));
+  expect(migrated.current.version).toBe(5);
+  expect(migrated.current.scenes).toHaveLength(1);
+  expect(migrated.current.scenes[0].scriptSource).toBe("note from v3");
+  expect(migrated.current.scenes[0].objects[0].health).toBe(115);
+  expect(migrated.old).toBeNull();
+});
