@@ -479,7 +479,7 @@ test("core component settings are translated into audited runtime behaviors", as
         ]
       },
       {
-        id: "enemy-component-test", kind: "enemy", x: 300, y: 120, name: "عدو",
+        id: "enemy-component-test", kind: "enemy", x: 220, y: 120, name: "عدو",
         health: 100, speed: 180, damage: 20, size: 1, color: "#ff6b72",
         components: [
           { id: "enemy-brain", properties: { mode: "guard", speed: 150, detectionRange: 350 } }
@@ -492,10 +492,14 @@ test("core component settings are translated into audited runtime behaviors", as
       }
     ]);
     const world = new SparkRuntimeWorld(scene);
+    world.requestAttack();
+    world.advance(17);
+    const enemyHealthAfterAttack = world.actors.find(actor => actor.kind === "enemy")?.health;
     return {
       scene,
       totalCollectibles: world.totalCollectibles,
       heroHealth: world.actors.find(actor => actor.kind === "hero"),
+      enemyHealthAfterAttack,
     };
   });
   const scene = runtimeData.scene;
@@ -510,4 +514,5 @@ test("core component settings are translated into audited runtime behaviors", as
   expect(runtimeData.totalCollectibles).toBe(7);
   expect(runtimeData.heroHealth.health).toBe(200);
   expect(runtimeData.heroHealth.maximumHealth).toBe(240);
+  expect(runtimeData.enemyHealthAfterAttack).toBe(55);
 });
