@@ -1,5 +1,6 @@
 import type { SparkBehavior, SparkGameRule, SparkObjectDefinition, SparkObjectKind, SparkSceneDefinition, SparkSceneBackground } from "./model";
 import { normalizeSparkRules } from "./rules";
+import type { SparkComponentInstance } from "./component-registry";
 
 export interface LegacyEditorObject {
   id: string;
@@ -14,24 +15,44 @@ export interface LegacyEditorObject {
   color: string;
   motion?: "idle" | "float" | "pulse" | "bounce" | "wobble";
   aiMode?: "chase" | "guard";
+  components?: SparkComponentInstance[];
+}
+
+function componentNumber(item: LegacyEditorObject, componentId: string, key: string, fallback: number): number {
+  const value = item.components?.find(component => component.id === componentId)?.properties[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+function componentString(item: LegacyEditorObject, componentId: string, key: string, fallback: string): string {
+  const value = item.components?.find(component => component.id === componentId)?.properties[key];
+  return typeof value === "string" ? value : fallback;
+}
+function componentEnabled(item: LegacyEditorObject, componentId: string, key: string, fallback: boolean): boolean {
+  const value = item.components?.find(component => component.id === componentId)?.properties[key];
+  return typeof value === "boolean" ? value : fallback;
 }
 
 function behaviorsFor(kind: SparkObjectKind, item: LegacyEditorObject): SparkBehavior[] {
+  const speed = componentNumber(item, "movement", "speed", item.speed);
+  const maximumHealth = componentNumber(item, "health", "maximum", item.health);
+  const damage = componentNumber(item, "combat", "damage", item.damage);
   switch (kind) {
     case "hero":
       return [
-        { type: "player-control", speed: item.speed },
-        { type: "health", maximum: item.health },
-        { type: "melee", damage: item.damage, range: 94, cooldownMs: 420 }
+        ...(componentEnabled(item, "player-input", "enabled", true) ? [{ type: "player-control" as const, speed }] : []),
+        { type: "health", maximum: maximumHealth },
+        { type: "melee", damage, range: componentNumber(item, "combat", "range", 94), cooldownMs: componentNumber(item, "combat", "cooldownMs", 420) }
       ];
-    case "enemy":
+    case "enemy": {
+      const mode = componentString(item, "enemy-brain", "mode", item.aiMode ?? "chase");
+      const enemySpeed = componentNumber(item, "enemy-brain", "speed", speed);
       return [
-        ...(item.aiMode === "guard" ? [] : [{ type: "follow-target" as const, speed: item.speed, stopDistance: 48 }]),
-        { type: "health", maximum: item.health },
-        { type: "melee", damage: item.damage, range: 52, cooldownMs: 850 }
+        ...(mode === "guard" ? [] : [{ type: "follow-target" as const, speed: enemySpeed, stopDistance: 48 }]),
+        { type: "health", maximum: maximumHealth },
+        { type: "melee", damage, range: componentNumber(item, "combat", "range", 52), cooldownMs: componentNumber(item, "combat", "cooldownMs", 850) }
       ];
+    }
     case "coin":
-      return [{ type: "collectible", value: 1 }];
+      return [{ type: "collectible", value: componentNumber(item, "collectible", "value", 1) }];
     case "crate":
     case "platform":
       return [];
@@ -62,8 +83,8 @@ export function createRuntimeSceneFromObjects(objects: LegacyEditorObject[], bac
       health: normalized.health,
       speed: normalized.speed,
       damage: normalized.damage,
-      motion: item.motion ?? "idle",
-      aiMode: item.aiMode ?? "chase",
+      motion: componentString(item, "animation", "motion", item.motion ?? "idle") as SparkObjectDefinition["motion"],
+      aiMode: componentString(item, "enemy-brain", "mode", item.aiMode ?? "chase") as SparkObjectDefinition["aiMode"],
       behaviors: behaviorsFor(item.kind, { ...item, ...normalized })
     };
   });
