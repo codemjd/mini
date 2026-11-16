@@ -134,9 +134,12 @@ export function parseSparkProjectDocument(raw: unknown): SparkProjectParseResult
     if (!value || typeof value !== "object") return { ok: false, error: "ملف المشروع فارغ أو غير صالح" };
     const project = value as {
       version?: unknown; objects?: unknown; scriptSource?: unknown; script?: unknown;
-      title?: unknown; scenes?: unknown; activeSceneId?: unknown;
+      title?: unknown; scenes?: unknown; activeSceneId?: unknown; schemaVersion?: unknown;
     };
     const version = Number(project.version);
+    if (project.schemaVersion !== undefined && project.schemaVersion !== 1) {
+      return { ok: false, error: "إصدار بنية بيانات المشروع غير مدعوم" };
+    }
     if (![1, 2, 3, 4, 5].includes(version)) return { ok: false, error: "إصدار المشروع غير مدعوم" };
 
     let scenes: SparkSceneDocument[] = [];
