@@ -3,6 +3,7 @@ import { SPARK_ASSETS, findSparkAsset, type SparkAssetCategory } from "./editor/
 import { DEFAULT_SPARK_SCRIPT } from "./scripting/spark-script";
 import type { SparkGameRule, SparkRuleTrigger, SparkRuleAction } from "./engine/model";
 import { SparkEditorController, type EditorObject, type ObjectKind } from "./editor/editor-controller";
+import { getSparkComponent, listSparkComponents } from "./engine/component-registry";
 import { resolveLocalCommand, type LocalAssistantAction } from "./local-assistant";
 import "./style.css";
 
@@ -45,7 +46,7 @@ app.innerHTML = `
           <div class="panel-section vector-assets"><div class="asset-heading"><h2>مكتبة العناصر المتجهية</h2><span class="asset-count">12 عنصرًا</span></div><label class="asset-search-label" for="asset-search">ابحث في المكتبة</label><input id="asset-search" class="asset-search" type="search" placeholder="اسم العنصر..." autocomplete="off"><select id="asset-category" class="asset-category" aria-label="تصنيف العناصر"><option value="all">كل التصنيفات</option><option value="characters">الشخصيات</option><option value="enemies">الأعداء</option><option value="environment">البيئة</option><option value="collectibles">المقتنيات</option></select><div id="asset-grid" class="asset-grid" aria-live="polite"></div><p class="asset-note">عناصر متجهية مدمجة تُرسم داخل المحرر ويمكن تعديل لونها وحجمها بعد الإضافة.</p></div>
           <div class="panel-section asset-library"><h2>تركيبات جاهزة</h2><button class="preset-button" id="preset-coins"><span>✦</span><span><strong>مسار البلورات</strong><small>أربع بلورات لامعة</small></span></button><button class="preset-button" id="preset-barricade"><span>▤</span><span><strong>حاجز خشبي</strong><small>منصة وصندوقان</small></span></button><button class="preset-button" id="preset-rival"><span>⚔</span><span><strong>خصم للتحدي</strong><small>عدو بخصائص محسّنة</small></span></button><button class="preset-button" id="preset-camp"><span>⌂</span><span><strong>مخيم المستكشف</strong><small>مؤن وموقد وعناصر ديكور</small></span></button><button class="preset-button" id="preset-gate"><span>▥</span><span><strong>بوابة قديمة</strong><small>مدخل حجري مع ختم</small></span></button><button class="preset-button" id="preset-crystal-garden"><span>✧</span><span><strong>حديقة البلورات</strong><small>مجموعة بلورات بألوان مختلفة</small></span></button></div>
           <div class="panel-section object-manager"><h2>الكائنات في المشهد <span class="muted" id="object-count">0</span></h2><div id="object-list" class="object-list"></div></div>
-          <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>اسم الكائن<input id="object-name" type="text" maxlength="24"></label><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><div id="appearance-properties"><div class="inspector-subtitle">المظهر</div><label>الحجم<input id="creature-size" type="number" min="0.5" max="2.5" step="0.1"></label><label>لون العنصر<input id="creature-color" type="color"></label></div><div id="motion-properties"><div class="inspector-subtitle">التحريك داخل المحرر والمعاينة</div><label>الحركة<select id="object-motion"><option value="idle">ساكنة مع حركة طبيعية</option><option value="float">طفو هادئ</option><option value="pulse">نبض وتوهج بالحجم</option><option value="bounce">قفز متكرر</option><option value="wobble">تمايل جانبي</option></select></label><p class="field-help">تظهر الحركة في المحرر وفي المعاينة القابلة للعب، وتُحفظ مع المشروع.</p></div><div id="enemy-ai-properties" hidden><div class="inspector-subtitle">سلوك العدو</div><label>نمط الذكاء<select id="enemy-ai-mode"><option value="chase">مطاردة اللاعب</option><option value="guard">حراسة الموقع</option></select></label></div><div id="creature-properties"><div class="inspector-subtitle">خصائص الشخصية</div><label>الصحة (HP)<input id="creature-health" type="number" min="1" max="1000"></label><label>السرعة<input id="creature-speed" type="number" min="1" max="1000"></label><label>الضرر<input id="creature-damage" type="number" min="1" max="500"></label></div><div class="inspector-actions inspector-layer-actions"><button class="secondary-button" id="lock-object">قفل الكائن</button><button class="secondary-button" id="bring-forward">للأمام ↑</button><button class="secondary-button" id="send-backward">للخلف ↓</button></div><div class="inspector-actions"><button class="secondary-button" id="duplicate-object">نسخ الكائن</button><button class="danger-button" id="delete-object">حذف الكائن</button></div></div></div>
+          <div class="panel-section inspector"><h2>خصائص الكائن</h2><div id="inspector-empty">حدد كائنًا من الساحة لعرض خصائصه.</div><div id="inspector-content" hidden><strong id="selected-name"></strong><label>اسم الكائن<input id="object-name" type="text" maxlength="24"></label><label>الموقع الأفقي (X)<input id="position-x" type="number" min="0" max="800"></label><label>الموقع العمودي (Y)<input id="position-y" type="number" min="0" max="450"></label><div id="appearance-properties"><div class="inspector-subtitle">المظهر</div><label>الحجم<input id="creature-size" type="number" min="0.5" max="2.5" step="0.1"></label><label>لون العنصر<input id="creature-color" type="color"></label></div><div id="motion-properties"><div class="inspector-subtitle">التحريك داخل المحرر والمعاينة</div><label>الحركة<select id="object-motion"><option value="idle">ساكنة مع حركة طبيعية</option><option value="float">طفو هادئ</option><option value="pulse">نبض وتوهج بالحجم</option><option value="bounce">قفز متكرر</option><option value="wobble">تمايل جانبي</option></select></label><p class="field-help">تظهر الحركة في المحرر وفي المعاينة القابلة للعب، وتُحفظ مع المشروع.</p></div><div id="enemy-ai-properties" hidden><div class="inspector-subtitle">سلوك العدو</div><label>نمط الذكاء<select id="enemy-ai-mode"><option value="chase">مطاردة اللاعب</option><option value="guard">حراسة الموقع</option></select></label></div><div id="creature-properties"><div class="inspector-subtitle">خصائص الشخصية</div><label>الصحة (HP)<input id="creature-health" type="number" min="1" max="1000"></label><label>السرعة<input id="creature-speed" type="number" min="1" max="1000"></label><label>الضرر<input id="creature-damage" type="number" min="1" max="500"></label></div><section class="component-workbench" aria-label="مكوّنات الكائن"><div class="inspector-subtitle">مكوّنات وسلوكيات الكائن</div><p class="field-help">أضف أنظمة جاهزة واضبط بياناتها. بعض الأنظمة ما زالت إعدادات محفوظة ولم تُربط كلها بالتشغيل بعد.</p><div class="component-add-row"><select id="component-picker" aria-label="اختر مكوّنًا لإضافته"></select><button type="button" id="component-add">إضافة</button></div><div id="component-list" class="component-list"></div></section><div class="inspector-actions inspector-layer-actions"><button class="secondary-button" id="lock-object">قفل الكائن</button><button class="secondary-button" id="bring-forward">للأمام ↑</button><button class="secondary-button" id="send-backward">للخلف ↓</button></div><div class="inspector-actions"><button class="secondary-button" id="duplicate-object">نسخ الكائن</button><button class="danger-button" id="delete-object">حذف الكائن</button></div></div></div>
         </aside>
       </div>
       <section class="assistant-panel" aria-label="مساعد الورشة المحلي">
@@ -293,9 +294,97 @@ function updateRuleFormFields() {
   if (value) value.hidden = !["heal-player", "set-player-speed", "set-player-damage"].includes(action ?? "");
   if (message) message.hidden = action !== "show-message";
 }
+function renderComponentWorkbench(selected: EditorObject | null) {
+  const picker = document.querySelector<HTMLSelectElement>("#component-picker");
+  const list = document.querySelector<HTMLDivElement>("#component-list");
+  if (!picker || !list) return;
+  picker.replaceChildren();
+  list.replaceChildren();
+  if (!selected) return;
+  const existing = selected.components ?? [];
+  const available = listSparkComponents(selected.kind).filter(definition =>
+    !definition.unique || !existing.some(component => component.id === definition.id)
+  );
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = available.length ? "اختر مكوّنًا..." : "لا توجد مكوّنات إضافية";
+  picker.append(placeholder);
+  for (const definition of available) {
+    const option = document.createElement("option");
+    option.value = definition.id;
+    option.textContent = definition.label + " — " + definition.description;
+    picker.append(option);
+  }
+  const addButton = document.querySelector<HTMLButtonElement>("#component-add");
+  if (addButton) addButton.disabled = available.length === 0;
+  if (!existing.length) {
+    const empty = document.createElement("p");
+    empty.className = "component-empty";
+    empty.textContent = "لم تضف مكوّنات لهذا الكائن بعد.";
+    list.append(empty);
+    return;
+  }
+  existing.forEach((instance, index) => {
+    const definition = getSparkComponent(instance.id);
+    if (!definition) return;
+    const card = document.createElement("article");
+    card.className = "component-card";
+    const heading = document.createElement("div");
+    heading.className = "component-card-heading";
+    const title = document.createElement("strong");
+    title.textContent = definition.label;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "component-remove";
+    remove.dataset.componentRemove = String(index);
+    remove.textContent = "حذف";
+    heading.append(title, remove);
+    const description = document.createElement("p");
+    description.textContent = definition.description;
+    card.append(heading, description);
+    for (const property of definition.properties) {
+      const label = document.createElement("label");
+      label.className = "component-property";
+      label.textContent = property.label;
+      let control: HTMLInputElement | HTMLSelectElement;
+      if (property.type === "enum") {
+        const select = document.createElement("select");
+        for (const optionValue of property.options ?? []) {
+          const option = document.createElement("option");
+          option.value = optionValue;
+          option.textContent = optionValue;
+          select.append(option);
+        }
+        select.value = String(instance.properties[property.key] ?? property.defaultValue);
+        control = select;
+      } else {
+        const input = document.createElement("input");
+        input.type = property.type === "number" ? "number" : property.type === "boolean" ? "checkbox" : property.type === "color" ? "color" : "text";
+        if (property.type === "number") {
+          if (property.min !== undefined) input.min = String(property.min);
+          if (property.max !== undefined) input.max = String(property.max);
+          if (property.step !== undefined) input.step = String(property.step);
+          input.value = String(instance.properties[property.key] ?? property.defaultValue);
+        } else if (property.type === "boolean") {
+          input.checked = Boolean(instance.properties[property.key] ?? property.defaultValue);
+        } else {
+          input.value = String(instance.properties[property.key] ?? property.defaultValue);
+        }
+        control = input;
+      }
+      control.dataset.componentIndex = String(index);
+      control.dataset.componentProperty = property.key;
+      label.append(control);
+      card.append(label);
+    }
+    list.append(card);
+  });
+}
+
 function renderEditor(objects: EditorObject[], selected: EditorObject | null) {
   renderSceneManager();
   renderRules();
+  renderComponentWorkbench(selected);
   const backgroundSelect = document.querySelector<HTMLSelectElement>("#background-theme");
   if (backgroundSelect) backgroundSelect.value = editorScene?.getBackground() ?? "crystal-garden";
   const undo = document.querySelector<HTMLButtonElement>("#undo-button");
@@ -423,6 +512,26 @@ document.querySelector("#add-crate")?.addEventListener("click", () => editorScen
 document.querySelector("#save-button")?.addEventListener("click", () => editorScene?.save());
 document.querySelector("#undo-button")?.addEventListener("click", () => editorScene?.undo());
 document.querySelector("#redo-button")?.addEventListener("click", () => editorScene?.redo());
+document.querySelector("#component-add")?.addEventListener("click", () => {
+  const componentId = document.querySelector<HTMLSelectElement>("#component-picker")?.value;
+  if (componentId) editorScene?.addSelectedComponent(componentId);
+});
+document.querySelector("#component-list")?.addEventListener("click", event => {
+  const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-component-remove]");
+  const index = Number(target?.dataset.componentRemove);
+  if (Number.isInteger(index)) editorScene?.removeSelectedComponent(index);
+});
+document.querySelector("#component-list")?.addEventListener("change", event => {
+  const control = event.target as HTMLInputElement | HTMLSelectElement;
+  const index = Number(control.dataset.componentIndex);
+  const key = control.dataset.componentProperty;
+  if (!Number.isInteger(index) || !key) return;
+  const type = control instanceof HTMLInputElement && control.type === "checkbox" ? "boolean"
+    : control instanceof HTMLInputElement && control.type === "number" ? "number" : "string";
+  const value = type === "boolean" ? (control as HTMLInputElement).checked
+    : type === "number" ? Number(control.value) : control.value;
+  editorScene?.updateSelectedComponentProperty(index, key, value);
+});
 document.querySelector("#lock-object")?.addEventListener("click", () => editorScene?.toggleSelectedLock());
 document.querySelector("#bring-forward")?.addEventListener("click", () => editorScene?.moveLayer(1));
 document.querySelector("#send-backward")?.addEventListener("click", () => editorScene?.moveLayer(-1));
