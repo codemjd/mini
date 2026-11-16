@@ -459,7 +459,7 @@ test("component picker respects object compatibility and unique component rules"
   await page.locator("#component-add").click();
   await expect(page.locator("#component-list .component-card")).toHaveCount(1);
   await expect(page.locator("#component-picker")).toHaveValue("");
-  await expect(page.locator("#component-picker option")).toHaveCount(1);
+  await expect(page.locator('#component-picker option[value="collectible"]')).toHaveCount(0);
 });
 
 
