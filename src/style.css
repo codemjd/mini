@@ -501,3 +501,16 @@ button:disabled{cursor:not-allowed}
 
 .component-runtime-status{display:block;margin:0 0 7px;font-size:8px;line-height:1.6}.component-runtime-status.is-live{color:#8bd8b5}.component-runtime-status.is-partial{color:#e9c27b}.component-runtime-status.is-config-only{color:#91a2b2}
 .component-runtime-status:where(:not(:empty)){overflow-wrap:anywhere}
+
+
+/* Composable game-rule conditions and activation controls */
+.rule-conditions{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:4px 0 8px;padding:10px;border:1px solid #35565c;border-radius:9px;min-width:0}
+.rule-conditions legend{padding:0 6px;color:#9cc7bd;font-size:10px}
+.rule-conditions label{display:grid;gap:5px;color:#b9cbc4;font-size:9px}
+.rule-conditions input{min-width:0;width:100%;padding:7px;border:1px solid #3a5960;border-radius:7px;background:#10232b;color:#eaf4ef;font:10px "Cairo",Tahoma,sans-serif}
+.rule-card-controls{display:flex;gap:5px;align-items:center}
+.toggle-rule-button,.remove-rule-button{padding:5px 8px;border:1px solid #426b65;border-radius:7px;background:#1d3d3a;color:#c6e8d9;font:700 9px "Cairo",Tahoma,sans-serif;cursor:pointer}
+.remove-rule-button{border-color:#754e4b;background:#402b30;color:#ffc1b8}
+.rule-card.rule-disabled{opacity:.58;border-style:dashed}
+.rule-card.rule-disabled .rule-summary strong:after{content:" · معطلة";font-size:8px;color:#e6b47a}
+@media(max-width:650px){.rule-conditions{grid-template-columns:1fr}}
