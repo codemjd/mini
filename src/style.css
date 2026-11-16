@@ -497,3 +497,7 @@ button:disabled{cursor:not-allowed}
 .component-property input[type=checkbox]{width:18px;height:18px;accent-color:#75c9a7}
 .component-property input[type=color]{height:32px;padding:3px}
 @media(max-width:650px){.component-workbench{grid-column:1/-1}.component-card{padding:8px}.component-property{margin:6px 0}}
+
+
+.component-runtime-status{display:block;margin:0 0 7px;font-size:8px;color:#8bd8b5;line-height:1.6}
+.component-runtime-status:where(:not(:empty)){overflow-wrap:anywhere}
