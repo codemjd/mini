@@ -428,6 +428,7 @@ test("component inspector adds, edits, removes, and persists schema-validated co
   await page.locator("#component-add").click();
   await expect(page.locator("#component-list .component-card")).toHaveCount(1);
   await expect(page.locator("#component-list .component-card")).toContainText("الصحة");
+  await expect(page.locator(".component-runtime-status")).toContainText("يؤثر في معاينة اللعبة");
 
   await page.locator('[data-component-property="maximum"]').fill("240");
   await page.locator('[data-component-property="maximum"]').dispatchEvent("change");
