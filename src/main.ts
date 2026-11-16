@@ -84,6 +84,10 @@ app.innerHTML = `
           <label id="rule-threshold-field" hidden>عدد النقاط المطلوب<input id="rule-threshold" type="number" min="1" max="99999" value="5"></label>
           <label id="rule-value-field" hidden>قيمة الإجراء<input id="rule-value" type="number" min="1" max="1000" value="25"></label>
           <label id="rule-message-field">نص الرسالة<input id="rule-message" type="text" maxlength="120" value="أحسنت! استمر في التقدم"></label>
+          <fieldset class="rule-conditions"><legend>شروط إضافية اختيارية</legend>
+            <label>نفّذ عندما تصبح صحة اللاعب أقل من أو تساوي<input id="rule-player-health" type="number" min="1" max="10000" placeholder="اتركه فارغًا للتجاهل"></label>
+            <label>وعدد الأعداء الأحياء أقل من أو يساوي<input id="rule-enemies-alive" type="number" min="0" max="500" placeholder="اتركه فارغًا للتجاهل"></label>
+          </fieldset>
           <button type="submit" class="add-rule-button">＋ إضافة القاعدة</button>
         </form>
         <div id="rule-list" class="rule-list" aria-live="polite"></div>
@@ -277,11 +281,22 @@ function renderRules() {
     const trigger = document.createElement("strong"); trigger.textContent = ruleTriggerLabels[rule.trigger];
     const action = document.createElement("span"); action.textContent = ruleActionLabels[rule.action];
     const detail = document.createElement("small");
-    detail.textContent = rule.action === "show-message" ? (rule.message ?? "") : rule.action === "finish-level" ? "إنهاء المرحلة" : "القيمة: " + (rule.value ?? 0);
+    const actionDetail = rule.action === "show-message" ? (rule.message ?? "") : rule.action === "finish-level" ? "إنهاء المرحلة" : "القيمة: " + (rule.value ?? 0);
+    const conditionDetails = [
+      rule.conditions?.playerHealthAtMost !== undefined ? "صحة اللاعب ≤ " + rule.conditions.playerHealthAtMost : "",
+      rule.conditions?.aliveEnemiesAtMost !== undefined ? "الأعداء الأحياء ≤ " + rule.conditions.aliveEnemiesAtMost : ""
+    ].filter(Boolean);
+    detail.textContent = actionDetail + (conditionDetails.length ? " · إذا " + conditionDetails.join(" و ") : "");
     summary.append(trigger, action, detail);
+    const controls = document.createElement("div"); controls.className = "rule-card-controls";
+    const toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "toggle-rule-button";
+    toggle.dataset.ruleToggle = rule.id; toggle.textContent = rule.enabled ? "تعطيل" : "تفعيل";
+    toggle.setAttribute("aria-label", (rule.enabled ? "تعطيل" : "تفعيل") + " القاعدة: " + trigger.textContent);
     const remove = document.createElement("button"); remove.type = "button"; remove.className = "remove-rule-button";
     remove.dataset.ruleDelete = rule.id; remove.textContent = "حذف"; remove.setAttribute("aria-label", "حذف القاعدة: " + trigger.textContent);
-    card.append(summary, remove); list.append(card);
+    controls.append(toggle, remove);
+    card.classList.toggle("rule-disabled", !rule.enabled);
+    card.append(summary, controls); list.append(card);
   }
 }
 function updateRuleFormFields() {
@@ -455,17 +470,28 @@ document.querySelector<HTMLFormElement>("#rule-form")?.addEventListener("submit"
   const threshold = Number(document.querySelector<HTMLInputElement>("#rule-threshold")?.value ?? 5);
   const value = Number(document.querySelector<HTMLInputElement>("#rule-value")?.value ?? 25);
   const message = document.querySelector<HTMLInputElement>("#rule-message")?.value ?? "";
+  const healthRaw = document.querySelector<HTMLInputElement>("#rule-player-health")?.value ?? "";
+  const enemiesRaw = document.querySelector<HTMLInputElement>("#rule-enemies-alive")?.value ?? "";
+  const playerHealthAtMost = healthRaw.trim() ? Number(healthRaw) : undefined;
+  const aliveEnemiesAtMost = enemiesRaw.trim() ? Number(enemiesRaw) : undefined;
+  const conditions = {
+    ...(playerHealthAtMost !== undefined ? { playerHealthAtMost } : {}),
+    ...(aliveEnemiesAtMost !== undefined ? { aliveEnemiesAtMost } : {})
+  };
   const rule: Omit<SparkGameRule, "id"> = {
     enabled: true, trigger, action,
     ...(trigger === "score-reached" ? { threshold } : {}),
     ...(action === "show-message" ? { message } : {}),
-    ...(["heal-player", "set-player-speed", "set-player-damage"].includes(action) ? { value } : {})
+    ...(["heal-player", "set-player-speed", "set-player-damage"].includes(action) ? { value } : {}),
+    ...(Object.keys(conditions).length ? { conditions } : {})
   };
   editorScene?.addRule(rule);
 });
 document.querySelector<HTMLDivElement>("#rule-list")?.addEventListener("click", event => {
-  const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-rule-delete]");
-  if (target?.dataset.ruleDelete) editorScene?.removeRule(target.dataset.ruleDelete);
+  const target = (event.target as HTMLElement).closest<HTMLButtonElement>("button");
+  if (!target) return;
+  if (target.dataset.ruleDelete) editorScene?.removeRule(target.dataset.ruleDelete);
+  if (target.dataset.ruleToggle) editorScene?.toggleRule(target.dataset.ruleToggle);
 });
 document.querySelector("#scene-new")?.addEventListener("click", () => {
   const name = window.prompt("اسم المشهد الجديد", "مشهد جديد");
