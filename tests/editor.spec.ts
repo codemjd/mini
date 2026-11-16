@@ -421,7 +421,9 @@ test("project parser rejects unknown normalized schema versions without attempti
 
 test("component inspector adds, edits, removes, and persists schema-validated components", async ({ page }) => {
   await page.locator("#object-list .object-row").filter({ hasText: "شخصية لاعب" }).first().click();
-  await expect(page.locator("#component-picker option")).toContainText(["التحويل", "المظهر", "الحركة"]);
+  await expect(page.locator("#component-picker")).toContainText("التحويل");
+  await expect(page.locator("#component-picker")).toContainText("المظهر");
+  await expect(page.locator("#component-picker")).toContainText("الحركة");
   await page.locator("#component-picker").selectOption("health");
   await page.locator("#component-add").click();
   await expect(page.locator("#component-list .component-card")).toHaveCount(1);
