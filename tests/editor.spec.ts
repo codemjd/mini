@@ -284,3 +284,22 @@ test("legacy v3 single-scene saves migrate to v5 and preserve script and object 
   expect(migrated.current.scenes[0].objects[0].health).toBe(115);
   expect(migrated.old).toBeNull();
 });
+
+
+test("normalized project documents declare a schema version while retaining v5 compatibility", async ({ page }) => {
+  await page.locator("#save-button").click();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}"));
+  expect(saved.version).toBe(5);
+  expect(saved.schemaVersion).toBe(1);
+
+  await page.evaluate(() => {
+    const legacy = JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}");
+    delete legacy.schemaVersion;
+    localStorage.setItem("spark-workshop-mini-project-v5", JSON.stringify(legacy));
+  });
+  await page.reload();
+  await expect(page.locator("#object-count")).toHaveText("6");
+  const normalized = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}"));
+  expect(normalized.version).toBe(5);
+  expect(normalized.schemaVersion).toBe(1);
+});
