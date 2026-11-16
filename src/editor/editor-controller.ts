@@ -249,7 +249,7 @@ export class SparkEditorController {
       return false;
     }
     this.recordHistory();
-    selected.components![index] = validation.value!;
+    selected.components = selected.components!.map((component, componentIndex) => componentIndex === index ? validation.value! : component);
     this.save();
     this.emitChange();
     this.options.setStatus("تم تحديث إعداد " + property.label);
