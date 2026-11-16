@@ -458,7 +458,7 @@ test("component picker respects object compatibility and unique component rules"
 
 
 test("core component settings are translated into audited runtime behaviors", async ({ page }) => {
-  const scene = await page.evaluate(async () => {
+  const runtimeData = await page.evaluate(async () => {
     const adapter = await import("/src/engine/project-adapter.ts");
     const { SparkRuntimeWorld } = await import("/src/engine/world.ts");
     const scene = adapter.createRuntimeSceneFromObjects([
@@ -492,7 +492,7 @@ test("core component settings are translated into audited runtime behaviors", as
       heroHealth: world.actors.find(actor => actor.kind === "hero"),
     };
   });
-  const scene = scene.scene;
+  const scene = runtimeData.scene;
   const hero = scene.objects.find((item: { kind: string }) => item.kind === "hero");
   const enemy = scene.objects.find((item: { kind: string }) => item.kind === "enemy");
   const coin = scene.objects.find((item: { kind: string }) => item.kind === "coin");
@@ -501,7 +501,7 @@ test("core component settings are translated into audited runtime behaviors", as
   expect(hero.behaviors).toContainEqual({ type: "melee", damage: 45, range: 130, cooldownMs: 300 });
   expect(enemy.behaviors.some((behavior: { type: string }) => behavior.type === "follow-target")).toBe(false);
   expect(coin.behaviors).toContainEqual({ type: "collectible", value: 7 });
-  expect(scene.totalCollectibles).toBe(7);
-  expect(scene.heroHealth.health).toBe(200);
-  expect(scene.heroHealth.maximumHealth).toBe(240);
+  expect(runtimeData.totalCollectibles).toBe(7);
+  expect(runtimeData.heroHealth.health).toBe(200);
+  expect(runtimeData.heroHealth.maximumHealth).toBe(240);
 });
