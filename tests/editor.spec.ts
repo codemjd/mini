@@ -517,3 +517,60 @@ test("core component settings are translated into audited runtime behaviors", as
   expect(runtimeData.heroHealth.maximumHealth).toBe(240);
   expect(runtimeData.enemyHealthAfterAttack).toBe(55);
 });
+
+
+test("rules support optional player-health and remaining-enemy conditions with persistent toggles", async ({ page }) => {
+  await page.locator("#rule-trigger").selectOption("player-hit");
+  await page.locator("#rule-action").selectOption("show-message");
+  await page.locator("#rule-message").fill("شرط الصحة تحقق");
+  await page.locator("#rule-player-health").fill("45");
+  await page.locator("#rule-enemies-alive").fill("1");
+  await page.locator("#rule-form button[type=submit]").click();
+  await expect(page.locator("#rule-list .rule-card")).toHaveCount(1);
+  await expect(page.locator("#rule-list")).toContainText("صحة اللاعب ≤ 45");
+  await expect(page.locator("#rule-list")).toContainText("الأعداء الأحياء ≤ 1");
+
+  await page.locator("[data-rule-toggle]").click();
+  await expect(page.locator("#rule-list .rule-card")).toHaveClass(/rule-disabled/);
+  await expect(page.locator("[data-rule-toggle]")).toHaveText("تفعيل");
+  const disabled = await page.evaluate(() => JSON.parse(localStorage.getItem("spark-workshop-mini-project-v5") || "{}"));
+  expect(disabled.scenes[0].rules[0].enabled).toBe(false);
+
+  await page.locator("[data-rule-toggle]").click();
+  await expect(page.locator("#rule-list .rule-card")).not.toHaveClass(/rule-disabled/);
+  await expect(page.locator("[data-rule-toggle]")).toHaveText("تعطيل");
+  await page.reload();
+  await expect(page.locator("#rule-list .rule-card")).toHaveCount(1);
+  await expect(page.locator("#rule-list")).toContainText("شرط الصحة تحقق");
+});
+
+test("runtime rules require every configured condition before executing", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { runSparkRules } = await import("/src/engine/rules.ts");
+    const rules = [{
+      id: "conditional-rule", enabled: true, trigger: "player-hit", action: "show-message",
+      message: "تم استيفاء الشروط",
+      conditions: { playerHealthAtMost: 50, aliveEnemiesAtMost: 1 }
+    }];
+    const hero = {
+      id: "hero", name: "Hero", kind: "hero", x: 0, y: 0, size: 1, color: "#ffffff",
+      health: 70, speed: 100, damage: 10, behaviors: [{ type: "player-control", speed: 100 }],
+      alive: true, maximumHealth: 100, rotation: 0, animationTime: 0, attackCooldownMs: 0, hitFlashMs: 0
+    };
+    const enemyA = { ...hero, id: "enemy-a", kind: "enemy", behaviors: [] };
+    const enemyB = { ...hero, id: "enemy-b", kind: "enemy", behaviors: [] };
+    const output: Array<{ type: string; message: string }> = [];
+    const fired = new Set<string>();
+    runSparkRules(rules, [{ type: "status", message: "hit", signal: "player-hit" }], [hero, enemyA, enemyB], 0, output, fired);
+    const rejectedForHealth = output.length === 0;
+    hero.health = 40;
+    runSparkRules(rules, [{ type: "status", message: "hit", signal: "player-hit" }], [hero, enemyA, enemyB], 0, output, fired);
+    const rejectedForEnemyCount = output.length === 0;
+    enemyB.alive = false;
+    runSparkRules(rules, [{ type: "status", message: "hit", signal: "player-hit" }], [hero, enemyA, enemyB], 0, output, fired);
+    return { rejectedForHealth, rejectedForEnemyCount, messages: output.map(item => item.message) };
+  });
+  expect(result.rejectedForHealth).toBe(true);
+  expect(result.rejectedForEnemyCount).toBe(true);
+  expect(result.messages).toEqual(["تم استيفاء الشروط"]);
+});
