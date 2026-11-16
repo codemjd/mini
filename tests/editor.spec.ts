@@ -455,3 +455,42 @@ test("component picker respects object compatibility and unique component rules"
   await expect(page.locator("#component-picker")).toHaveValue("");
   await expect(page.locator("#component-picker option")).toHaveCount(1);
 });
+
+
+test("core component settings are translated into audited runtime behaviors", async ({ page }) => {
+  const scene = await page.evaluate(async () => {
+    const adapter = await import("/src/engine/project-adapter.ts");
+    return adapter.createRuntimeSceneFromObjects([
+      {
+        id: "hero-component-test", kind: "hero", x: 100, y: 120, name: "بطل",
+        health: 100, speed: 180, damage: 20, size: 1, color: "#ffbd59",
+        components: [
+          { id: "player-input", properties: { enabled: true, scheme: "keyboard" } },
+          { id: "movement", properties: { speed: 320, maxSpeed: 500 } },
+          { id: "health", properties: { maximum: 240, current: 200 } },
+          { id: "combat", properties: { damage: 45, range: 130, cooldownMs: 300 } }
+        ]
+      },
+      {
+        id: "enemy-component-test", kind: "enemy", x: 300, y: 120, name: "عدو",
+        health: 100, speed: 180, damage: 20, size: 1, color: "#ff6b72",
+        components: [
+          { id: "enemy-brain", properties: { mode: "guard", speed: 150, detectionRange: 350 } }
+        ]
+      },
+      {
+        id: "coin-component-test", kind: "coin", x: 400, y: 120, name: "بلورة",
+        health: 100, speed: 180, damage: 20, size: 1, color: "#ffd34e",
+        components: [{ id: "collectible", properties: { value: 7 } }]
+      }
+    ]);
+  });
+  const hero = scene.objects.find((item: { kind: string }) => item.kind === "hero");
+  const enemy = scene.objects.find((item: { kind: string }) => item.kind === "enemy");
+  const coin = scene.objects.find((item: { kind: string }) => item.kind === "coin");
+  expect(hero.behaviors).toContainEqual({ type: "player-control", speed: 320 });
+  expect(hero.behaviors).toContainEqual({ type: "health", maximum: 240 });
+  expect(hero.behaviors).toContainEqual({ type: "melee", damage: 45, range: 130, cooldownMs: 300 });
+  expect(enemy.behaviors.some((behavior: { type: string }) => behavior.type === "follow-target")).toBe(false);
+  expect(coin.behaviors).toContainEqual({ type: "collectible", value: 7 });
+});
