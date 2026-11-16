@@ -1,5 +1,5 @@
 import type { SparkGameRule } from "../engine/model";
-import { validateSparkComponent, type SparkComponentInstance } from "../engine/component-registry";
+import { getSparkComponent, validateSparkComponent, type SparkComponentInstance } from "../engine/component-registry";
 import { normalizeSparkRules } from "../engine/rules";
 
 export type SparkEditorObjectKind = "hero" | "enemy" | "crate" | "coin" | "platform";
@@ -91,7 +91,8 @@ function parseObjects(raw: unknown): SparkEditorObject[] | null {
         const candidateComponent = rawComponent as { id?: unknown };
         const componentId = typeof candidateComponent?.id === "string" ? candidateComponent.id : "";
         const definition = validateSparkComponent(item.kind as SparkEditorObjectKind, rawComponent);
-        if (!definition.ok || componentIds.has(componentId)) return null;
+        const schema = getSparkComponent(componentId);
+        if (!definition.ok || (schema?.unique && componentIds.has(componentId))) return null;
         componentIds.add(componentId);
         components.push(definition.value!);
       }
