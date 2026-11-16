@@ -341,7 +341,11 @@ function renderComponentWorkbench(selected: EditorObject | null) {
     heading.append(title, remove);
     const description = document.createElement("p");
     description.textContent = definition.description;
-    card.append(heading, description);
+    const status = document.createElement("small");
+    status.className = "component-runtime-status";
+    const fullyConnected = ["movement", "health", "combat", "collectible", "enemy-brain"].includes(definition.id);
+    status.textContent = fullyConnected ? "● يؤثر في معاينة اللعبة" : definition.id === "player-input" ? "◐ التفعيل يعمل؛ نمط الإدخال محفوظ فقط" : definition.id === "animation" ? "◐ نمط الحركة يعمل؛ السرعة محفوظة فقط" : "○ إعداد محفوظ — لم يُربط بالتشغيل بعد";
+    card.append(heading, description, status);
     for (const property of definition.properties) {
       const label = document.createElement("label");
       label.className = "component-property";
