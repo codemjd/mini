@@ -344,3 +344,62 @@ test("component registry exposes audited definitions and validates compatibility
   expect(result.validHealth.value.properties.injectedCode).toBeUndefined();
   expect(result.invalidRange.ok).toBe(false);
 });
+
+
+test("project parser round-trips valid components and rejects incompatible or unsafe component data", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const docs = await import("/src/editor/project-document.ts");
+    const baseObject = {
+      id: "hero-1", kind: "hero", x: 120, y: 140, name: "Hero",
+      health: 100, speed: 180, damage: 20, size: 1, color: "#ffbd59",
+      components: [
+        { id: "health", properties: { maximum: 160, current: 120 } },
+        { id: "player-input", properties: { enabled: true, scheme: "touch" } },
+        { id: "trigger-zone", properties: { width: 120, height: 80, once: false } },
+        { id: "trigger-zone", properties: { width: 90, height: 60, once: true } }
+      ]
+    };
+    const valid = docs.parseSparkProjectDocument({
+      version: 5, schemaVersion: 1, scenes: [{
+        id: "scene-1", name: "Scene", objects: [baseObject], scriptSource: "", rules: []
+      }]
+    });
+    const incompatible = docs.parseSparkProjectDocument({
+      version: 5, schemaVersion: 1, scenes: [{
+        id: "scene-1", name: "Scene", objects: [{
+          ...baseObject, kind: "coin",
+          components: [{ id: "player-input", properties: { enabled: true, scheme: "touch" } }]
+        }], scriptSource: "", rules: []
+      }]
+    });
+    const unsafe = docs.parseSparkProjectDocument({
+      version: 5, schemaVersion: 1, scenes: [{
+        id: "scene-1", name: "Scene", objects: [{
+          ...baseObject, components: [{ id: "health", properties: { maximum: 1000000, current: 2 } }]
+        }], scriptSource: "", rules: []
+      }]
+    });
+    const legacy = docs.parseSparkProjectDocument({
+      version: 4, scenes: [{
+        id: "scene-1", name: "Legacy", objects: [{
+          id: "old-hero", kind: "hero", x: 1, y: 2, name: "Old",
+          health: 100, speed: 100, damage: 10, size: 1, color: "#ffffff"
+        }], scriptSource: "", rules: []
+      }]
+    });
+    return {
+      valid: valid.ok ? valid.document.scenes[0].objects[0].components : null,
+      validOk: valid.ok,
+      incompatibleOk: incompatible.ok,
+      unsafeOk: unsafe.ok,
+      legacyOk: legacy.ok,
+      legacyComponents: legacy.ok ? legacy.document.scenes[0].objects[0].components ?? [] : []
+    };
+  });
+  expect(result.validOk).toBe(true);
+  expect(result.valid).toHaveLength(4);
+  expect(result.incompatibleOk).toBe(false);
+  expect(result.unsafeOk).toBe(false);
+  expect(result.legacyOk).toBe(true);
+  expect(result.legacyComponents).toHaveLength(0);
+});
