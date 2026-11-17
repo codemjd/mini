@@ -41,7 +41,7 @@ const checks = [
   ['scene ordering moves a scene without changing its identity', scenes.includes('export function moveScene(id: string, direction: -1 | 1)') && scenes.includes('[reordered[index], reordered[target]] = [reordered[target], reordered[index]]')],
   ['scene bar exposes duplicate and ordering controls', sceneBar.includes('aria-label="Duplicate active scene"') && sceneBar.includes('aria-label="Move scene earlier"') && sceneBar.includes('aria-label="Move scene later"')],
   ['scene strip exposes accessible scene controls', sceneBar.includes('aria-label="Scenes"') && sceneBar.includes('aria-label="Add scene"') && sceneBar.includes('aria-pressed={scene.id === activeId}')],
-  ['scene strip has mobile touch targets', css.includes('.scene-bar') && css.includes('.scene-add, .scene-delete, .scene-rename { min-width: 36px')],
+  ['scene strip has mobile touch targets', css.includes('.scene-bar') && css.includes('.scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order { min-width: 36px')],
 ];
 for (const [name, ok] of checks) {
   assert.equal(ok, true, `Mobile regression check failed: ${name}`);
