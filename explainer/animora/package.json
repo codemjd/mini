@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:mobile": "node scripts/mobile-quality-check.mjs"
   },
   "dependencies": {
     "immer": "^10.1.1",
