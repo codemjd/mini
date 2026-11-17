@@ -1,4 +1,4 @@
-import type { Doc } from '../model/types';
+import type { Doc, Scene } from '../model/types';
 import { exportSvg } from '../engine/render';
 
 export function download(data: Blob | string, filename: string, type = 'application/octet-stream') {
@@ -86,6 +86,91 @@ export async function exportWebm(doc: Doc, onProgress: (p: number) => void, fps 
   rec.stop();
   await stopped;
   download(new Blob(chunks, { type: 'video/webm' }), `${safeName(doc)}.webm`);
+}
+
+
+function sceneDocument(parent: Doc, scene: Scene): Doc {
+  return {
+    ...parent,
+    ...scene,
+    name: parent.name,
+    scenes: undefined,
+    activeSceneId: scene.id,
+  };
+}
+
+async function drawSceneFrame(
+  ctx: CanvasRenderingContext2D,
+  doc: Doc,
+  time: number,
+  outputWidth: number,
+  outputHeight: number,
+) {
+  const img = await loadImage(svgDataUrl(exportSvg(doc, { animated: false, time })));
+  ctx.clearRect(0, 0, outputWidth, outputHeight);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, outputWidth, outputHeight);
+  const fit = Math.min(outputWidth / doc.width, outputHeight / doc.height);
+  const width = doc.width * fit;
+  const height = doc.height * fit;
+  ctx.drawImage(img, (outputWidth - width) / 2, (outputHeight - height) / 2, width, height);
+}
+
+/** Records every scene in project order into one continuous WebM video. */
+export async function exportWebmScenes(doc: Doc, onProgress: (p: number) => void, fps = 30): Promise<void> {
+  if (typeof MediaRecorder === 'undefined') throw new Error('Video recording is not supported in this browser.');
+  const storedScenes = doc.scenes ?? [];
+  if (storedScenes.length <= 1) return exportWebm(doc, onProgress, fps);
+  const scenes = storedScenes.map((scene) =>
+    scene.id === doc.activeSceneId
+      ? { ...scene, width: doc.width, height: doc.height, background: doc.background, duration: doc.duration, loop: doc.loop, iterations: doc.iterations, direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed, elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments }
+      : scene,
+  );
+  const sceneDocs = scenes.map((scene) => sceneDocument(doc, scene));
+  const frameLists = sceneDocs.map((sceneDoc) => cycleTimes(sceneDoc, fps));
+  const totalFrames = frameLists.reduce((sum, frames) => sum + frames.length, 0);
+  const scale = Math.min(2, 1920 / Math.max(doc.width, doc.height)) || 1;
+  const width = Math.max(2, Math.round((doc.width * scale) / 2) * 2);
+  const height = Math.max(2, Math.round((doc.height * scale) / 2) * 2);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not create a video canvas.');
+  const stream = canvas.captureStream(fps);
+  const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((type) => MediaRecorder.isTypeSupported(type));
+  const recorder = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 8_000_000 });
+  const chunks: Blob[] = [];
+  recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+  const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
+  let completed = 0;
+  let started = false;
+  try {
+    await drawSceneFrame(ctx, sceneDocs[0], frameLists[0][0] ?? 0, width, height);
+    recorder.start();
+    started = true;
+    const start = performance.now();
+    for (let sceneIndex = 0; sceneIndex < sceneDocs.length; sceneIndex++) {
+      const sceneDoc = sceneDocs[sceneIndex];
+      const times = frameLists[sceneIndex];
+      for (const time of times) {
+        await drawSceneFrame(ctx, sceneDoc, time, width, height);
+        completed++;
+        onProgress(completed / totalFrames);
+        const wait = start + (completed * 1000) / fps - performance.now();
+        if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+      }
+    }
+    recorder.stop();
+    await stopped;
+    download(new Blob(chunks, { type: 'video/webm' }), `${safeName(doc)}-all-scenes.webm`);
+  } catch (error) {
+    if (started && recorder.state !== 'inactive') recorder.stop();
+    if (started) await stopped;
+    throw error;
+  } finally {
+    stream.getTracks().forEach((track) => track.stop());
+  }
 }
 
 /** Frame times for one exported cycle, honoring the playback direction and speed. */
