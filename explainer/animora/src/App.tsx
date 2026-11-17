@@ -16,6 +16,7 @@ import { TopBar, TOOLS } from './components/TopBar';
 import { Canvas } from './components/Canvas';
 import { canvasApi } from './components/canvasApi';
 import { Timeline, togglePlay } from './components/Timeline';
+import { SceneBar } from './components/SceneBar';
 import { LeftPanel } from './components/LeftPanel';
 import { RightPanel } from './components/RightPanel';
 import { ContextMenu } from './components/ContextMenu';
@@ -283,6 +284,7 @@ export default function App() {
         <button className="panel-expander left" onClick={() => setState({ leftOpen: true })} title="Show Elements / Library" aria-label="Show Elements / Library" aria-expanded={leftOpen}><Icon name="chevR" /></button>
       )}
       <main className="stage">
+        <SceneBar />
         <Canvas onImport={openImport} />
       </main>
       {rightOpen ? <RightPanel /> : (
