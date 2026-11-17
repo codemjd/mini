@@ -1,4 +1,4 @@
-import { useStore, getState, setState, notify } from '../state/store';
+import { getState, setState, notify } from './store';
 import { syncActiveScene, uid } from '../model/factory';
 import type { Scene } from '../model/types';
 
