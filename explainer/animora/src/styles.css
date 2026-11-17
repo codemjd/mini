@@ -1038,3 +1038,175 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
 @media (max-width: 900px) {
   .preview-layout, .help-grid, .help-grid.three, .welcome-grid { grid-template-columns: 1fr; }
 }
+
+
+/* ============================================================
+   Mobile workspace — phone-first layout without replacing the
+   original editor panels or animation engine.
+   ============================================================ */
+@media (max-width: 700px) {
+  :root {
+    --left-w: 0px;
+    --right-w: 0px;
+    font-size: 13px;
+  }
+
+  .app {
+    --tl-h: min(34dvh, 290px) !important;
+    height: 100vh;
+    height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 48px minmax(150px, 1fr) 6px var(--tl-h);
+    grid-template-areas:
+      'top'
+      'stage'
+      'resizer'
+      'timeline';
+    overflow: hidden;
+  }
+
+  .topbar {
+    gap: 5px;
+    padding: 0 6px;
+    min-width: 0;
+  }
+  .tb-left {
+    width: auto;
+    min-width: 0;
+    flex: 0 1 auto;
+    gap: 2px;
+  }
+  .doc-name {
+    width: clamp(66px, 22vw, 112px);
+    max-width: 112px;
+    font-size: 12px;
+  }
+  .tb-tools {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tb-right {
+    flex: none;
+    gap: 2px;
+  }
+  .tb-right .save-state,
+  .tb-right > button[title='Comments'] {
+    display: none;
+  }
+  .export-btn {
+    padding: 6px 9px;
+    font-size: 12px;
+  }
+
+  /* Side panels become temporary drawers over the stage. */
+  .left-panel,
+  .right-panel {
+    position: fixed;
+    top: 48px;
+    bottom: calc(var(--tl-h) + 10px);
+    z-index: 42;
+    width: min(88vw, 340px);
+    max-width: calc(100vw - 24px);
+    min-height: 0;
+    box-shadow: var(--shadow);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  .left-panel {
+    left: 0;
+    border-right: 1px solid var(--line);
+  }
+  .right-panel {
+    right: 0;
+    border-left: 1px solid var(--line);
+  }
+  .panel-expander {
+    position: absolute;
+    top: 56px;
+    z-index: 30;
+    width: 30px;
+    height: 48px;
+  }
+  .panel-expander.left { left: 0; }
+  .panel-expander.right { right: 0; }
+
+  .stage {
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .tl-resizer {
+    min-height: 6px;
+    cursor: ns-resize;
+    touch-action: none;
+  }
+  .timeline {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .tl-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+  }
+  .tl-bottom {
+    height: 34px;
+    gap: 6px;
+    padding: 0 8px;
+  }
+  .tl-zoom {
+    margin-left: 0;
+    gap: 4px;
+  }
+  .tl-zoom input {
+    width: clamp(70px, 24vw, 130px);
+  }
+  .tl-hint { display: none; }
+
+  /* Larger hit areas and predictable touch gestures. */
+  .tb-btn,
+  .icon-btn,
+  .tl-ic,
+  .panel-expander,
+  .btn {
+    min-height: 36px;
+  }
+  .tb-btn { min-width: 36px; }
+  .tl-ic { min-width: 34px; }
+  .kf,
+  .seg,
+  .tl-ruler,
+  .tl-end-marker {
+    touch-action: none;
+  }
+
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 8px;
+  }
+  .modal {
+    width: 100%;
+    max-height: calc(100dvh - 16px);
+    border-radius: 12px 12px 8px 8px;
+  }
+  .modal.wide { width: 100%; }
+  .preview-layout { grid-template-columns: minmax(0, 1fr); }
+  .preview-stage { min-height: 180px; }
+  .welcome-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .help-grid,
+  .help-grid.three { grid-template-columns: minmax(0, 1fr); }
+  .toast {
+    bottom: calc(var(--tl-h) + 12px);
+    max-width: calc(100vw - 24px);
+  }
+}
+
+@media (max-width: 380px) {
+  .tb-left .tb-btn { display: none; }
+  .doc-name { width: 72px; }
+  .tb-right .export-btn { padding-inline: 7px; }
+  .tl-head .tl-name { gap: 4px; padding-inline: 6px; }
+}
