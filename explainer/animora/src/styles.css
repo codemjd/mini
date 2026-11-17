@@ -1254,3 +1254,18 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Tap outside a mobile drawer to dismiss both panels. */
+.panel-scrim { display: none; }
+@media (max-width: 700px) {
+  .panel-scrim {
+    display: block;
+    position: fixed;
+    inset: 48px 0 calc(var(--tl-h) + 10px);
+    z-index: 41;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.28);
+  }
+}
