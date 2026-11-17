@@ -9,6 +9,8 @@ const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const factory = readFileSync(new URL('../src/model/factory.ts', import.meta.url), 'utf8');
 const actions = readFileSync(new URL('../src/state/actions.ts', import.meta.url), 'utf8');
 const types = readFileSync(new URL('../src/model/types.ts', import.meta.url), 'utf8');
+const scenes = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
+const sceneBar = readFileSync(new URL('../src/components/SceneBar.tsx', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
 const checks = [
   ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
@@ -31,6 +33,10 @@ const checks = [
   ['scene model is backward-compatible with single-scene projects', types.includes('export interface Scene') && types.includes('scenes?: Scene[]') && factory.includes('if (!out.scenes?.length)')],
   ['new projects start with a named scene', factory.includes("sceneSnapshot(doc, id, 'Scene 1')") && factory.includes('doc.activeSceneId = id')],
   ['document edits keep the active scene snapshot synchronized', actions.includes('syncActiveScene(changed)')],
+  ['scene switching preserves per-scene content and resets transient editing state', scenes.includes('syncActiveScene(state.doc)') && scenes.includes('applyScene(current, target)') && scenes.includes('selectedKfs: [], scope: null, time: 0')],
+  ['scene creation and deletion preserve at least one scene', scenes.includes('export function addScene()') && scenes.includes('export function deleteScene(id: string)') && scenes.includes('scenes.length <= 1')],
+  ['scene strip exposes accessible scene controls', sceneBar.includes('aria-label="Scenes"') && sceneBar.includes('aria-label="Add scene"') && sceneBar.includes('aria-pressed={scene.id === activeId}')],
+  ['scene strip has mobile touch targets', css.includes('.scene-bar') && css.includes('.scene-add, .scene-delete { min-width: 36px')],
 ];
 for (const [name, ok] of checks) {
   assert.equal(ok, true, `Mobile regression check failed: ${name}`);
