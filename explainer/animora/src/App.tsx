@@ -9,6 +9,7 @@ import { addAnimator, animatorForShortcut, copyKeyframes, duplicateKeyframes, pa
 import { centerOrigin, startPickMotionPath } from './state/editing';
 import { insertImage, insertSvg } from './state/insert';
 import { frameAt } from './engine/interpolate';
+import { migrateDoc } from './model/factory';
 import { readFileAsDataUrl } from './io/importSvg';
 import { exportAnimatedSvg, saveProject } from './io/files';
 import { TopBar, TOOLS } from './components/TopBar';
@@ -91,9 +92,18 @@ export default function App() {
       clearTimeout(timer);
       timer = window.setTimeout(() => {
         try {
+          const previous = localStorage.getItem(AUTOSAVE_KEY);
+          if (previous) {
+            try {
+              migrateDoc(JSON.parse(previous));
+              localStorage.setItem(AUTOSAVE_BACKUP_KEY, previous);
+            } catch {
+              /* Never replace a known-good recovery snapshot with damaged data. */
+            }
+          }
           localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(getState().doc));
         } catch {
-          /* quota exceeded (large images) — the user can still save the project file */
+          /* Storage may be unavailable or full — the user can still save the project file. */
         }
       }, 400);
     });
