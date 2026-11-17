@@ -120,9 +120,6 @@ export interface Scene {
   defs: string;
   guides: Guides;
   comments: Comment[];
-  /** Optional for backwards compatibility with legacy single-scene files. */
-  scenes?: Scene[];
-  activeSceneId?: string;
 }
 
 export interface Doc {
@@ -148,6 +145,9 @@ export interface Doc {
   defs: string;
   guides: Guides;
   comments: Comment[];
+  /** Optional for backwards compatibility with legacy single-scene files. */
+  scenes?: Scene[];
+  activeSceneId?: string;
 }
 
 export type Tool =
