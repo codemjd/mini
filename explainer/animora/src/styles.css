@@ -1269,3 +1269,62 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
     background: rgba(0, 0, 0, 0.28);
   }
 }
+
+
+/* Multi-scene strip floats above the artboard without stealing canvas space. */
+.scene-bar {
+  position: absolute;
+  z-index: 12;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: min(94%, 720px);
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.scene-tabs {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.scene-tabs::-webkit-scrollbar { display: none; }
+.scene-tab, .scene-add, .scene-delete {
+  flex: none;
+  min-height: 32px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.scene-tab.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
+.scene-add, .scene-delete {
+  min-width: 32px;
+  padding: 0;
+  font-size: 19px;
+  background: var(--hover);
+  color: var(--text);
+}
+.scene-delete:disabled { opacity: .3; }
+@media (max-width: 700px) {
+  .scene-bar { top: 5px; max-width: calc(100% - 18px); padding: 4px; gap: 3px; }
+  .scene-tab { min-height: 36px; padding-inline: 8px; }
+  .scene-add, .scene-delete { min-width: 36px; min-height: 36px; }
+}
