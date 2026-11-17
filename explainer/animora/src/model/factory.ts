@@ -197,5 +197,5 @@ export function demoDoc(): Doc {
   );
 
   doc.elements = [wave, shadow, ball, star, title, subtitle, morph];
-  return doc;
+  return syncActiveScene(doc);
 }
