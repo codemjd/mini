@@ -31,8 +31,24 @@ export function createElement(type: ElementType, init: Partial<SvgEl> = {}, prop
   };
 }
 
-export function newDoc(): Doc {
+function sceneSnapshot(doc: Doc, id: string, name: string): import('./types').Scene {
   return {
+    id, name, width: doc.width, height: doc.height, background: doc.background,
+    duration: doc.duration, loop: doc.loop, iterations: doc.iterations,
+    direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed,
+    elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments,
+  };
+}
+
+export function syncActiveScene(doc: Doc): Doc {
+  if (!doc.scenes?.length || !doc.activeSceneId) return doc;
+  const snapshot = sceneSnapshot(doc, doc.activeSceneId,
+    doc.scenes.find((scene) => scene.id === doc.activeSceneId)?.name ?? 'Scene 1');
+  return { ...doc, scenes: doc.scenes.map((scene) => scene.id === doc.activeSceneId ? snapshot : scene) };
+}
+
+export function newDoc(): Doc {
+  const doc: Doc = {
     version: 1,
     name: 'Untitled animation',
     width: 800,
@@ -50,6 +66,10 @@ export function newDoc(): Doc {
     guides: { x: [], y: [] },
     comments: [],
   };
+  const id = uid();
+  doc.activeSceneId = id;
+  doc.scenes = [sceneSnapshot(doc, id, 'Scene 1')];
+  return doc;
 }
 
 /** Deep copy with fresh ids (for duplicate / paste). */
@@ -68,7 +88,7 @@ export function migrateDoc(raw: unknown): Doc {
   const d = raw as Partial<Doc>;
   if (!d || typeof d !== 'object' || !Array.isArray(d.elements)) throw new Error('Not an Animora project file');
   const base = newDoc();
-  return {
+  const out: Doc = {
     ...base,
     ...d,
     version: 1,
@@ -76,7 +96,29 @@ export function migrateDoc(raw: unknown): Doc {
     guides: { x: d.guides?.x ?? [], y: d.guides?.y ?? [] },
     comments: Array.isArray(d.comments) ? d.comments : [],
     elements: d.elements.map(migrateEl),
+    scenes: Array.isArray(d.scenes) && d.scenes.length
+      ? d.scenes.map((scene, index) => ({
+          ...scene,
+          id: typeof scene.id === 'string' && scene.id ? scene.id : uid(),
+          name: typeof scene.name === 'string' && scene.name.trim() ? scene.name : `Scene ${index + 1}`,
+          elements: Array.isArray(scene.elements) ? scene.elements.map(migrateEl) : [],
+          defs: scene.defs ?? '',
+          guides: { x: scene.guides?.x ?? [], y: scene.guides?.y ?? [] },
+          comments: Array.isArray(scene.comments) ? scene.comments : [],
+        }))
+      : [],
+    activeSceneId: typeof d.activeSceneId === 'string' && d.activeSceneId
+      ? d.activeSceneId
+      : (Array.isArray(d.scenes) && d.scenes[0]?.id) || uid(),
   };
+  if (!out.scenes?.length) {
+    const id = out.activeSceneId || uid();
+    out.activeSceneId = id;
+    out.scenes = [sceneSnapshot(out, id, 'Scene 1')];
+  } else if (!out.scenes.some((scene) => scene.id === out.activeSceneId)) {
+    out.activeSceneId = out.scenes[0].id;
+  }
+  return out;
 }
 
 function migrateEl(e: SvgEl): SvgEl {
