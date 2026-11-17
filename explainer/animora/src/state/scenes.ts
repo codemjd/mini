@@ -1,6 +1,7 @@
 import { getState, setState, notify } from './store';
-import { cloneElement, syncActiveScene, uid } from '../model/factory';
-import type { Scene } from '../model/types';
+import { cloneElement, normalizeSceneTransition, syncActiveScene, uid } from '../model/factory';
+import { DEFAULT_SCENE_TRANSITION } from '../model/types';
+import type { Scene, SceneTransition } from '../model/types';
 
 function applyScene(doc: ReturnType<typeof getState>['doc'], scene: Scene) {
   return {
@@ -44,6 +45,7 @@ export function addScene() {
     width: current.width, height: current.height, background: current.background,
     duration: 3, loop: true, iterations: 1, direction: 'normal', trigger: 'load',
     fillMode: 'freeze', speed: 100, elements: [], defs: '', guides: { x: [], y: [] }, comments: [],
+    transitionIn: { ...DEFAULT_SCENE_TRANSITION },
   };
   const doc = { ...current, scenes: [...(current.scenes ?? []), scene] };
   setState({
@@ -106,6 +108,17 @@ export function duplicateScene(id: string) {
     past: [], future: [], histKey: null,
   });
   notify('تم تكرار المشهد');
+}
+
+/** Change how this scene enters from the previous scene. */
+export function setSceneTransition(id: string, transition: Partial<SceneTransition>) {
+  const state = getState();
+  const doc = syncActiveScene(state.doc);
+  const scenes = doc.scenes ?? [];
+  const current = scenes.find((scene) => scene.id === id);
+  if (!current) return;
+  const next = normalizeSceneTransition({ ...(current.transitionIn ?? DEFAULT_SCENE_TRANSITION), ...transition });
+  setState({ doc: { ...doc, scenes: scenes.map((scene) => scene.id === id ? { ...scene, transitionIn: next } : scene) } });
 }
 
 /** Move a scene one position: direction -1 moves earlier, +1 moves later. */
