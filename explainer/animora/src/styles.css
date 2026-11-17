@@ -1328,3 +1328,38 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
   .scene-tab { min-height: 36px; padding-inline: 8px; }
   .scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order { min-width: 36px; min-height: 36px; }
 }
+
+
+/* Per-scene transition controls */
+.scene-transition-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 0 6px;
+  border-left: 1px solid var(--line);
+}
+.scene-transition-controls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.scene-transition-controls select {
+  max-width: 112px;
+  min-height: 32px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+.scene-transition-controls input {
+  width: 58px;
+  min-height: 32px;
+  padding: 4px 5px;
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .scene-transition-controls { gap: 4px; padding: 0 4px; }
+  .scene-transition-controls select { max-width: 92px; }
+}
