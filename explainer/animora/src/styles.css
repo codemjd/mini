@@ -1297,7 +1297,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
   scrollbar-width: none;
 }
 .scene-tabs::-webkit-scrollbar { display: none; }
-.scene-tab, .scene-add, .scene-delete, .scene-rename {
+.scene-tab, .scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order {
   flex: none;
   min-height: 32px;
   border: 1px solid transparent;
@@ -1315,16 +1315,16 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--text);
 }
-.scene-add, .scene-delete, .scene-rename {
+.scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order {
   min-width: 32px;
   padding: 0;
   font-size: 19px;
   background: var(--hover);
   color: var(--text);
 }
-.scene-delete:disabled { opacity: .3; }
+.scene-delete:disabled, .scene-order:disabled { opacity: .3; }
 @media (max-width: 700px) {
   .scene-bar { top: 5px; max-width: calc(100% - 18px); padding: 4px; gap: 3px; }
   .scene-tab { min-height: 36px; padding-inline: 8px; }
-  .scene-add, .scene-delete, .scene-rename { min-width: 36px; min-height: 36px; }
+  .scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order { min-width: 36px; min-height: 36px; }
 }
