@@ -132,6 +132,30 @@ function ElementsTab() {
           {animated && <span className="anim-dot" title="Animated" />}
           <span className="layer-actions">
             <button
+              className="mini layer-order-touch"
+              title="Move layer up"
+              aria-label={`Move ${el.name} up`}
+              disabled={list.indexOf(el) === list.length - 1}
+              onClick={(e) => {
+                e.stopPropagation();
+                const index = list.indexOf(el);
+                const target = list[index + 1];
+                if (target) moveLayer(el.id, target.id, 'above');
+              }}
+            >↑</button>
+            <button
+              className="mini layer-order-touch"
+              title="Move layer down"
+              aria-label={`Move ${el.name} down`}
+              disabled={list.indexOf(el) === 0}
+              onClick={(e) => {
+                e.stopPropagation();
+                const index = list.indexOf(el);
+                const target = list[index - 1];
+                if (target) moveLayer(el.id, target.id, 'below');
+              }}
+            >↓</button>
+            <button
               className={`mini ${el.locked || lockedParent ? 'on' : ''} ${el.locked ? 'pinned' : ''}`}
               title={el.locked ? 'Unlock' : 'Lock'}
               onClick={(e) => { e.stopPropagation(); patchElement(el.id, { locked: !el.locked }); }}
