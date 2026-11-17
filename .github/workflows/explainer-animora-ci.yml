@@ -30,5 +30,11 @@ jobs:
           cache-dependency-path: explainer/animora/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: Typecheck and build
+      - name: Mobile regression check — pass 1
+        run: npm run test:mobile
+      - name: Mobile regression check — pass 2
+        run: npm run test:mobile
+      - name: Typecheck and build — pass 1
+        run: npm run build
+      - name: Typecheck and build — pass 2
         run: npm run build
