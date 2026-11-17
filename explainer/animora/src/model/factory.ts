@@ -1,7 +1,19 @@
 import type { Doc, ElementType, Keyframe, PropKey, SvgEl, Value } from './types';
+import { DEFAULT_SCENE_TRANSITION, SCENE_TRANSITION_TYPES } from './types';
 import { ellipsePath, rectPath, starPath } from '../engine/path';
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
+
+export function normalizeSceneTransition(value: unknown): import('./types').SceneTransition {
+  const candidate = value && typeof value === 'object' ? value as Partial<import('./types').SceneTransition> : {};
+  const type = SCENE_TRANSITION_TYPES.includes(candidate.type as import('./types').SceneTransitionType)
+    ? candidate.type as import('./types').SceneTransitionType
+    : 'none';
+  const duration = Number.isFinite(candidate.duration)
+    ? Math.min(5, Math.max(0.1, Number(candidate.duration)))
+    : DEFAULT_SCENE_TRANSITION.duration;
+  return { type, duration };
+}
 
 const TYPE_NAMES: Record<ElementType, string> = {
   rect: 'Rectangle',
@@ -37,6 +49,7 @@ function sceneSnapshot(doc: Doc, id: string, name: string): import('./types').Sc
     duration: doc.duration, loop: doc.loop, iterations: doc.iterations,
     direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed,
     elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments,
+    transitionIn: normalizeSceneTransition(doc.scenes?.find((scene) => scene.id === id)?.transitionIn),
   };
 }
 
@@ -105,6 +118,7 @@ export function migrateDoc(raw: unknown): Doc {
           defs: scene.defs ?? '',
           guides: { x: scene.guides?.x ?? [], y: scene.guides?.y ?? [] },
           comments: Array.isArray(scene.comments) ? scene.comments : [],
+          transitionIn: normalizeSceneTransition(scene.transitionIn),
         }))
       : [],
     activeSceneId: typeof d.activeSceneId === 'string' && d.activeSceneId
