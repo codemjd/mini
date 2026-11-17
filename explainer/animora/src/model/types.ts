@@ -101,6 +101,30 @@ export interface Comment {
 export type Trigger = 'load' | 'click' | 'hover';
 export type Direction = 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
 
+/** A self-contained scene inside a multi-scene explainer project. */
+export interface Scene {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  background: string;
+  /** Seconds. */
+  duration: number;
+  loop: boolean;
+  iterations: number;
+  direction: Direction;
+  trigger: Trigger;
+  fillMode: 'freeze' | 'remove';
+  speed: number;
+  elements: SvgEl[];
+  defs: string;
+  guides: Guides;
+  comments: Comment[];
+  /** Optional for backwards compatibility with legacy single-scene files. */
+  scenes?: Scene[];
+  activeSceneId?: string;
+}
+
 export interface Doc {
   version: 1;
   name: string;
