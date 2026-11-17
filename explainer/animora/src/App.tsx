@@ -183,6 +183,7 @@ export default function App() {
       else if (e.key === 'Escape') {
         if (s.pickMotionFor) setState({ pickMotionFor: null });
         else if (s.menu) setState({ menu: null });
+        else if (s.leftOpen || s.rightOpen) setState({ leftOpen: false, rightOpen: false });
         else if (s.tool !== 'select') setTool('select');
         else if (s.selectedKfs.length) setState({ selectedKfs: [] });
         else if (s.scope) select([s.scope]);
@@ -264,13 +265,13 @@ export default function App() {
         <button className="panel-scrim" aria-label="Close panels" onClick={() => setState({ leftOpen: false, rightOpen: false })} />
       )}
       {leftOpen ? <LeftPanel onImport={openImport} /> : (
-        <button className="panel-expander left" onClick={() => setState({ leftOpen: true })} title="Show Elements / Library"><Icon name="chevR" /></button>
+        <button className="panel-expander left" onClick={() => setState({ leftOpen: true })} title="Show Elements / Library" aria-label="Show Elements / Library" aria-expanded={leftOpen}><Icon name="chevR" /></button>
       )}
       <main className="stage">
         <Canvas onImport={openImport} />
       </main>
       {rightOpen ? <RightPanel /> : (
-        <button className="panel-expander right" onClick={() => setState({ rightOpen: true })} title="Show Properties"><Icon name="chevL" /></button>
+        <button className="panel-expander right" onClick={() => setState({ rightOpen: true })} title="Show Properties" aria-label="Show Properties" aria-expanded={rightOpen}><Icon name="chevL" /></button>
       )}
       <div className="tl-resizer" onPointerDown={startResize} title="Drag to resize the timeline" />
       <Timeline />
