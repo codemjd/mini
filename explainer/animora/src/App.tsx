@@ -33,6 +33,7 @@ export default function App() {
   const openRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const playing = useStore((s) => s.playing);
+  const documentName = useStore((s) => s.doc.name);
   const theme = useStore((s) => s.theme);
   const toast = useStore((s) => s.toast);
   const showWelcome = useStore((s) => s.showWelcome);
@@ -42,6 +43,10 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    document.title = documentName ? `${documentName} — Animora` : 'Animora';
+  }, [documentName]);
 
   useEffect(() => {
     const help = () => setDialog('help');
