@@ -6,6 +6,7 @@ const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const store = readFileSync(new URL('../src/state/store.ts', import.meta.url), 'utf8');
 const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
+const sceneBar = readFileSync(new URL('../src/components/SceneBar.tsx', import.meta.url), 'utf8');
 const factory = readFileSync(new URL('../src/model/factory.ts', import.meta.url), 'utf8');
 const actions = readFileSync(new URL('../src/state/actions.ts', import.meta.url), 'utf8');
 const types = readFileSync(new URL('../src/model/types.ts', import.meta.url), 'utf8');
@@ -32,6 +33,8 @@ const checks = [
   ['damaged primary snapshot does not replace backup', app.includes('migrateDoc(JSON.parse(previous))') && app.includes('Never replace a known-good recovery snapshot')],
   ['scene model is backward-compatible with single-scene projects', types.includes('export interface Scene') && types.includes('scenes?: Scene[]') && factory.includes('if (!out.scenes?.length)')],
   ['new projects start with a named scene', factory.includes("sceneSnapshot(doc, id, 'Scene 1')") && factory.includes('doc.activeSceneId = id')],
+  ['demo project scene snapshot includes its initial artwork', factory.includes('return syncActiveScene(doc);')],
+  ['scene rename is available through a dedicated touch control', sceneBar.includes('aria-label="Rename active scene"')],
   ['document edits keep the active scene snapshot synchronized', actions.includes('syncActiveScene(changed)')],
   ['scene switching preserves per-scene content and resets transient editing state', scenes.includes('syncActiveScene(state.doc)') && scenes.includes('applyScene(current, target)') && scenes.includes('selectedKfs: [], scope: null, time: 0')],
   ['scene creation and deletion preserve at least one scene', scenes.includes('export function addScene()') && scenes.includes('export function deleteScene(id: string)') && scenes.includes('scenes.length <= 1')],
