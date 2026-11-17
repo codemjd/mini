@@ -3,6 +3,7 @@ import type { Doc, Keyframe, KfRef, PropKey, SvgEl, Tool } from '../model/types'
 import { demoDoc, migrateDoc } from '../model/factory';
 
 export const AUTOSAVE_KEY = 'animora.autosave.v1';
+export const AUTOSAVE_BACKUP_KEY = 'animora.autosave.backup.v1';
 const THEME_KEY = 'animora.theme';
 const WELCOME_KEY = 'animora.welcomed';
 const VIEW_KEY = 'animora.view.v1';
@@ -90,11 +91,14 @@ const read = (k: string) => {
 };
 
 function initialDoc(): Doc {
-  try {
-    const raw = read(AUTOSAVE_KEY);
-    if (raw) return migrateDoc(JSON.parse(raw));
-  } catch {
-    /* ignore corrupt autosave */
+  // Prefer the latest autosave, but recover from the previous snapshot if it is damaged.
+  for (const key of [AUTOSAVE_KEY, AUTOSAVE_BACKUP_KEY]) {
+    try {
+      const raw = read(key);
+      if (raw) return migrateDoc(JSON.parse(raw));
+    } catch {
+      /* Try the next recovery source. */
+    }
   }
   return demoDoc();
 }
