@@ -9,7 +9,7 @@ import { addAnimator, animatorForShortcut, copyKeyframes, duplicateKeyframes, pa
 import { centerOrigin, startPickMotionPath } from './state/editing';
 import { insertImage, insertSvg } from './state/insert';
 import { frameAt } from './engine/interpolate';
-import { migrateDoc } from './model/factory';
+import { migrateDoc, syncActiveScene } from './model/factory';
 import { readFileAsDataUrl } from './io/importSvg';
 import { exportAnimatedSvg, saveProject } from './io/files';
 import { TopBar, TOOLS } from './components/TopBar';
@@ -128,7 +128,7 @@ export default function App() {
           const { res } = insertSvg(text, file.name.replace(/\.svg$/i, ''), empty ? 'original' : 'center');
           if (empty) {
             const { doc } = getState();
-            setState({ doc: { ...doc, width: Math.round(res.width), height: Math.round(res.height) } });
+            setState({ doc: syncActiveScene({ ...doc, width: Math.round(res.width), height: Math.round(res.height) }) });
           }
           setState({ leftTab: 'elements' });
           const count = res.elements.length;
