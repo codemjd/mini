@@ -12,6 +12,7 @@ const actions = readFileSync(new URL('../src/state/actions.ts', import.meta.url)
 const types = readFileSync(new URL('../src/model/types.ts', import.meta.url), 'utf8');
 const scenes = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
 const files = readFileSync(new URL('../src/io/files.ts', import.meta.url), 'utf8');
+const sceneState = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
 const checks = [
@@ -43,6 +44,14 @@ const checks = [
   ['scene ordering moves a scene without changing its identity', scenes.includes('export function moveScene(id: string, direction: -1 | 1)') && scenes.includes('[reordered[index], reordered[target]] = [reordered[target], reordered[index]]')],
   ['video export can render all scenes in project order', files.includes('export async function exportWebmScenes') && files.includes('const sceneDocs = scenes.map((scene) => sceneDocument(doc, scene))') && files.includes('for (let sceneIndex = 0; sceneIndex < sceneDocs.length; sceneIndex++)')],
   ['export dialog offers an explicit all-scenes option', dialogs.includes('Include all scenes in order') && dialogs.includes('exportWebmScenes(getState().doc, setProgress, fps)')],
+  ['scene transition types include all planned entrance styles', types.includes("'slide-left'") && types.includes("'slide-right'") && types.includes("'slide-up'") && types.includes("'slide-down'") && types.includes("'zoom-in'") && types.includes("'zoom-out'") && types.includes("'wipe'") && types.includes("'dissolve'")],
+  ['older scene data receives a safe default transition', factory.includes('normalizeSceneTransition(scene.transitionIn)') && factory.includes('DEFAULT_SCENE_TRANSITION')],
+  ['transition settings are editable and saved per scene', sceneBar.includes('aria-label="Transition into active scene"') && sceneBar.includes('aria-label="Transition duration in seconds"') && sceneState.includes('export function setSceneTransition')],
+  ['transition durations are constrained to a safe 0.1–5 second range', factory.includes('Math.min(5, Math.max(0.1, Number(candidate.duration)))')],
+  ['video export composites all transition families', files.includes("type === 'slide-left'") && files.includes("type === 'wipe'") && files.includes("type === 'dissolve'") && files.includes("type === 'fade'") && files.includes("type === 'zoom-in'") && files.includes("type === 'zoom-out'")],
+  ['scene transitions use the previous final frame and incoming scene frames', files.includes('previousSceneStill') && files.includes('transitionFrames') && files.includes('drawSceneTransition(')],
+  ['transition duration is contained within the incoming scene timeline', files.includes('Math.round(Math.max(0.1, transition.duration) * fps)') && files.includes('Math.min(times.length')],
+  ['transition controls have responsive touch-sized fields', css.includes('.scene-transition-controls') && css.includes('@media (max-width: 700px)')],
   ['scene bar exposes duplicate and ordering controls', sceneBar.includes('aria-label="Duplicate active scene"') && sceneBar.includes('aria-label="Move scene earlier"') && sceneBar.includes('aria-label="Move scene later"')],
   ['scene strip exposes accessible scene controls', sceneBar.includes('aria-label="Scenes"') && sceneBar.includes('aria-label="Add scene"') && sceneBar.includes('aria-pressed={scene.id === activeId}')],
   ['scene strip has mobile touch targets', css.includes('.scene-bar') && css.includes('.scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order { min-width: 36px')],
