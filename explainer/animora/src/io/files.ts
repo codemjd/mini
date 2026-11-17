@@ -270,7 +270,7 @@ export async function exportWebmScenes(doc: Doc, onProgress: (p: number) => void
     for (let sceneIndex = 0; sceneIndex < sceneDocs.length; sceneIndex++) {
       const sceneDoc = sceneDocs[sceneIndex];
       const times = frameLists[sceneIndex];
-      const transition = sceneDoc.transitionIn ?? { type: 'none' as const, duration: 0.6 };
+      const transition = scenes[sceneIndex].transitionIn ?? { type: 'none' as const, duration: 0.6 };
       const transitionFrames = sceneIndex > 0 && transition.type !== 'none'
         ? Math.min(times.length, Math.max(1, Math.round(Math.max(0.1, transition.duration) * fps)))
         : 0;
