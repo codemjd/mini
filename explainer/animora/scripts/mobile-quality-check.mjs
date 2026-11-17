@@ -4,17 +4,17 @@ import { readFileSync } from 'node:fs';
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const checks = [
-  ['phone breakpoint exists', /@media\\s*\\(max-width:\\s*700px\\)/.test(css)],
-  ['narrow phone breakpoint exists', /@media\\s*\\(max-width:\\s*380px\\)/.test(css)],
-  ['timeline resizer disables browser gesture stealing', /\\.tl-resizer[^{]*\\{[^}]*touch-action:\\s*none/s.test(css)],
-  ['keyframe handles are touch-safe', /\\.kf,[\\s\\S]*?touch-action:\\s*none/.test(css)],
-  ['safe-area inset support exists', /env\\(safe-area-inset-bottom\\)/.test(css)],
-  ['keyboard focus indicator exists', /:focus-visible\\s*\\{/.test(css)],
-  ['reduced motion preference is respected', /prefers-reduced-motion:\\s*reduce/.test(css)],
-  ['viewport fits device safe areas', /viewport-fit=cover/.test(html)],
+  ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
+  ['narrow phone breakpoint exists', css.includes('@media (max-width: 380px)')],
+  ['timeline resizer disables browser gesture stealing', css.includes('.tl-resizer') && css.includes('touch-action: none')],
+  ['keyframe handles are touch-safe', css.includes('.kf,') && css.includes('touch-action: none')],
+  ['safe-area inset support exists', css.includes('env(safe-area-inset-bottom)')],
+  ['keyboard focus indicator exists', css.includes(':focus-visible')],
+  ['reduced motion preference is respected', css.includes('prefers-reduced-motion: reduce')],
+  ['viewport fits device safe areas', html.includes('viewport-fit=cover')],
 ];
 for (const [name, ok] of checks) {
   assert.equal(ok, true, `Mobile regression check failed: ${name}`);
-  process.stdout.write(`PASS ${name}\\n`);
+  process.stdout.write(`PASS ${name}\n`);
 }
-process.stdout.write(`\\n${checks.length} mobile regression checks passed.\\n`);
+process.stdout.write(`\n${checks.length} mobile regression checks passed.\n`);
