@@ -1,7 +1,7 @@
 import { produce, type Draft } from 'immer';
 import type { Doc, Keyframe, KfRef, PropKey, SvgEl, Tool, Value } from '../model/types';
 import { PROP_META, staticValue, supports } from '../model/props';
-import { cloneElement, createElement, migrateDoc, newDoc, uid } from '../model/factory';
+import { cloneElement, createElement, migrateDoc, newDoc, syncActiveScene, uid } from '../model/factory';
 import { findById, flatten, locate } from '../model/tree';
 import { DEFAULT_EASING } from '../engine/easing';
 import { frameAt, valueAt } from '../engine/interpolate';
@@ -21,8 +21,9 @@ const EPS = 0.004;
  */
 export function updateDoc(fn: (d: Draft<Doc>) => void, key?: string) {
   const s = getState();
-  const next = produce(s.doc, fn);
-  if (next === s.doc) return;
+  const changed = produce(s.doc, fn);
+  if (changed === s.doc) return;
+  const next = syncActiveScene(changed);
   const now = performance.now();
   const merge = !!key && key === s.histKey && (key.startsWith('g:') || now - s.histAt < 1000);
   setState({
