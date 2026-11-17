@@ -101,6 +101,21 @@ export interface Comment {
 export type Trigger = 'load' | 'click' | 'hover';
 export type Direction = 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
 
+export const SCENE_TRANSITION_TYPES = [
+  'none', 'fade', 'slide-left', 'slide-right', 'slide-up', 'slide-down',
+  'zoom-in', 'zoom-out', 'wipe', 'dissolve',
+] as const;
+
+export type SceneTransitionType = (typeof SCENE_TRANSITION_TYPES)[number];
+
+export interface SceneTransition {
+  type: SceneTransitionType;
+  /** Seconds; transition time is contained within the incoming scene duration. */
+  duration: number;
+}
+
+export const DEFAULT_SCENE_TRANSITION: SceneTransition = { type: 'none', duration: 0.6 };
+
 /** A self-contained scene inside a multi-scene explainer project. */
 export interface Scene {
   id: string;
@@ -120,6 +135,8 @@ export interface Scene {
   defs: string;
   guides: Guides;
   comments: Comment[];
+  /** How this scene enters from the previous scene. Missing values mean a hard cut. */
+  transitionIn?: SceneTransition;
 }
 
 export interface Doc {
