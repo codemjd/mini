@@ -1,4 +1,4 @@
-import type { Doc, Scene } from '../model/types';
+import type { Doc, Scene, SceneTransitionType } from '../model/types';
 import { exportSvg } from '../engine/render';
 
 export function download(data: Blob | string, filename: string, type = 'application/octet-stream') {
@@ -113,7 +113,123 @@ async function drawSceneFrame(
   const fit = Math.min(outputWidth / doc.width, outputHeight / doc.height);
   const width = doc.width * fit;
   const height = doc.height * fit;
+
   ctx.drawImage(img, (outputWidth - width) / 2, (outputHeight - height) / 2, width, height);
+}
+
+function fittedSceneRect(doc: Doc, outputWidth: number, outputHeight: number) {
+  const fit = Math.min(outputWidth / doc.width, outputHeight / doc.height);
+  const width = doc.width * fit;
+  const height = doc.height * fit;
+  return { x: (outputWidth - width) / 2, y: (outputHeight - height) / 2, width, height };
+}
+
+function paintSceneImage(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  doc: Doc,
+  outputWidth: number,
+  outputHeight: number,
+  options: { alpha?: number; offsetX?: number; offsetY?: number; scale?: number } = {},
+) {
+  const rect = fittedSceneRect(doc, outputWidth, outputHeight);
+  const scale = options.scale ?? 1;
+  const width = rect.width * scale;
+  const height = rect.height * scale;
+  const x = (outputWidth - width) / 2 + (options.offsetX ?? 0);
+  const y = (outputHeight - height) / 2 + (options.offsetY ?? 0);
+  ctx.save();
+  ctx.globalAlpha = options.alpha ?? 1;
+  ctx.drawImage(image, x, y, width, height);
+  ctx.restore();
+}
+
+/** Composite one incoming scene frame with the previous scene's final frame. */
+function drawSceneTransition(
+  ctx: CanvasRenderingContext2D,
+  outgoing: HTMLImageElement,
+  incoming: HTMLImageElement,
+  outgoingDoc: Doc,
+  incomingDoc: Doc,
+  outputWidth: number,
+  outputHeight: number,
+  type: SceneTransitionType,
+  progress: number,
+) {
+  const p = Math.max(0, Math.min(1, progress));
+  ctx.clearRect(0, 0, outputWidth, outputHeight);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, outputWidth, outputHeight);
+
+  if (type === 'slide-left' || type === 'slide-right' || type === 'slide-up' || type === 'slide-down') {
+    const horizontal = type === 'slide-left' || type === 'slide-right';
+    const direction = type === 'slide-left' || type === 'slide-up' ? -1 : 1;
+    const distance = horizontal ? outputWidth : outputHeight;
+    const oldOffset = direction * p * distance;
+    const newOffset = -direction * (1 - p) * distance;
+    paintSceneImage(ctx, outgoing, outgoingDoc, outputWidth, outputHeight, horizontal
+      ? { offsetX: oldOffset } : { offsetY: oldOffset });
+    paintSceneImage(ctx, incoming, incomingDoc, outputWidth, outputHeight, horizontal
+      ? { offsetX: newOffset } : { offsetY: newOffset });
+    return;
+  }
+
+  if (type === 'wipe') {
+    paintSceneImage(ctx, outgoing, outgoingDoc, outputWidth, outputHeight);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, outputWidth * p, outputHeight);
+    ctx.clip();
+    paintSceneImage(ctx, incoming, incomingDoc, outputWidth, outputHeight);
+    ctx.restore();
+    return;
+  }
+
+  if (type === 'dissolve') {
+    paintSceneImage(ctx, outgoing, outgoingDoc, outputWidth, outputHeight);
+    const columns = 24;
+    const rows = 14;
+    for (let row = 0; row < rows; row++) {
+      for (let column = 0; column < columns; column++) {
+        const index = row * columns + column;
+        const noise = (Math.imul(index + 1, 2654435761) >>> 0) / 4294967296;
+        if (noise >= p) continue;
+        const left = Math.floor((column * outputWidth) / columns);
+        const top = Math.floor((row * outputHeight) / rows);
+        const right = Math.ceil(((column + 1) * outputWidth) / columns);
+        const bottom = Math.ceil(((row + 1) * outputHeight) / rows);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(left, top, right - left, bottom - top);
+        ctx.clip();
+        paintSceneImage(ctx, incoming, incomingDoc, outputWidth, outputHeight);
+        ctx.restore();
+      }
+    }
+    return;
+  }
+
+  if (type === 'fade') {
+    paintSceneImage(ctx, outgoing, outgoingDoc, outputWidth, outputHeight, { alpha: 1 - p });
+    paintSceneImage(ctx, incoming, incomingDoc, outputWidth, outputHeight, { alpha: p });
+    return;
+  }
+
+  if (type === 'zoom-in') {
+    paintSceneImage(ctx, outgoing, outgoingDoc, outputWidth, outputHeight);
+    paintSceneImage(ctx, incoming, incomingDoc, outputWidth, outputHeight, { alpha: p, scale: 0.86 + 0.14 * p });
+    return;
+  }
+
+  if (type === 'zoom-out') {
+    paintSceneImage(ctx, outgoing, outgoingDoc, outputWidth, outputHeight, { alpha: 1 - p, scale: 1 + 0.14 * p });
+    paintSceneImage(ctx, incoming, incomingDoc, outputWidth, outputHeight, { alpha: p });
+    return;
+  }
+
+  // A safe cross-fade is the fallback for unknown future transition values.
+  paintSceneImage(ctx, outgoing, outgoingDoc, outputWidth, outputHeight, { alpha: 1 - p });
+  paintSceneImage(ctx, incoming, incomingDoc, outputWidth, outputHeight, { alpha: p });
 }
 
 /** Records every scene in project order into one continuous WebM video. */
@@ -150,16 +266,36 @@ export async function exportWebmScenes(doc: Doc, onProgress: (p: number) => void
     recorder.start();
     started = true;
     const start = performance.now();
+    let previousSceneStill: HTMLImageElement | null = null;
     for (let sceneIndex = 0; sceneIndex < sceneDocs.length; sceneIndex++) {
       const sceneDoc = sceneDocs[sceneIndex];
       const times = frameLists[sceneIndex];
-      for (const time of times) {
-        await drawSceneFrame(ctx, sceneDoc, time, width, height);
+      const transition = sceneDoc.transitionIn ?? { type: 'none' as const, duration: 0.6 };
+      const transitionFrames = sceneIndex > 0 && transition.type !== 'none'
+        ? Math.min(times.length, Math.max(1, Math.round(Math.max(0.1, transition.duration) * fps)))
+        : 0;
+      const previousDoc = sceneIndex > 0 ? sceneDocs[sceneIndex - 1] : null;
+
+      for (let frameIndex = 0; frameIndex < times.length; frameIndex++) {
+        const time = times[frameIndex];
+        if (frameIndex < transitionFrames && previousSceneStill && previousDoc) {
+          const incoming = await loadImage(svgDataUrl(exportSvg(sceneDoc, { animated: false, time })));
+          const progress = transitionFrames <= 1 ? 1 : frameIndex / (transitionFrames - 1);
+          drawSceneTransition(
+            ctx, previousSceneStill, incoming, previousDoc, sceneDoc, width, height,
+            transition.type, progress,
+          );
+        } else {
+          await drawSceneFrame(ctx, sceneDoc, time, width, height);
+        }
         completed++;
         onProgress(completed / totalFrames);
         const wait = start + (completed * 1000) / fps - performance.now();
         if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
       }
+
+      const finalTime = times.length ? times[times.length - 1] : 0;
+      previousSceneStill = await loadImage(svgDataUrl(exportSvg(sceneDoc, { animated: false, time: finalTime })));
     }
     recorder.stop();
     await stopped;
