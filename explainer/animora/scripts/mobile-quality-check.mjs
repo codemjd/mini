@@ -11,7 +11,6 @@ const factory = readFileSync(new URL('../src/model/factory.ts', import.meta.url)
 const actions = readFileSync(new URL('../src/state/actions.ts', import.meta.url), 'utf8');
 const types = readFileSync(new URL('../src/model/types.ts', import.meta.url), 'utf8');
 const scenes = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
-const sceneBar = readFileSync(new URL('../src/components/SceneBar.tsx', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
 const checks = [
   ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
