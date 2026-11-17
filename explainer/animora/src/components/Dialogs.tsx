@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore, getState, dismissWelcome } from '../state/store';
 import { loadDoc, newProject, patchDoc } from '../state/actions';
 import { exportSvg } from '../engine/render';
-import { download, exportGif, exportPng, exportPngSequence, exportStaticSvg, exportWebm, safeName, saveProject, svgDataUrl } from '../io/files';
+import { download, exportGif, exportPng, exportPngSequence, exportStaticSvg, exportWebm, exportWebmScenes, safeName, saveProject, svgDataUrl } from '../io/files';
 import { TOOLS } from './TopBar';
 import { ANIMATORS } from '../model/props';
 import { demoDoc } from '../model/factory';
@@ -43,6 +43,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [nonce, setNonce] = useState(0);
   const [copied, setCopied] = useState(false);
   const [fps, setFps] = useState(30);
+  const [includeAllScenes, setIncludeAllScenes] = useState(true);
   const [scale, setScale] = useState(1);
   const [transparent, setTransparent] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
@@ -152,15 +153,16 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           )}
           {format === 'video' && (
             <>
-              <p>Records a <b>WebM</b> video in your browser, in real time. Transparent backgrounds become white.</p>
+              <p>Records a <b>WebM</b> video in your browser, in real time. You can export the active scene or combine every scene in project order. Transparent backgrounds become white.</p>
               {settings}
+              {doc.scenes && doc.scenes.length > 1 && <label className="check-row"><input type="checkbox" checked={includeAllScenes} onChange={(e) => setIncludeAllScenes(e.target.checked)} disabled={busy} /> Include all scenes in order ({doc.scenes.length})</label>}
               <label className="field-row"><span>Frame rate</span>
                 <select value={fps} onChange={(e) => setFps(+e.target.value)} disabled={busy}>
                   {[24, 30, 60].map((f) => <option key={f} value={f}>{f} fps</option>)}
                 </select>
               </label>
               <div className="btn-col">
-                <button className="btn primary" disabled={busy} onClick={() => run(() => exportWebm(getState().doc, setProgress, fps))}>
+                <button className="btn primary" disabled={busy} onClick={() => run(() => includeAllScenes ? exportWebmScenes(getState().doc, setProgress, fps) : exportWebm(getState().doc, setProgress, fps))}>
                   {busy ? `Recording… ${Math.round((progress ?? 0) * 100)}%` : 'Record & download'}
                 </button>
               </div>
