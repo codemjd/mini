@@ -23,6 +23,12 @@ export function SceneBar() {
           </button>
         ))}
       </div>
+      <button className="scene-rename" onClick={() => {
+        const scene = scenes.find((item) => item.id === activeId);
+        if (!scene) return;
+        const name = window.prompt('اسم المشهد', scene.name);
+        if (name !== null) renameScene(scene.id, name);
+      }} title="Rename active scene" aria-label="Rename active scene">✎</button>
       <button className="scene-add" onClick={addScene} title="Add scene" aria-label="Add scene">+</button>
       <button className="scene-delete" onClick={() => activeId && deleteScene(activeId)} title="Delete active scene" aria-label="Delete active scene" disabled={scenes.length <= 1}>×</button>
     </div>
