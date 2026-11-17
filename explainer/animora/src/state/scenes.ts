@@ -1,5 +1,5 @@
 import { getState, setState, notify } from './store';
-import { syncActiveScene, uid } from '../model/factory';
+import { cloneElement, syncActiveScene, uid } from '../model/factory';
 import type { Scene } from '../model/types';
 
 function applyScene(doc: ReturnType<typeof getState>['doc'], scene: Scene) {
@@ -81,4 +81,42 @@ export function deleteScene(id: string) {
   const target = remaining[Math.min(index, remaining.length - 1)];
   setState({ doc: applyScene({ ...doc, scenes: remaining }, target), selection: [], selectedKfs: [], scope: null, time: 0, playing: false, past: [], future: [], histKey: null });
   notify('تم حذف المشهد');
+}
+
+/** Duplicate a scene with fresh ids for the scene, layers, keyframes and comments. */
+export function duplicateScene(id: string) {
+  const state = getState();
+  const doc = syncActiveScene(state.doc);
+  const source = doc.scenes?.find((scene) => scene.id === id);
+  if (!source || !doc.scenes) return;
+  const copy: Scene = {
+    ...source,
+    id: uid(),
+    name: `${source.name} copy`.slice(0, 60),
+    elements: source.elements.map(cloneElement),
+    guides: { x: [...source.guides.x], y: [...source.guides.y] },
+    comments: source.comments.map((comment) => ({ ...comment, id: uid() })),
+  };
+  const index = doc.scenes.findIndex((scene) => scene.id === id);
+  const scenes = [...doc.scenes];
+  scenes.splice(index + 1, 0, copy);
+  setState({
+    doc: applyScene({ ...doc, scenes }, copy),
+    selection: [], selectedKfs: [], scope: null, time: 0, playing: false,
+    past: [], future: [], histKey: null,
+  });
+  notify('تم تكرار المشهد');
+}
+
+/** Move a scene one position: direction -1 moves earlier, +1 moves later. */
+export function moveScene(id: string, direction: -1 | 1) {
+  const state = getState();
+  const doc = syncActiveScene(state.doc);
+  const scenes = doc.scenes ?? [];
+  const index = scenes.findIndex((scene) => scene.id === id);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= scenes.length) return;
+  const reordered = [...scenes];
+  [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+  setState({ doc: { ...doc, scenes: reordered } });
 }
