@@ -117,10 +117,14 @@ export function Timeline() {
     const u = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', m);
       window.removeEventListener('pointerup', u);
+      window.removeEventListener('pointercancel', u);
       up?.(ev);
     };
     window.addEventListener('pointermove', m);
     window.addEventListener('pointerup', u);
+    // Android may cancel an active pointer when the browser takes over a gesture.
+    // Always release listeners so the next edit starts from a clean state.
+    window.addEventListener('pointercancel', u);
   };
 
   const startScrub = (e: React.PointerEvent) => {
