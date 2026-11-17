@@ -1,5 +1,5 @@
 import { useStore } from '../state/store';
-import { addScene, deleteScene, renameScene, switchScene } from '../state/scenes';
+import { addScene, deleteScene, duplicateScene, moveScene, renameScene, switchScene } from '../state/scenes';
 
 export function SceneBar() {
   const scenes = useStore((state) => state.doc.scenes ?? []);
@@ -23,6 +23,9 @@ export function SceneBar() {
           </button>
         ))}
       </div>
+      <button className="scene-order" onClick={() => activeId && moveScene(activeId, -1)} title="Move scene earlier" aria-label="Move scene earlier" disabled={scenes.findIndex((scene) => scene.id === activeId) <= 0}>↑</button>
+      <button className="scene-order" onClick={() => activeId && moveScene(activeId, 1)} title="Move scene later" aria-label="Move scene later" disabled={scenes.findIndex((scene) => scene.id === activeId) < 0 || scenes.findIndex((scene) => scene.id === activeId) >= scenes.length - 1}>↓</button>
+      <button className="scene-duplicate" onClick={() => activeId && duplicateScene(activeId)} title="Duplicate active scene" aria-label="Duplicate active scene">▣</button>
       <button className="scene-rename" onClick={() => {
         const scene = scenes.find((item) => item.id === activeId);
         if (!scene) return;
