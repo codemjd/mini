@@ -1210,3 +1210,23 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
   .tb-right .export-btn { padding-inline: 7px; }
   .tl-head .tl-name { gap: 4px; padding-inline: 6px; }
 }
+
+/* Layer ordering controls are always available to touch users. */
+.layer-order-touch { display: none; }
+@media (max-width: 700px) {
+  .layer-order-touch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0;
+    font-size: 16px;
+    font-weight: 700;
+    touch-action: manipulation;
+  }
+  .layer-order-touch:disabled { opacity: .25; }
+  .layer-actions { gap: 2px; }
+  .layer-row { min-height: 40px; }
+  .layer-row .layer-title { min-width: 0; }
+}
