@@ -260,6 +260,9 @@ export default function App() {
         onExport={() => setDialog('export')}
         onHelp={() => setDialog('help')}
       />
+      {(leftOpen || rightOpen) && (
+        <button className="panel-scrim" aria-label="Close panels" onClick={() => setState({ leftOpen: false, rightOpen: false })} />
+      )}
       {leftOpen ? <LeftPanel onImport={openImport} /> : (
         <button className="panel-expander left" onClick={() => setState({ leftOpen: true })} title="Show Elements / Library"><Icon name="chevR" /></button>
       )}
