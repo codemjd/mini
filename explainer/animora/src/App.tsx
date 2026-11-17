@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useStore, getState, setState, setView, AUTOSAVE_KEY, notify } from './state/store';
+import { useStore, getState, setState, setView, AUTOSAVE_KEY, AUTOSAVE_BACKUP_KEY, notify } from './state/store';
 import {
   copySelection, deleteSelection, duplicateSelection, findEl, openProjectJson, paste, redo, select,
   selectAll, setTime, setTool, setValues, undo, type Change,
