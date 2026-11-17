@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const checks = [
   ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
   ['narrow phone breakpoint exists', css.includes('@media (max-width: 380px)')],
@@ -12,6 +13,7 @@ const checks = [
   ['keyboard focus indicator exists', css.includes(':focus-visible')],
   ['reduced motion preference is respected', css.includes('prefers-reduced-motion: reduce')],
   ['viewport fits device safe areas', html.includes('viewport-fit=cover')],
+  ['mobile drawer backdrop closes panels', app.includes('className="panel-scrim"') && css.includes('.panel-scrim')],
 ];
 for (const [name, ok] of checks) {
   assert.equal(ok, true, `Mobile regression check failed: ${name}`);
