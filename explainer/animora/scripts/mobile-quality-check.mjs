@@ -113,6 +113,7 @@ const checks = [
   ['bundle import validates all media paths before writing assets', mediaFiles.includes("!item.path.startsWith('assets/')") && mediaFiles.includes("if (!entries.has(item.path))")],
   ['bundle import rolls back partially restored IndexedDB assets on failure', mediaFiles.includes('restoredKeys.map((key) => deleteMediaAsset(key).catch(() => undefined))') && mediaLibrary.includes('export async function deleteMediaAsset')],
   ['ZIP reader rejects unsupported compression and unsafe paths', zip.includes('method !== 0') && zip.includes("name.startsWith('/')") && zip.includes("name.split('/').includes('..')")],
+  ['ZIP reader validates end-of-central-directory counts and local offsets', zip.includes('directoryOffset !== offset') && zip.includes('localOffsets.get(name) !== localOffset') && zip.includes('directoryCursor !== endOffset')],
   ['ZIP reader validates each asset CRC before accepting it', zip.includes('crc32(copy) !== view.getUint32(offset + 14, true)')],
   ['main file picker can open portable project bundles', app.includes("name.endsWith('.animora.zip')") && app.includes('importProjectBundle(file)') && app.includes('accept=".json,.animora.zip,application/json,application/zip"')],
   ['export dialog exposes portable project plus media archive', dialogs.includes('exportProjectBundle') && dialogs.includes('Portable project + media (.animora.zip)')],
