@@ -67,15 +67,16 @@ export function readAudioWaveform(source: string): Promise<number[] | null> {
       const context = new AudioContextClass();
       try {
         const buffer = await context.decodeAudioData(await asset.blob.arrayBuffer());
-        const channel = buffer.getChannelData(0);
-        if (!channel.length) return null;
+        const channels = Array.from({ length: buffer.numberOfChannels }, (_, index) => buffer.getChannelData(index));
+        const sampleCount = channels[0]?.length ?? 0;
+        if (!sampleCount) return null;
         const peaks: number[] = [];
         for (let index = 0; index < PEAK_COUNT; index++) {
-          const start = Math.floor(index * channel.length / PEAK_COUNT);
-          const end = Math.max(start + 1, Math.floor((index + 1) * channel.length / PEAK_COUNT));
+          const start = Math.floor(index * sampleCount / PEAK_COUNT);
+          const end = Math.max(start + 1, Math.floor((index + 1) * sampleCount / PEAK_COUNT));
           let peak = 0;
-          for (let sample = start; sample < Math.min(end, channel.length); sample++) {
-            peak = Math.max(peak, Math.abs(channel[sample]));
+          for (let sample = start; sample < Math.min(end, sampleCount); sample++) {
+            for (const channel of channels) peak = Math.max(peak, Math.abs(channel[sample] ?? 0));
           }
           peaks.push(peak);
         }
