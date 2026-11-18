@@ -1,5 +1,5 @@
 import { getState, setState, notify } from './store';
-import { cloneElement, normalizeSceneTransition, syncActiveScene, uid } from '../model/factory';
+import { cloneElement, createDefaultTimelineTracks, normalizeSceneTransition, syncActiveScene, uid } from '../model/factory';
 import { DEFAULT_SCENE_TRANSITION } from '../model/types';
 import type { Scene, SceneTransition } from '../model/types';
 
@@ -21,6 +21,7 @@ function applyScene(doc: ReturnType<typeof getState>['doc'], scene: Scene) {
     defs: scene.defs,
     guides: scene.guides,
     comments: scene.comments,
+    timelineTracks: scene.timelineTracks ?? [],
   };
 }
 
@@ -63,6 +64,7 @@ export function addScene() {
     duration: 3, loop: true, iterations: 1, direction: 'normal', trigger: 'load',
     fillMode: 'freeze', speed: 100, elements: [], defs: '', guides: { x: [], y: [] }, comments: [],
     transitionIn: { ...DEFAULT_SCENE_TRANSITION },
+    timelineTracks: createDefaultTimelineTracks(),
   };
   const doc = { ...current, scenes: [...(current.scenes ?? []), scene] };
   setState({
