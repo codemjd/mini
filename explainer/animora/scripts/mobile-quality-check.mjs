@@ -50,6 +50,7 @@ const checks = [
   ['timeline exposes independent video, audio and overlay lane creation controls', tl.includes("addMediaTrack('video')") && tl.includes("addMediaTrack('audio')") && tl.includes("addMediaTrack('overlay')")],
   ['media lane names, visibility, mute state and lock state are editable', tl.includes('onBlur={(e) => { const name = e.currentTarget.value.trim().slice(0, 60)') && tl.includes('visible: !track.visible') && tl.includes('muted: !track.muted') && tl.includes('locked: !track.locked')],
   ['media track icons are defined instead of falling back to the generic help icon', ic.includes("film: '") && ic.includes("'volume-2': '") && ic.includes("'volume-x': '")],
+  ['locked media tracks disable selected clip audio controls', tl.includes('disabled={selectedMedia.track.locked}')],
   ['selected media clips expose touch-friendly mute and volume controls', tl.includes('aria-label="Selected media clip controls"') && tl.includes('aria-label="Selected clip volume"') && tl.includes('updateMediaClip(selectedMedia.track.id')],
   ['selected clip audio controls receive responsive phone styling', css.includes('.media-clip-controls') && css.includes('@media (max-width: 700px)') && css.includes('.media-clip-control-name')],
   ['media clips expose keyboard mute and bounded gain controls', tl.includes("e.key.toLowerCase() === 'm'") && tl.includes("e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_'") && tl.includes('Math.max(0, Math.min(1, Math.round(((entry.volume ?? 1) + delta) * 10) / 10))')],
