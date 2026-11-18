@@ -324,8 +324,8 @@ export function Timeline() {
             <div key={track.id} className={`tl-row media-track-row ${track.locked ? 'locked' : ''}`} data-media-track={track.id}>
               <div className="tl-name media-track-name">
                 <Icon name={track.kind === 'video' ? 'film' : track.kind === 'audio' ? 'volume-2' : 'layers'} size={14} />
-                <input aria-label={track.name + ' track name'} value={track.name}
-                  onChange={(e) => updateMediaTrack(track.id, { name: e.target.value.slice(0, 60) })}
+                <input aria-label={track.name + ' track name'} defaultValue={track.name}
+                  onBlur={(e) => { const name = e.currentTarget.value.trim().slice(0, 60); if (name && name !== track.name) updateMediaTrack(track.id, { name }); }}
                   onPointerDown={(e) => e.stopPropagation()} />
                 <button className={`mini ${track.visible ? 'on' : 'off'}`} title={track.visible ? 'Hide track' : 'Show track'}
                   aria-label={track.visible ? 'Hide ' + track.name : 'Show ' + track.name}
