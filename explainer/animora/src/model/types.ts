@@ -83,6 +83,34 @@ export interface SvgEl {
   children?: SvgEl[];
 }
 
+export type TimelineTrackKind = 'video' | 'audio' | 'overlay';
+export type TimelineClipKind = 'video' | 'audio' | 'image' | 'text';
+
+/** A timed media/content segment. Asset resolution is handled by the media library layer. */
+export interface TimelineClip {
+  id: string;
+  name: string;
+  kind: TimelineClipKind;
+  /** Stable asset key or source reference; never a temporary object URL. */
+  source: string;
+  start: number;
+  duration: number;
+  sourceStart: number;
+  volume: number;
+  muted: boolean;
+}
+
+/** Independent lane in a scene's editing timeline. */
+export interface TimelineTrack {
+  id: string;
+  name: string;
+  kind: TimelineTrackKind;
+  visible: boolean;
+  muted: boolean;
+  locked: boolean;
+  clips: TimelineClip[];
+}
+
 export interface Guides {
   x: number[];
   y: number[];
@@ -137,6 +165,8 @@ export interface Scene {
   comments: Comment[];
   /** How this scene enters from the previous scene. Missing values mean a hard cut. */
   transitionIn?: SceneTransition;
+  /** Independent audio/video/overlay lanes; optional for legacy projects. */
+  timelineTracks?: TimelineTrack[];
 }
 
 export interface Doc {
@@ -162,7 +192,9 @@ export interface Doc {
   defs: string;
   guides: Guides;
   comments: Comment[];
-  /** Optional for backwards compatibility with legacy single-scene files. */
+  /** Active scene's independent media lanes; mirrored into its scene snapshot. */
+  timelineTracks?: TimelineTrack[];
+  /** Optional for backwards compatibility with single-scene files. */
   scenes?: Scene[];
   activeSceneId?: string;
 }
