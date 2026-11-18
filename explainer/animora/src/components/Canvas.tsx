@@ -826,6 +826,25 @@ export function Canvas({ onImport }: { onImport: () => void }) {
   const singleEl = single ? getEl(single.id) : undefined;
   const cursor = pickMotionFor ? 'copy' : tool === 'hand' ? (dragging ? 'grabbing' : 'grab') : DRAW_TOOLS.includes(tool) || tool === 'pen' ? 'crosshair' : tool === 'text' ? 'text' : 'default';
   const scopeEl = scope ? findEl(doc, scope) : undefined;
+  const sceneIndex = doc.scenes?.findIndex((scene) => scene.id === doc.activeSceneId) ?? -1;
+  const incomingScene = sceneIndex > 0 ? doc.scenes?.[sceneIndex] : undefined;
+  const outgoingScene = sceneIndex > 0 ? doc.scenes?.[sceneIndex - 1] : undefined;
+  const transition = incomingScene?.transitionIn;
+  const transitionDuration = transition ? Math.min(Math.max(0.01, transition.duration), Math.max(0.01, doc.duration)) : 0;
+  const transitionProgress = playing && outgoingScene && transition && transition.type !== 'none' && transitionDuration > 0 && time < transitionDuration ? Math.max(0, Math.min(1, time / transitionDuration)) : null;
+  const progress = transitionProgress ?? 1;
+  const cx = doc.width / 2, cy = doc.height / 2;
+  const transitionTransform = transitionProgress === null ? undefined : (() => {
+    switch (transition?.type) {
+      case 'slide-left': return 'translate(' + fmt(doc.width * (1 - progress)) + ' 0)';
+      case 'slide-right': return 'translate(' + fmt(-doc.width * (1 - progress)) + ' 0)';
+      case 'slide-up': return 'translate(0 ' + fmt(doc.height * (1 - progress)) + ')';
+      case 'slide-down': return 'translate(0 ' + fmt(-doc.height * (1 - progress)) + ')';
+      case 'zoom-in': return 'translate(' + fmt(cx) + ' ' + fmt(cy) + ') scale(' + fmt(0.82 + 0.18 * progress) + ') translate(' + fmt(-cx) + ' ' + fmt(-cy) + ')';
+      case 'zoom-out': return 'translate(' + fmt(cx) + ' ' + fmt(cy) + ') scale(' + fmt(1.18 - 0.18 * progress) + ') translate(' + fmt(-cx) + ' ' + fmt(-cy) + ')';
+      default: return undefined;
+    }
+  })();
   const guideExtent = 100000;
 
   return (
@@ -855,7 +874,21 @@ export function Canvas({ onImport }: { onImport: () => void }) {
         </defs>
         <rect width={doc.width} height={doc.height} fill={transparent ? 'url(#__checker)' : doc.background} className="artboard" />
         {doc.defs && <defs dangerouslySetInnerHTML={{ __html: doc.defs }} />}
-        <g className={`content ${scope ? 'scoped' : ''}`} dangerouslySetInnerHTML={{ __html: editorMarkup(doc.elements, time) }} />
+        {transitionProgress !== null && outgoingScene && transition && (
+          <>
+            <g pointerEvents="none" opacity={transition.type === 'fade' || transition.type.startsWith('zoom-') ? 1 - progress : 1}
+              transform={transition.type.startsWith('slide-') ? (transition.type === 'slide-left' ? 'translate(' + fmt(-doc.width * progress) + ' 0)' : transition.type === 'slide-right' ? 'translate(' + fmt(doc.width * progress) + ' 0)' : transition.type === 'slide-up' ? 'translate(0 ' + fmt(-doc.height * progress) + ')' : 'translate(0 ' + fmt(doc.height * progress) + ')') : transitionTransform}>
+              <rect width={doc.width} height={doc.height} fill={outgoingScene.background || 'none'} />
+              <g dangerouslySetInnerHTML={{ __html: editorMarkup(outgoingScene.elements, outgoingScene.duration) }} />
+            </g>
+            <g pointerEvents="none" opacity={transition.type === 'fade' || transition.type.startsWith('zoom-') ? progress : 1} transform={transitionTransform}>
+              <g dangerouslySetInnerHTML={{ __html: editorMarkup(doc.elements, time) }} />
+            </g>
+          </>
+        )}
+        <g className={"content " + (scope ? "scoped" : "")}
+          style={transitionProgress !== null ? { opacity: transition.type === 'fade' || transition.type.startsWith('zoom-') ? progress : 1 } : undefined}
+          dangerouslySetInnerHTML={{ __html: editorMarkup(doc.elements, time) }} />
         {view.showGrid && <rect width={doc.width} height={doc.height} fill="url(#__grid)" pointerEvents="none" />}
 
         {view.showGuides && (
