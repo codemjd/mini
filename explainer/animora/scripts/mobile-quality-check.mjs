@@ -110,7 +110,7 @@ const checks = [
   ['export dialog offers an explicit all-scenes option', dialogs.includes('Include all scenes in order') && dialogs.includes('exportWebmScenes(getState().doc, setProgress, fps)')],
   ['portable project export reports media collection progress', files.includes('onProgress(references.size ? completed / references.size : 1)') && dialogs.includes('exportProjectBundle(getState().doc, setProgress)')],
   ['portable bundle assets preserve their filename extension', files.includes('asset.name.match(/') && files.includes('a-z0-9]{1,8})$/i')],
-  ['portable project export bundles project data and every referenced media asset', files.includes('export async function exportProjectBundle') && files.includes("name: 'manifest.json'") && files.includes('readMediaAsset(clip.source)') && files.includes('assets/media-')],
+  ['portable project export bundles project data and every referenced media asset', files.includes('export async function exportProjectBundle') && files.includes("name: 'manifest.json'") && files.includes('readMediaAsset(source)') && files.includes('assets/media-')],
   ['portable project import restores media blobs to IndexedDB and remaps clip sources', files.includes('export async function importProjectBundle') && files.includes('storeMediaAssetBlob(blob') && files.includes('clip.source = restored')],
   ['bundle import validates all media paths before writing assets', mediaFiles.includes("!item.path.startsWith('assets/')") && mediaFiles.includes("if (!entries.has(item.path))")],
   ['bundle import rolls back partially restored IndexedDB assets on failure', mediaFiles.includes('restoredKeys.map((key) => deleteMediaAsset(key).catch(() => undefined))') && mediaLibrary.includes('export async function deleteMediaAsset')],
