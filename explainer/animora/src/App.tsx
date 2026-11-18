@@ -73,14 +73,27 @@ export default function App() {
       let t = s.time + (now - last) / 1000;
       last = now;
       if (t >= D) {
-        if (s.loopPreview) t = t % D;
-        else if (advanceSceneForPlayback()) {
-          // Keep the animation loop alive while the active scene changes.
-          raf = requestAnimationFrame(tick);
-          return;
+        if (s.loopPreview) {
+          t %= D;
         } else {
-          setState({ time: D, playing: false });
-          return;
+          // Carry frame-time overflow across scene boundaries instead of losing it.
+          let overflow = t - D;
+          let advanced = advanceSceneForPlayback();
+          while (advanced) {
+            const nextDuration = Number.isFinite(getState().doc.duration)
+              ? Math.max(0.01, getState().doc.duration)
+              : 0.01;
+            if (overflow < nextDuration) {
+              t = overflow;
+              break;
+            }
+            overflow -= nextDuration;
+            advanced = advanceSceneForPlayback();
+          }
+          if (!advanced) {
+            setState({ time: getState().doc.duration, playing: false });
+            return;
+          }
         }
       }
       setState({ time: t });
