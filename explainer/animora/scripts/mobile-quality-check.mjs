@@ -18,6 +18,7 @@ const files = readFileSync(new URL('../src/io/files.ts', import.meta.url), 'utf8
 const assets = readFileSync(new URL('../src/model/assets.ts', import.meta.url), 'utf8');
 const sceneState = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
 const mediaImport = readFileSync(new URL('../src/components/MediaImportButton.tsx', import.meta.url), 'utf8');
+const mediaImportFlow = readFileSync(new URL('../src/io/mediaImport.ts', import.meta.url), 'utf8');
 const mediaLibrary = readFileSync(new URL('../src/io/mediaLibrary.ts', import.meta.url), 'utf8');
 const audioPreview = readFileSync(new URL('../src/components/AudioPreview.tsx', import.meta.url), 'utf8');
 const visualPreview = readFileSync(new URL('../src/components/VisualMediaPreview.tsx', import.meta.url), 'utf8');
@@ -53,8 +54,8 @@ const checks = [
   ['clip accessibility labels announce mute state and volume', tl.includes("clip.muted ? 'muted' : 'unmuted'") && tl.includes('volume ${Math.round((clip.volume ?? 1) * 100)} percent')],
   ['media clips are positioned in the timeline using start and duration', tl.includes('clip.start * pps') && tl.includes('clip.duration * pps')],
   ['timeline exposes the media import control', tl.includes('MediaImportButton') && mediaImport.includes('Import media')],
-  ['media import accepts audio, video and image files with a bounded size', mediaImport.includes('audio/*,video/*,image/*') && mediaImport.includes('250 * 1024 * 1024')],
-  ['original media blobs are stored in IndexedDB outside project JSON', mediaLibrary.includes("indexedDB.open(DB_NAME, DB_VERSION)") && mediaImport.includes('storeMediaAsset(file)') && !mediaImport.includes('readAsDataURL')],
+  ['media import accepts audio, video and image files with a bounded size', mediaImport.includes('audio/*,video/*,image/*') && mediaImportFlow.includes('250 * 1024 * 1024')],
+  ['original media blobs are stored in IndexedDB outside project JSON', mediaLibrary.includes("indexedDB.open(DB_NAME, DB_VERSION)") && mediaImportFlow.includes('storeMediaAsset(file)') && !mediaImportFlow.includes('readAsDataURL')],
   ['visual media preview is integrated into the SVG artboard below vector layers', canvas.includes("import { VisualMediaPreview } from './VisualMediaPreview'") && canvas.includes('<VisualMediaPreview />') && canvas.includes('className="artboard"')],
   ['visual media preview resolves image and video blobs from the local media library', visualPreview.includes('readMediaAsset(clip.source)') && visualPreview.includes("clip.kind === 'video' || clip.kind === 'image'") && visualPreview.includes('URL.createObjectURL(asset.blob)')],
   ['image clips render as aspect-preserving artboard images', visualPreview.includes('<image key={clip.id}') && visualPreview.includes('preserveAspectRatio="xMidYMid meet"')],
@@ -66,8 +67,10 @@ const checks = [
   ['audio preview synchronizes active clips to source time and transport state', audioPreview.includes('clip.sourceStart + time - clip.start') && audioPreview.includes('playing && !track.muted && !clip.muted') && audioPreview.includes('audio.currentTime = target')],
   ['audio preview respects per-track mute and per-clip volume', audioPreview.includes('audio.muted = track.muted || clip.muted') && audioPreview.includes('audio.volume = Math.max(0, Math.min(1')],
   ['audio preview pauses inactive clips and releases decoders on unmount', audioPreview.includes('audio.pause()') && audioPreview.includes('mediaRef.current.clear()')],
-  ['media imports create typed clips at the playhead in compatible tracks', mediaImport.includes('start: Math.max(0, state.time)') && mediaImport.includes("kind: isAudio ? 'audio' : isVideo ? 'video' : 'image'") && mediaImport.includes('compatibleTrack(tracks, kind)')],
-  ['media import does not mutate the existing timeline track array', mediaImport.includes('const tracks = [...(state.doc.timelineTracks ?? [])]')],
+  ['main import and drag-drop flow routes audio/video files to the timeline', app.includes("importMediaFilesToTimeline([file])") && app.includes('audio/*,video/*') && app.includes('Drop an SVG, image, audio, video or Animora project')],
+  ['timeline and main import share one media-to-timeline importer', mediaImport.includes('importMediaFilesToTimeline(files)') && mediaImportFlow.includes('export async function importMediaFilesToTimeline')],
+  ['media imports create typed clips at the playhead in compatible tracks', mediaImportFlow.includes('start: Math.max(0, state.time)') && mediaImportFlow.includes("kind: isAudio ? 'audio' : isVideo ? 'video' : 'image'") && mediaImportFlow.includes('compatibleTrack(tracks, kind)')],
+  ['media import does not mutate the existing timeline track array', mediaImportFlow.includes('const tracks = [...(state.doc.timelineTracks ?? [])]')],
   ['media clips support pointer dragging with snap increments', tl.includes("mode: 'move' | 'trim-start' | 'trim-end'") && tl.includes('const rawDelta = (ev.clientX - x0) / pps') && tl.includes('Math.round(rawDelta / step) * step')],
   ['media clip move and trim edges magnetically snap to playhead and neighboring clip edges, with Alt bypass', tl.includes('const snapMediaTime = (time: number') && tl.includes('candidates = [0, state.time]') && tl.includes('snapMediaTime(start0 + delta') && tl.includes("snapMediaTime(proposed, trackId, clipId, 'start', ev.altKey)") && tl.includes("snapMediaTime(proposedEnd, trackId, clipId, 'end', ev.altKey)") && tl.includes('hold Alt to disable snapping')],
   ['media clip movement and trimming respect locked tracks', tl.includes('if (!track || !clip || track.locked) return')],
