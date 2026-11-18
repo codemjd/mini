@@ -112,6 +112,7 @@ const checks = [
   ['portable project import restores media blobs to IndexedDB and remaps clip sources', files.includes('export async function importProjectBundle') && files.includes('storeMediaAssetBlob(blob') && files.includes('clip.source = restored')],
   ['bundle import validates all media paths before writing assets', mediaFiles.includes("!item.path.startsWith('assets/')") && mediaFiles.includes("if (!entries.has(item.path))")],
   ['bundle import rolls back partially restored IndexedDB assets on failure', mediaFiles.includes('restoredKeys.map((key) => deleteMediaAsset(key).catch(() => undefined))') && mediaLibrary.includes('export async function deleteMediaAsset')],
+  ['ZIP reader rejects encrypted entries and inconsistent per-disk entry counts', zip.includes('(flags & ~0x0800) !== 0') && zip.includes('entriesOnDisk !== entryCount')],
   ['ZIP reader rejects unsupported compression and unsafe paths', zip.includes('method !== 0') && zip.includes("name.startsWith('/')") && zip.includes("name.split('/').includes('..')")],
   ['ZIP reader validates end-of-central-directory counts and local offsets', zip.includes('directoryOffset !== offset') && zip.includes('localOffsets.get(name) !== localOffset') && zip.includes('directoryCursor !== endOffset')],
   ['ZIP reader validates each asset CRC before accepting it', zip.includes('crc32(copy) !== view.getUint32(offset + 14, true)')],
