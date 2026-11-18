@@ -80,6 +80,8 @@ export function VisualMediaPreview() {
           continue;
         }
         const sourceTime = Math.max(0, clip.sourceStart + time - clip.start);
+        video.muted = track.muted || clip.muted;
+        video.volume = Math.max(0, Math.min(1, Number.isFinite(clip.volume) ? clip.volume : 1));
         if (Number.isFinite(video.currentTime) && Math.abs(video.currentTime - sourceTime) > 0.3) {
           try { video.currentTime = sourceTime; } catch { /* Wait for metadata. */ }
         }
@@ -110,7 +112,6 @@ export function VisualMediaPreview() {
                   else videoRefs.current.delete(clip.id);
                 }}
                 src={asset.url}
-                muted
                 playsInline
                 preload="auto"
                 onLoadedMetadata={(event) => {
