@@ -324,6 +324,27 @@ export function Timeline() {
     patchDoc({ timelineTracks: tracks.filter((track) => track.id !== id) });
   };
 
+  /** Duplicate a media clip after itself while preserving its source and timing bounds. */
+  const duplicateMediaClip = (trackId: string, clipId: string) => {
+    const state = getState();
+    const track = state.doc.timelineTracks?.find((item) => item.id === trackId);
+    const clip = track?.clips.find((item) => item.id === clipId);
+    if (!track || !clip || track.locked) return;
+    const duplicate = {
+      ...clip,
+      id: uid(),
+      name: clip.name + ' (copy)',
+      start: Math.round((clip.start + clip.duration) * 1000) / 1000,
+    };
+    patchDoc({
+      timelineTracks: (state.doc.timelineTracks ?? []).map((item) => item.id !== trackId ? item : {
+        ...item, clips: [...item.clips, duplicate].sort((a, b) => a.start - b.start),
+      }),
+      duration: Math.max(state.doc.duration, duplicate.start + duplicate.duration),
+    });
+    setSelectedClipId(duplicate.id);
+  };
+
   /** Split a media clip at the playhead while preserving its source-time continuity. */
   const splitMediaClip = (trackId: string, clipId: string) => {
     const state = getState();
@@ -469,7 +490,11 @@ export function Timeline() {
                     onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'move')}
                     onKeyDown={(e) => {
                       if (track.locked) return;
-                      if (e.key.toLowerCase() === 's') {
+                      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        duplicateMediaClip(track.id, clip.id);
+                      } else if (e.key.toLowerCase() === 's') {
                         e.preventDefault();
                         splitMediaClip(track.id, clip.id);
                       } else if (e.key.toLowerCase() === 'm') {
