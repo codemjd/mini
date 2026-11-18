@@ -68,7 +68,7 @@ export function AudioPreview() {
           if (clip.muted || state.time < clip.start || state.time >= clip.start + clip.duration) continue;
           const item = mediaRef.current.get(clip.id);
           if (!item || !item.audio.paused || item.starting) continue;
-          item.audio.currentTime = Math.max(0, clip.sourceStart + state.time - clip.start);
+          try { item.audio.currentTime = Math.max(0, clip.sourceStart + state.time - clip.start); } catch { /* Wait for metadata. */ }
           item.audio.volume = Math.max(0, Math.min(1, Number.isFinite(clip.volume) ? clip.volume : 1));
           item.audio.muted = false;
           item.starting = true;
