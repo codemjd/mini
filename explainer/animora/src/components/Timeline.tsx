@@ -14,6 +14,7 @@ import { EasingEditor } from './EasingEditor';
 import { TYPE_ICON } from './LeftPanel';
 import { useDropdown } from './TopBar';
 import { Icon } from './Icon';
+import { MediaImportButton } from './MediaImportButton';
 
 export const TL_LEFT = 300;
 /** Room before 0s so keyframes at the very start aren't hidden under the layer column. */
@@ -417,6 +418,7 @@ export function Timeline() {
           <Icon name="loop" size={16} />
         </button>
         <div className="media-track-add" aria-label="Add media track">
+          <MediaImportButton />
           <button onClick={() => addMediaTrack('video')} title="Add video track">+ Video</button>
           <button onClick={() => addMediaTrack('audio')} title="Add audio track">+ Audio</button>
           <button onClick={() => addMediaTrack('overlay')} title="Add overlay track">+ Overlay</button>
