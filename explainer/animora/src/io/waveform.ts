@@ -12,13 +12,15 @@ const decoderQueue: (() => void)[] = [];
 async function withDecoderSlot<T>(work: () => Promise<T>): Promise<T> {
   if (activeDecoders >= MAX_CONCURRENT_DECODERS) {
     await new Promise<void>((resolve) => decoderQueue.push(resolve));
+  } else {
+    activeDecoders++;
   }
-  activeDecoders++;
   try {
     return await work();
   } finally {
-    activeDecoders--;
-    decoderQueue.shift()?.();
+    const next = decoderQueue.shift();
+    if (next) next();
+    else activeDecoders--;
   }
 }
 
