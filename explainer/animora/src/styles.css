@@ -1364,6 +1364,45 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
   .scene-transition-controls select { max-width: 92px; }
 }
 
+/* Touch-friendly controls for the currently selected timeline clip. */
+.media-clip-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: min(340px, 38vw);
+  padding: 0 6px;
+  border-left: 1px solid var(--line);
+}
+.media-clip-control-name {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-2);
+  font-size: 10px;
+}
+.media-clip-controls input[type="range"] {
+  width: 76px;
+  min-width: 54px;
+  accent-color: var(--accent);
+}
+.media-clip-volume {
+  min-width: 30px;
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 700px) {
+  .media-clip-controls {
+    max-width: 44vw;
+    gap: 3px;
+    padding-inline: 4px;
+  }
+  .media-clip-control-name { max-width: 62px; }
+  .media-clip-controls input[type="range"] { width: 58px; min-width: 48px; }
+}
+
 /* Independent media timeline lanes */
 .media-track-row { min-height: 38px; }
 .media-track-name { gap: 5px; }
