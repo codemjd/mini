@@ -19,14 +19,14 @@ function openMediaDb(): Promise<IDBDatabase> {
   });
 }
 
-/** Store the original media Blob outside the project JSON and return a stable asset key. */
-export async function storeMediaAsset(file: File): Promise<string> {
+/** Store a media Blob outside project JSON and return a stable asset key. */
+export async function storeMediaAssetBlob(blob: Blob, name: string, type = blob.type): Promise<string> {
   const db = await openMediaDb();
   const key = `media:${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)}`;
   try {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put({ blob: file, name: file.name, type: file.type, size: file.size }, key);
+      tx.objectStore(STORE_NAME).put({ blob, name, type, size: blob.size }, key);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error ?? new Error('Could not save media asset'));
       tx.onabort = () => reject(tx.error ?? new Error('Media asset save was cancelled'));
@@ -35,6 +35,11 @@ export async function storeMediaAsset(file: File): Promise<string> {
   } finally {
     db.close();
   }
+}
+
+/** Store an imported File without converting it to a data URL. */
+export function storeMediaAsset(file: File): Promise<string> {
+  return storeMediaAssetBlob(file, file.name, file.type);
 }
 
 export async function readMediaAsset(key: string): Promise<{ blob: Blob; name: string; type: string } | null> {
