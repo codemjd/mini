@@ -12,7 +12,7 @@ import { frameAt } from './engine/interpolate';
 import { migrateDoc, syncActiveScene } from './model/factory';
 import { readFileAsDataUrl } from './io/importSvg';
 import { importMediaFilesToTimeline, isAudioMediaFile, isVideoMediaFile, isImageMediaFile } from './io/mediaImport';
-import { exportAnimatedSvg, saveProject } from './io/files';
+import { exportAnimatedSvg, importProjectBundle, saveProject } from './io/files';
 import { TopBar, TOOLS } from './components/TopBar';
 import { Canvas } from './components/Canvas';
 import { canvasApi } from './components/canvasApi';
@@ -141,7 +141,10 @@ export default function App() {
     for (const file of Array.from(files)) {
       try {
         const name = file.name.toLowerCase();
-        if (name.endsWith('.json')) {
+        if (name.endsWith('.animora.zip')) {
+          openProjectJson(await importProjectBundle(file));
+          notify(`تم فتح المشروع مع وسائطه: ${file.name}`);
+        } else if (name.endsWith('.json')) {
           openProjectJson(await file.text());
           notify(`Opened ${file.name}`);
         } else if (name.endsWith('.svg') || file.type === 'image/svg+xml') {
