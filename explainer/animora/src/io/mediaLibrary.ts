@@ -57,3 +57,20 @@ export async function readMediaAsset(key: string): Promise<{ blob: Blob; name: s
     db.close();
   }
 }
+
+
+/** Remove an orphaned media asset after a failed bundle restore or explicit cleanup. */
+export async function deleteMediaAsset(key: string): Promise<void> {
+  const db = await openMediaDb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error('Could not remove media asset'));
+      tx.onabort = () => reject(tx.error ?? new Error('Media asset removal was cancelled'));
+    });
+  } finally {
+    db.close();
+  }
+}
