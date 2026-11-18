@@ -28,23 +28,28 @@ function projectTracks(project: Doc): TimelineTrack[][] {
 }
 
 /** Export project JSON and all referenced IndexedDB media into one portable ZIP. */
-export async function exportProjectBundle(doc: Doc): Promise<void> {
+export async function exportProjectBundle(doc: Doc, onProgress: (progress: number) => void = () => undefined): Promise<void> {
   const project = JSON.parse(JSON.stringify(doc)) as Doc;
-  const seen = new Map<string, BundleAsset>();
-  const files: { name: string; data: Uint8Array<ArrayBuffer> }[] = [];
+  const references = new Map<string, string>();
   for (const tracks of projectTracks(project)) {
-    for (const track of tracks) {
-      for (const clip of track.clips) {
-        if (seen.has(clip.source)) continue;
-        const asset = await readMediaAsset(clip.source);
-        if (!asset) throw new Error(`Missing media asset: ${clip.name}. Re-import it before bundling this project.`);
-        const ext = (asset.name.match(/\\.([a-z0-9]{1,8})$/i)?.[1] ?? 'bin').toLowerCase();
-        const path = `assets/media-${seen.size + 1}.${ext}`;
-        seen.set(clip.source, { source: clip.source, path, name: asset.name, type: asset.type });
-        files.push({ name: path, data: new Uint8Array(await asset.blob.arrayBuffer()) });
-      }
+    for (const track of tracks) for (const clip of track.clips) {
+      if (!references.has(clip.source)) references.set(clip.source, clip.name);
     }
   }
+  const seen = new Map<string, BundleAsset>();
+  const files: { name: string; data: Uint8Array<ArrayBuffer> }[] = [];
+  let completed = 0;
+  for (const [source, clipName] of references) {
+    const asset = await readMediaAsset(source);
+    if (!asset) throw new Error(`Missing media asset: ${clipName}. Re-import it before bundling this project.`);
+    const ext = (asset.name.match(/\\.([a-z0-9]{1,8})$/i)?.[1] ?? 'bin').toLowerCase();
+    const path = `assets/media-${seen.size + 1}.${ext}`;
+    seen.set(source, { source, path, name: asset.name, type: asset.type });
+    files.push({ name: path, data: new Uint8Array(await asset.blob.arrayBuffer()) });
+    completed++;
+    onProgress(references.size ? completed / references.size : 1);
+  }
+  if (references.size === 0) onProgress(1);
   const manifest: AnimoraBundle = {
     app: 'animora-bundle',
     version: 1,
