@@ -56,7 +56,7 @@ const checks = [
   ['media clips support pointer dragging with snap increments', tl.includes("mode: 'move' | 'trim-start' | 'trim-end'") && tl.includes('const rawDelta = (ev.clientX - x0) / pps') && tl.includes('Math.round(rawDelta / step) * step')],
   ['media clip move and trim edges magnetically snap to playhead and neighboring clip edges, with Alt bypass', tl.includes('const snapMediaTime = (time: number') && tl.includes('candidates = [0, state.time]') && tl.includes('snapMediaTime(start0 + delta') && tl.includes("snapMediaTime(proposed, trackId, clipId, 'start', ev.altKey)") && tl.includes("snapMediaTime(proposedEnd, trackId, clipId, 'end', ev.altKey)") && tl.includes('hold Alt to disable snapping')],
   ['media clip movement and trimming respect locked tracks', tl.includes('if (!track || !clip || track.locked) return')],
-  ['media clip movement never starts before timeline zero', tl.includes("start = Math.max(0, Math.round((start0 + delta) * 1000) / 1000)")],
+  ['media clip movement never starts before timeline zero', tl.includes("start = Math.max(0, target)") && tl.includes("const target = snapMediaTime(start0 + delta")],
   ['media clip trims preserve a minimum duration and non-negative source offset', tl.includes('duration0 - 0.1, delta') && tl.includes('Math.max(0.1') && tl.includes('sourceStart = Math.max(0')],
   ['media clips retain original source duration for safe trim bounds', types.includes('sourceDuration: number') && mediaImport.includes('sourceDuration: duration') && factory.includes('sourceStart + rawDuration')],
   ['legacy media clips are normalized without exceeding their source duration', factory.includes('Math.min(rawDuration, Math.max(0, sourceDuration - sourceStart))')],
