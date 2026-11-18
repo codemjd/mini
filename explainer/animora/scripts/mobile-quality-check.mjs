@@ -43,7 +43,7 @@ const checks = [
   ['media lanes persist with scene snapshots and restore on scene switch', factory.includes('timelineTracks: doc.timelineTracks ?? createDefaultTimelineTracks()') && scenes.includes('timelineTracks: scene.timelineTracks ?? []')],
   ['duplicating scenes regenerates track and clip identities', scenes.includes('timelineTracks: (source.timelineTracks ?? []).map((track) => ({') && scenes.includes('clips: track.clips.map((clip) => ({ ...clip, id: uid() }))')],
   ['timeline exposes independent video, audio and overlay lane creation controls', tl.includes("addMediaTrack('video')") && tl.includes("addMediaTrack('audio')") && tl.includes("addMediaTrack('overlay')")],
-  ['media lane names, visibility, mute state and lock state are editable', tl.includes('updateMediaTrack(track.id, { name: e.target.value.slice(0, 60) })') && tl.includes('visible: !track.visible') && tl.includes('muted: !track.muted') && tl.includes('locked: !track.locked')],
+  ['media lane names, visibility, mute state and lock state are editable', tl.includes('onBlur={(e) => { const name = e.currentTarget.value.trim().slice(0, 60)') && tl.includes('visible: !track.visible') && tl.includes('muted: !track.muted') && tl.includes('locked: !track.locked')],
   ['media track icons are defined instead of falling back to the generic help icon', ic.includes("film: '") && ic.includes("'volume-2': '") && ic.includes("'volume-x': '")],
   ['media clips are positioned in the timeline using start and duration', tl.includes('clip.start * pps') && tl.includes('clip.duration * pps')],
   ['new projects start with a named scene', factory.includes("sceneSnapshot(doc, id, 'Scene 1')") && factory.includes('doc.activeSceneId = id')],
