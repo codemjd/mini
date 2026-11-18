@@ -20,6 +20,7 @@ const sceneState = readFileSync(new URL('../src/state/scenes.ts', import.meta.ur
 const mediaImport = readFileSync(new URL('../src/components/MediaImportButton.tsx', import.meta.url), 'utf8');
 const mediaImportFlow = readFileSync(new URL('../src/io/mediaImport.ts', import.meta.url), 'utf8');
 const mediaLibrary = readFileSync(new URL('../src/io/mediaLibrary.ts', import.meta.url), 'utf8');
+const mediaFiles = readFileSync(new URL('../src/io/files.ts', import.meta.url), 'utf8');
 const audioPreview = readFileSync(new URL('../src/components/AudioPreview.tsx', import.meta.url), 'utf8');
 const visualPreview = readFileSync(new URL('../src/components/VisualMediaPreview.tsx', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
@@ -109,6 +110,8 @@ const checks = [
   ['export dialog offers an explicit all-scenes option', dialogs.includes('Include all scenes in order') && dialogs.includes('exportWebmScenes(getState().doc, setProgress, fps)')],
   ['portable project export bundles project data and every referenced media asset', files.includes('export async function exportProjectBundle') && files.includes("name: 'manifest.json'") && files.includes('readMediaAsset(clip.source)') && files.includes('assets/media-')],
   ['portable project import restores media blobs to IndexedDB and remaps clip sources', files.includes('export async function importProjectBundle') && files.includes('storeMediaAssetBlob(blob') && files.includes('clip.source = restored')],
+  ['bundle import validates all media paths before writing assets', mediaFiles.includes("!item.path.startsWith('assets/')") && mediaFiles.includes("if (!entries.has(item.path))")],
+  ['bundle import rolls back partially restored IndexedDB assets on failure', mediaFiles.includes('restoredKeys.map((key) => deleteMediaAsset(key).catch(() => undefined))') && mediaLibrary.includes('export async function deleteMediaAsset')],
   ['ZIP reader rejects unsupported compression and unsafe paths', zip.includes('method !== 0') && zip.includes("name.startsWith('/')") && zip.includes("name.split('/').includes('..')")],
   ['ZIP reader validates each asset CRC before accepting it', zip.includes('crc32(copy) !== view.getUint32(offset + 14, true)')],
   ['main file picker can open portable project bundles', app.includes("name.endsWith('.animora.zip')") && app.includes('importProjectBundle(file)') && app.includes('accept=".json,.animora.zip,application/json,application/zip"')],
