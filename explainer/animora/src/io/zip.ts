@@ -89,6 +89,7 @@ export async function unzipStored(blob: Blob): Promise<Map<string, Uint8Array<Ar
     }
     const copy = new Uint8Array(size);
     copy.set(bytes.subarray(dataStart, dataEnd));
+    if (crc32(copy) !== view.getUint32(offset + 14, true)) throw new Error(`Project bundle file failed its integrity check: ${name}`);
     files.set(name, copy);
     offset = dataEnd;
   }
