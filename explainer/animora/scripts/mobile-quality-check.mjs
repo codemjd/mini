@@ -20,6 +20,7 @@ const sceneState = readFileSync(new URL('../src/state/scenes.ts', import.meta.ur
 const mediaImport = readFileSync(new URL('../src/components/MediaImportButton.tsx', import.meta.url), 'utf8');
 const mediaLibrary = readFileSync(new URL('../src/io/mediaLibrary.ts', import.meta.url), 'utf8');
 const audioPreview = readFileSync(new URL('../src/components/AudioPreview.tsx', import.meta.url), 'utf8');
+const visualPreview = readFileSync(new URL('../src/components/VisualMediaPreview.tsx', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
 const checks = [
@@ -52,6 +53,12 @@ const checks = [
   ['timeline exposes the media import control', tl.includes('MediaImportButton') && mediaImport.includes('Import media')],
   ['media import accepts audio, video and image files with a bounded size', mediaImport.includes('audio/*,video/*,image/*') && mediaImport.includes('250 * 1024 * 1024')],
   ['original media blobs are stored in IndexedDB outside project JSON', mediaLibrary.includes("indexedDB.open(DB_NAME, DB_VERSION)") && mediaImport.includes('storeMediaAsset(file)') && !mediaImport.includes('readAsDataURL')],
+  ['visual media preview is integrated into the SVG artboard below vector layers', canvas.includes("import { VisualMediaPreview } from './VisualMediaPreview'") && canvas.includes('<VisualMediaPreview />') && canvas.includes('className="artboard"')],
+  ['visual media preview resolves image and video blobs from the local media library', visualPreview.includes('readMediaAsset(clip.source)') && visualPreview.includes("clip.kind === 'video' || clip.kind === 'image'") && visualPreview.includes('URL.createObjectURL(asset.blob)')],
+  ['image clips render as aspect-preserving artboard images', visualPreview.includes('<image key={clip.id}') && visualPreview.includes('preserveAspectRatio="xMidYMid meet"')],
+  ['video clips render in a muted inline SVG foreignObject layer', visualPreview.includes('<foreignObject key={clip.id}') && visualPreview.includes('<video') && visualPreview.includes('muted') && visualPreview.includes('playsInline')],
+  ['video preview follows clip source offsets, playhead and transport state', visualPreview.includes('clip.sourceStart + time - clip.start') && visualPreview.includes('video.currentTime = sourceTime') && visualPreview.includes('if (playing)')],
+  ['visual media preview hides inactive or invisible tracks and releases object URLs', visualPreview.includes('!track.visible') && visualPreview.includes('video.pause()') && visualPreview.includes('URL.revokeObjectURL(asset.url)')],
   ['audio preview is mounted in the editor transport', app.includes("import { AudioPreview } from './components/AudioPreview'") && app.includes('<AudioPreview />')],
   ['audio preview resolves stored media blobs into revocable object URLs', audioPreview.includes('readMediaAsset(clip.source)') && audioPreview.includes('URL.createObjectURL(asset.blob)') && audioPreview.includes('URL.revokeObjectURL(item.url)')],
   ['audio preview synchronizes active clips to source time and transport state', audioPreview.includes('clip.sourceStart + time - clip.start') && audioPreview.includes('playing && !track.muted && !clip.muted') && audioPreview.includes('audio.currentTime = target')],
