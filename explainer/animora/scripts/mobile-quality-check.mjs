@@ -23,6 +23,8 @@ const mediaImportFlow = readFileSync(new URL('../src/io/mediaImport.ts', import.
 const mediaLibrary = readFileSync(new URL('../src/io/mediaLibrary.ts', import.meta.url), 'utf8');
 const mediaFiles = readFileSync(new URL('../src/io/files.ts', import.meta.url), 'utf8');
 const audioPreview = readFileSync(new URL('../src/components/AudioPreview.tsx', import.meta.url), 'utf8');
+const waveform = readFileSync(new URL('../src/io/waveform.ts', import.meta.url), 'utf8');
+const waveformView = readFileSync(new URL('../src/components/MediaWaveform.tsx', import.meta.url), 'utf8');
 const visualPreview = readFileSync(new URL('../src/components/VisualMediaPreview.tsx', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const zip = readFileSync(new URL('../src/io/zip.ts', import.meta.url), 'utf8');
@@ -76,6 +78,8 @@ const checks = [
   ['video preview follows clip source offsets, playhead and transport state', visualPreview.includes('clip.sourceStart + time - clip.start') && visualPreview.includes('video.currentTime = sourceTime') && visualPreview.includes('if (playing)')],
   ['visual media preview hides inactive or invisible tracks and releases object URLs', visualPreview.includes('!track.visible') && visualPreview.includes('video.pause()') && visualPreview.includes('URL.revokeObjectURL(asset.url)')],
   ['audio preview is mounted in the editor transport', app.includes("import { AudioPreview } from './components/AudioPreview'") && app.includes('<AudioPreview />')],
+  ['audio waveform extraction is cached and bounded for mobile memory', waveform.includes('const cache = new Map<string, Promise<number[] | null>>()') && waveform.includes('MAX_DECODE_BYTES = 20 * 1024 * 1024') && waveform.includes('PEAK_COUNT = 256') && waveform.includes('context.close()')],
+  ['audio timeline clips render waveform for the trimmed source interval', tl.includes('<MediaWaveform source={clip.source}') && waveformView.includes('(sourceStart + duration) / sourceLength') && css.includes('.media-waveform')],
   ['audio preview resolves stored media blobs into revocable object URLs', audioPreview.includes('readMediaAsset(clip.source)') && audioPreview.includes('URL.createObjectURL(asset.blob)') && audioPreview.includes('URL.revokeObjectURL(item.url)')],
   ['transport starts audio in the direct user gesture to satisfy mobile playback policies', tl.includes("window.dispatchEvent(new Event('animora:media-play'))") && audioPreview.includes("window.addEventListener('animora:media-play', startFromGesture)")],
   ['transport starts video in the direct user gesture and handles blocked playback', visualPreview.includes("window.addEventListener('animora:media-play', startFromGesture)") && visualPreview.includes('video.play().catch')],
