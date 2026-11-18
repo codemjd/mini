@@ -200,7 +200,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 <button className="btn" onClick={() => exportPng(getState().doc, getState().time)}>PNG of current frame (2×)</button>
                 <button className="btn" onClick={() => exportStaticSvg(getState().doc, getState().time)}>Static SVG of current frame</button>
                 <button className="btn" onClick={() => saveProject(getState().doc)}>Project file (.animora.json)</button>
-                <button className="btn primary" disabled={busy} onClick={() => run(() => exportProjectBundle(getState().doc))}>Portable project + media (.animora.zip)</button>
+                <button className="btn primary" disabled={busy} onClick={() => run(() => exportProjectBundle(getState().doc, setProgress))}>Portable project + media (.animora.zip)</button>
               </div>
             </>
           )}
