@@ -58,6 +58,7 @@ const checks = [
   ['scene strip exposes accessible scene controls', sceneBar.includes('aria-label="Scenes"') && sceneBar.includes('aria-label="Add scene"') && sceneBar.includes('aria-pressed={scene.id === activeId}')],
   ['sequential playback advances to the next scene when preview looping is off', scenes.includes('export function advanceSceneForPlayback(): boolean') && scenes.includes('const next = scenes[index + 1]') && scenes.includes('time: 0')],
   ['scene sequence playback keeps transport running across a scene boundary', app.includes('advanceSceneForPlayback()') && app.includes('raf = requestAnimationFrame(tick)')],
+  ['scene sequence playback carries delayed-frame overflow into following scenes', app.includes('let overflow = t - D') && app.includes('overflow -= nextDuration') && app.includes('if (!advanced)')],
   ['playback clamps malformed scene durations before modulo arithmetic', app.includes('Number.isFinite(s.doc.duration) ? Math.max(0.01, s.doc.duration) : 0.01')],
   ['scene strip has mobile touch targets', css.includes('.scene-bar') && css.includes('.scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order { min-width: 36px')],
 ];
