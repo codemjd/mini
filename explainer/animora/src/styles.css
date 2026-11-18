@@ -1413,6 +1413,8 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
   user-select: none;
 }
 .media-clip:active { cursor: grabbing; }
+.media-clip.selected { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+.media-clip:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
 .media-clip.disabled { opacity: .65; cursor: not-allowed; }
 .media-clip.audio { border-color: #2aaf87; background: color-mix(in srgb, #2aaf87 24%, var(--panel-2)); }
 .media-clip-label { display: block; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
