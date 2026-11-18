@@ -252,7 +252,7 @@ export function Timeline() {
         sourceStart = Math.max(0, Math.round((sourceStart0 + actual) * 1000) / 1000);
       } else {
         const availableSource = Math.max(0, clip.sourceDuration - sourceStart0);
-        duration = Math.max(0.1, Math.min(availableSource, Math.round((duration0 + delta) * 1000) / 1000));
+        duration = Math.min(availableSource, Math.max(0.1, Math.round((duration0 + delta) * 1000) / 1000));
       }
       const tracks = getState().doc.timelineTracks ?? [];
       patchDoc({ timelineTracks: tracks.map((item) => item.id !== trackId ? item : {
