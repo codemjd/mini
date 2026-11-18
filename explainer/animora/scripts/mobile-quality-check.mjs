@@ -17,6 +17,8 @@ const scenes = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 
 const files = readFileSync(new URL('../src/io/files.ts', import.meta.url), 'utf8');
 const assets = readFileSync(new URL('../src/model/assets.ts', import.meta.url), 'utf8');
 const sceneState = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
+const mediaImport = readFileSync(new URL('../src/components/MediaImportButton.tsx', import.meta.url), 'utf8');
+const mediaLibrary = readFileSync(new URL('../src/io/mediaLibrary.ts', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
 const checks = [
@@ -46,6 +48,11 @@ const checks = [
   ['media lane names, visibility, mute state and lock state are editable', tl.includes('onBlur={(e) => { const name = e.currentTarget.value.trim().slice(0, 60)') && tl.includes('visible: !track.visible') && tl.includes('muted: !track.muted') && tl.includes('locked: !track.locked')],
   ['media track icons are defined instead of falling back to the generic help icon', ic.includes("film: '") && ic.includes("'volume-2': '") && ic.includes("'volume-x': '")],
   ['media clips are positioned in the timeline using start and duration', tl.includes('clip.start * pps') && tl.includes('clip.duration * pps')],
+  ['timeline exposes the media import control', tl.includes('MediaImportButton') && mediaImport.includes('Import media')],
+  ['media import accepts audio, video and image files with a bounded size', mediaImport.includes('audio/*,video/*,image/*') && mediaImport.includes('250 * 1024 * 1024')],
+  ['original media blobs are stored in IndexedDB outside project JSON', mediaLibrary.includes("indexedDB.open(DB_NAME, DB_VERSION)") && mediaImport.includes('storeMediaAsset(file)') && !mediaImport.includes('readAsDataURL')],
+  ['media imports create typed clips at the playhead in compatible tracks', mediaImport.includes('start: Math.max(0, state.time)') && mediaImport.includes("kind: isAudio ? 'audio' : isVideo ? 'video' : 'image'") && mediaImport.includes('compatibleTrack(tracks, kind)')],
+  ['media import does not mutate the existing timeline track array', mediaImport.includes('const tracks = [...(state.doc.timelineTracks ?? [])]')],
   ['media clips support pointer dragging with snap increments', tl.includes("mode: 'move' | 'trim-start' | 'trim-end'") && tl.includes('const rawDelta = (ev.clientX - x0) / pps') && tl.includes('Math.round(rawDelta / step) * step')],
   ['media clip movement and trimming respect locked tracks', tl.includes('if (!track || !clip || track.locked) return')],
   ['media clip movement never starts before timeline zero', tl.includes("start = Math.max(0, Math.round((start0 + delta) * 1000) / 1000)")],
