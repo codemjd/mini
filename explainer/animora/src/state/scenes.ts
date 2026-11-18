@@ -36,6 +36,23 @@ export function switchScene(id: string) {
   });
 }
 
+/** Advance sequential preview playback to the next scene without stopping transport. */
+export function advanceSceneForPlayback(): boolean {
+  const state = getState();
+  const doc = syncActiveScene(state.doc);
+  const scenes = doc.scenes ?? [];
+  const index = scenes.findIndex((scene) => scene.id === doc.activeSceneId);
+  if (index < 0 || index >= scenes.length - 1) return false;
+
+  const next = scenes[index + 1];
+  setState({
+    doc: applyScene(doc, next),
+    selection: [], selectedKfs: [], scope: null, time: 0,
+    past: [], future: [], histKey: null,
+  });
+  return true;
+}
+
 export function addScene() {
   const state = getState();
   const current = syncActiveScene(state.doc);
