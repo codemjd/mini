@@ -9,6 +9,7 @@ const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const sceneBar = readFileSync(new URL('../src/components/SceneBar.tsx', import.meta.url), 'utf8');
 const canvas = readFileSync(new URL('../src/components/Canvas.tsx', import.meta.url), 'utf8');
 const tl = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8');
+const ic = readFileSync(new URL('../src/components/Icon.tsx', import.meta.url), 'utf8');
 const factory = readFileSync(new URL('../src/model/factory.ts', import.meta.url), 'utf8');
 const actions = readFileSync(new URL('../src/state/actions.ts', import.meta.url), 'utf8');
 const types = readFileSync(new URL('../src/model/types.ts', import.meta.url), 'utf8');
