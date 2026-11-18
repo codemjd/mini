@@ -66,6 +66,7 @@ export async function unzipStored(blob: Blob): Promise<Map<string, Uint8Array<Ar
   const bytes = new Uint8Array(buffer);
   const decoder = new TextDecoder();
   const files = new Map<string, Uint8Array<ArrayBuffer>>();
+  const localOffsets = new Map<string, number>();
   let offset = 0;
   while (offset + 4 <= view.byteLength && view.getUint32(offset, true) === 0x04034b50) {
     if (files.size >= 10000) throw new Error('Project bundle contains too many files.');
@@ -91,8 +92,40 @@ export async function unzipStored(blob: Blob): Promise<Map<string, Uint8Array<Ar
     copy.set(bytes.subarray(dataStart, dataEnd));
     if (crc32(copy) !== view.getUint32(offset + 14, true)) throw new Error(`Project bundle file failed its integrity check: ${name}`);
     files.set(name, copy);
+    localOffsets.set(name, offset);
     offset = dataEnd;
   }
   if (!files.size) throw new Error('No supported project files were found in this ZIP.');
+  const endOffset = view.byteLength - 22;
+  if (endOffset < offset || view.getUint32(endOffset, true) !== 0x06054b50) {
+    throw new Error('Project bundle ZIP directory is missing or damaged.');
+  }
+  const entryCount = view.getUint16(endOffset + 10, true);
+  const directorySize = view.getUint32(endOffset + 12, true);
+  const directoryOffset = view.getUint32(endOffset + 16, true);
+  if (view.getUint16(endOffset + 4, true) !== 0 || view.getUint16(endOffset + 6, true) !== 0
+    || entryCount !== files.size || directoryOffset !== offset || directoryOffset + directorySize !== endOffset) {
+    throw new Error('Project bundle ZIP directory does not match its file entries.');
+  }
+  let directoryCursor = directoryOffset;
+  for (let index = 0; index < entryCount; index++) {
+    if (directoryCursor + 46 > endOffset || view.getUint32(directoryCursor, true) !== 0x02014b50) {
+      throw new Error('Project bundle ZIP directory contains an invalid entry.');
+    }
+    const nameLength = view.getUint16(directoryCursor + 28, true);
+    const extraLength = view.getUint16(directoryCursor + 30, true);
+    const commentLength = view.getUint16(directoryCursor + 32, true);
+    const name = decoder.decode(bytes.subarray(directoryCursor + 46, directoryCursor + 46 + nameLength));
+    const localOffset = view.getUint32(directoryCursor + 42, true);
+    const data = files.get(name);
+    if (!data || localOffsets.get(name) !== localOffset
+      || view.getUint32(directoryCursor + 16, true) !== crc32(data)
+      || view.getUint32(directoryCursor + 20, true) !== data.length
+      || view.getUint32(directoryCursor + 24, true) !== data.length) {
+      throw new Error('Project bundle ZIP directory failed its integrity check.');
+    }
+    directoryCursor += 46 + nameLength + extraLength + commentLength;
+  }
+  if (directoryCursor !== endOffset) throw new Error('Project bundle ZIP directory has unexpected trailing data.');
   return files;
 }
