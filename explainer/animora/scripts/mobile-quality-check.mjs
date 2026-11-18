@@ -12,6 +12,7 @@ const actions = readFileSync(new URL('../src/state/actions.ts', import.meta.url)
 const types = readFileSync(new URL('../src/model/types.ts', import.meta.url), 'utf8');
 const scenes = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
 const files = readFileSync(new URL('../src/io/files.ts', import.meta.url), 'utf8');
+const assets = readFileSync(new URL('../src/model/assets.ts', import.meta.url), 'utf8');
 const sceneState = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
@@ -44,6 +45,7 @@ const checks = [
   ['scene ordering moves a scene without changing its identity', scenes.includes('export function moveScene(id: string, direction: -1 | 1)') && scenes.includes('[reordered[index], reordered[target]] = [reordered[target], reordered[index]]')],
   ['video export can render all scenes in project order', files.includes('export async function exportWebmScenes') && files.includes('const sceneDocs = scenes.map((scene) => sceneDocument(doc, scene))') && files.includes('for (let sceneIndex = 0; sceneIndex < sceneDocs.length; sceneIndex++)')],
   ['export dialog offers an explicit all-scenes option', dialogs.includes('Include all scenes in order') && dialogs.includes('exportWebmScenes(getState().doc, setProgress, fps)')],
+  ['built-in asset library excludes living-character artwork', !assets.includes("id: 'characters'") && !assets.includes('const CHARACTERS: Asset[]')],
   ['scene transition types include all planned entrance styles', types.includes("'slide-left'") && types.includes("'slide-right'") && types.includes("'slide-up'") && types.includes("'slide-down'") && types.includes("'zoom-in'") && types.includes("'zoom-out'") && types.includes("'wipe'") && types.includes("'dissolve'")],
   ['older scene data receives a safe default transition', factory.includes('normalizeSceneTransition(scene.transitionIn)') && factory.includes('DEFAULT_SCENE_TRANSITION')],
   ['transition settings are editable and saved per scene', sceneBar.includes('aria-label="Transition into active scene"') && sceneBar.includes('aria-label="Transition duration in seconds"') && sceneState.includes('export function setSceneTransition')],
