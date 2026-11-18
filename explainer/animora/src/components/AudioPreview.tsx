@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useStore, notify } from '../state/store';
+import { useStore, getState, notify } from '../state/store';
 import { readMediaAsset } from '../io/mediaLibrary';
 import type { TimelineClip, TimelineTrack } from '../model/types';
 
@@ -56,6 +56,28 @@ export function AudioPreview() {
     }));
 
     return () => { cancelled = true; };
+  }, [tracks]);
+
+  useEffect(() => {
+    const startFromGesture = () => {
+      const state = getState();
+      if (!state.playing) return;
+      for (const track of state.doc.timelineTracks ?? []) {
+        if (track.kind !== 'audio' || track.muted) continue;
+        for (const clip of track.clips) {
+          if (clip.muted || state.time < clip.start || state.time >= clip.start + clip.duration) continue;
+          const item = mediaRef.current.get(clip.id);
+          if (!item || !item.audio.paused || item.starting) continue;
+          item.audio.currentTime = Math.max(0, clip.sourceStart + state.time - clip.start);
+          item.audio.volume = Math.max(0, Math.min(1, Number.isFinite(clip.volume) ? clip.volume : 1));
+          item.audio.muted = false;
+          item.starting = true;
+          void item.audio.play().then(() => { item.starting = false; }).catch(() => { item.starting = false; });
+        }
+      }
+    };
+    window.addEventListener('animora:media-play', startFromGesture);
+    return () => window.removeEventListener('animora:media-play', startFromGesture);
   }, [tracks]);
 
   useEffect(() => {
