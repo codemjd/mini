@@ -69,7 +69,9 @@ export default function App() {
     let last = performance.now();
     const tick = (now: number) => {
       const s = getState();
-      // Imported or legacy projects may contain a zero/non-finite duration.\n      // Keep modulo and transport time finite even when project data is malformed.\n      const D = Number.isFinite(s.doc.duration) ? Math.max(0.01, s.doc.duration) : 0.01;
+      // Imported or legacy projects may contain a zero/non-finite duration.
+      // Keep modulo and transport time finite even when project data is malformed.
+      const D = Number.isFinite(s.doc.duration) ? Math.max(0.01, s.doc.duration) : 0.01;
       let t = s.time + (now - last) / 1000;
       last = now;
       if (t >= D) {
