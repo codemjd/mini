@@ -891,7 +891,8 @@ export function Canvas({ onImport }: { onImport: () => void }) {
           </>
         )}
         <g className={"content " + (scope ? "scoped" : "")}
-          style={transitionProgress !== null ? { opacity: transition.type === 'fade' || transition.type.startsWith('zoom-') || transition.type === 'dissolve' ? progress : 1, transform: transitionTransform } : undefined}
+          style={transitionProgress !== null ? { opacity: transition.type === 'fade' || transition.type.startsWith('zoom-') || transition.type === 'dissolve' ? progress : 1 } : undefined}
+          transform={transitionProgress !== null ? transitionTransform : undefined}
           clipPath={transitionProgress !== null && transition.type === 'wipe' ? 'url(#__scene-preview-wipe)' : undefined}
           dangerouslySetInnerHTML={{ __html: editorMarkup(doc.elements, time) }} />
         {view.showGrid && <rect width={doc.width} height={doc.height} fill="url(#__grid)" pointerEvents="none" />}
