@@ -221,6 +221,29 @@ export function Timeline() {
     );
   };
 
+  /** Snap media clip edges to the playhead, timeline zero and neighboring clip edges. Alt temporarily disables snapping. */
+  const snapMediaTime = (time: number, trackId: string, clipId: string, edge: 'start' | 'end', disabled: boolean) => {
+    if (disabled) return time;
+    const state = getState();
+    const candidates = [0, state.time];
+    for (const track of state.doc.timelineTracks ?? []) {
+      for (const clip of track.clips) {
+        if (track.id === trackId && clip.id === clipId) continue;
+        candidates.push(clip.start, clip.start + clip.duration);
+      }
+    }
+    let best = time;
+    let distance = 8 / pps;
+    for (const candidate of candidates) {
+      const nextDistance = Math.abs(candidate - time);
+      if (nextDistance <= distance) {
+        distance = nextDistance;
+        best = candidate;
+      }
+    }
+    return Math.round(best * 1000) / 1000;
+  };
+
   /** Move or trim a media clip while preserving non-negative source and timeline offsets. */
   const startClipEdit = (e: React.PointerEvent, trackId: string, clipId: string, mode: 'move' | 'trim-start' | 'trim-end') => {
     e.stopPropagation();
@@ -243,16 +266,23 @@ export function Timeline() {
       let duration = duration0;
       let sourceStart = sourceStart0;
       if (mode === 'move') {
-        start = Math.max(0, Math.round((start0 + delta) * 1000) / 1000);
+        const target = snapMediaTime(start0 + delta, trackId, clipId, 'start', ev.altKey);
+        start = Math.max(0, target);
       } else if (mode === 'trim-start') {
-        const applied = Math.max(-sourceStart0, Math.min(duration0 - 0.1, delta));
-        start = Math.max(0, Math.round((start0 + applied) * 1000) / 1000);
+        const minStart = Math.max(0, start0 - sourceStart0);
+        const maxStart = start0 + duration0 - 0.1;
+        const proposed = Math.max(minStart, Math.min(maxStart, start0 + delta));
+        start = Math.max(minStart, Math.min(maxStart, snapMediaTime(proposed, trackId, clipId, 'start', ev.altKey)));
         const actual = start - start0;
         duration = Math.max(0.1, Math.round((duration0 - actual) * 1000) / 1000);
         sourceStart = Math.max(0, Math.round((sourceStart0 + actual) * 1000) / 1000);
       } else {
         const availableSource = Math.max(0, clip.sourceDuration - sourceStart0);
-        duration = Math.min(availableSource, Math.max(0.1, Math.round((duration0 + delta) * 1000) / 1000));
+        const minEnd = start0 + 0.1;
+        const maxEnd = start0 + availableSource;
+        const proposedEnd = Math.max(minEnd, Math.min(maxEnd, start0 + duration0 + delta));
+        const snappedEnd = snapMediaTime(proposedEnd, trackId, clipId, 'end', ev.altKey);
+        duration = Math.min(availableSource, Math.max(0.1, Math.round((Math.max(minEnd, Math.min(maxEnd, snappedEnd)) - start0) * 1000) / 1000));
       }
       const tracks = getState().doc.timelineTracks ?? [];
       patchDoc({ timelineTracks: tracks.map((item) => item.id !== trackId ? item : {
@@ -421,7 +451,7 @@ export function Timeline() {
                 {track.clips.map((clip) => (
                   <div key={clip.id} className={`media-clip ${clip.kind} ${track.locked ? 'disabled' : ''} ${selectedClipId === clip.id ? 'selected' : ''}`}
                     style={{ left: PAD + clip.start * pps, width: Math.max(3, clip.duration * pps) }}
-                    title={`${clip.name} · ${clip.start.toFixed(2)}s · ${clip.duration.toFixed(2)}s · Press S to split at playhead`}
+                    title={`${clip.name} · ${clip.start.toFixed(2)}s · ${clip.duration.toFixed(2)}s · Press S to split at playhead · hold Alt to disable snapping`}
                     role="button" tabIndex={track.locked ? -1 : 0} aria-label={`${clip.name}, starts at ${clip.start.toFixed(2)} seconds, duration ${clip.duration.toFixed(2)} seconds`}
                     onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'move')}
                     onKeyDown={(e) => {
