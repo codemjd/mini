@@ -23,6 +23,7 @@ import { RightPanel } from './components/RightPanel';
 import { ContextMenu } from './components/ContextMenu';
 import { ExportDialog, HelpDialog, WelcomeDialog } from './components/Dialogs';
 import { Icon } from './components/Icon';
+import { AudioPreview } from './components/AudioPreview';
 
 const isTyping = (e: KeyboardEvent) => {
   const t = e.target as HTMLElement;
@@ -312,6 +313,7 @@ export default function App() {
       )}
       <div className="tl-resizer" onPointerDown={startResize} title="Drag to resize the timeline" />
       <Timeline />
+      <AudioPreview />
 
       <input ref={openRef} type="file" accept=".json,application/json" hidden onChange={(e) => { e.target.files && importFiles(e.target.files); e.target.value = ''; }} />
       <input ref={importRef} type="file" accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp" multiple hidden onChange={(e) => { e.target.files && importFiles(e.target.files); e.target.value = ''; }} />
