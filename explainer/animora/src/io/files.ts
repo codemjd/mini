@@ -1,5 +1,7 @@
-import type { Doc, Scene, SceneTransitionType } from '../model/types';
+import type { Doc, Scene, SceneTransitionType, TimelineTrack } from '../model/types';
 import { exportSvg } from '../engine/render';
+import { zip, unzipStored } from './zip';
+import { readMediaAsset, storeMediaAssetBlob } from './mediaLibrary';
 
 export function download(data: Blob | string, filename: string, type = 'application/octet-stream') {
   const blob = typeof data === 'string' ? new Blob([data], { type }) : data;
@@ -14,6 +16,78 @@ export function download(data: Blob | string, filename: string, type = 'applicat
 }
 
 export const safeName = (doc: Doc) => (doc.name || 'animation').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'animation';
+
+type BundleAsset = { source: string; path: string; name: string; type: string };
+type AnimoraBundle = { app: 'animora-bundle'; version: 1; project: Doc; assets: BundleAsset[] };
+
+function projectTracks(project: Doc): TimelineTrack[][] {
+  return [
+    project.timelineTracks ?? [],
+    ...(project.scenes ?? []).map((scene) => scene.timelineTracks ?? []),
+  ];
+}
+
+/** Export project JSON and all referenced IndexedDB media into one portable ZIP. */
+export async function exportProjectBundle(doc: Doc): Promise<void> {
+  const project = JSON.parse(JSON.stringify(doc)) as Doc;
+  const seen = new Map<string, BundleAsset>();
+  const files: { name: string; data: Uint8Array<ArrayBuffer> }[] = [];
+  for (const tracks of projectTracks(project)) {
+    for (const track of tracks) {
+      for (const clip of track.clips) {
+        if (seen.has(clip.source)) continue;
+        const asset = await readMediaAsset(clip.source);
+        if (!asset) throw new Error(`Missing media asset: ${clip.name}. Re-import it before bundling this project.`);
+        const ext = (asset.name.match(/\\.([a-z0-9]{1,8})$/i)?.[1] ?? 'bin').toLowerCase();
+        const path = `assets/media-${seen.size + 1}.${ext}`;
+        seen.set(clip.source, { source: clip.source, path, name: asset.name, type: asset.type });
+        files.push({ name: path, data: new Uint8Array(await asset.blob.arrayBuffer()) });
+      }
+    }
+  }
+  const manifest: AnimoraBundle = {
+    app: 'animora-bundle',
+    version: 1,
+    project,
+    assets: [...seen.values()],
+  };
+  files.unshift({ name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(manifest)) });
+  download(zip(files), `${safeName(doc)}.animora.zip`, 'application/zip');
+}
+
+/** Restore a portable Animora bundle into this browser's media library and return project JSON. */
+export async function importProjectBundle(file: Blob): Promise<string> {
+  const entries = await unzipStored(file);
+  const manifestFile = entries.get('manifest.json');
+  if (!manifestFile) throw new Error('This ZIP is not an Animora project bundle (manifest.json is missing).');
+  let manifest: AnimoraBundle;
+  try {
+    manifest = JSON.parse(new TextDecoder().decode(manifestFile)) as AnimoraBundle;
+  } catch {
+    throw new Error('The Animora project manifest is invalid.');
+  }
+  if (manifest.app !== 'animora-bundle' || manifest.version !== 1 || !manifest.project || !Array.isArray(manifest.assets)) {
+    throw new Error('Unsupported or invalid Animora project bundle.');
+  }
+  const sourceMap = new Map<string, string>();
+  for (const item of manifest.assets) {
+    const data = entries.get(item.path);
+    if (!data) throw new Error(`The project bundle is missing ${item.path}.`);
+    const blob = new Blob([data], { type: item.type || 'application/octet-stream' });
+    sourceMap.set(item.source, await storeMediaAssetBlob(blob, item.name || item.path, item.type || blob.type));
+  }
+  const project = manifest.project;
+  for (const tracks of projectTracks(project)) {
+    for (const track of tracks) {
+      for (const clip of track.clips) {
+        const restored = sourceMap.get(clip.source);
+        if (!restored) throw new Error(`No bundled media was found for “${clip.name}”.`);
+        clip.source = restored;
+      }
+    }
+  }
+  return JSON.stringify(project);
+}
 
 export function saveProject(doc: Doc) {
   download(JSON.stringify({ app: 'animora', ...doc }, null, 1), `${safeName(doc)}.animora.json`, 'application/json');
