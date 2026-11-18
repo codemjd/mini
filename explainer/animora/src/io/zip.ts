@@ -77,7 +77,7 @@ export async function unzipStored(blob: Blob): Promise<Map<string, Uint8Array<Ar
     const size = view.getUint32(offset + 22, true);
     const nameLength = view.getUint16(offset + 26, true);
     const extraLength = view.getUint16(offset + 28, true);
-    if ((flags & 0x08) !== 0 || method !== 0 || compressedSize !== size) {
+    if ((flags & ~0x0800) !== 0 || method !== 0 || compressedSize !== size) {
       throw new Error('This ZIP uses compression or data descriptors not supported by Animora bundles.');
     }
     const nameStart = offset + 30;
@@ -101,10 +101,11 @@ export async function unzipStored(blob: Blob): Promise<Map<string, Uint8Array<Ar
     throw new Error('Project bundle ZIP directory is missing or damaged.');
   }
   const entryCount = view.getUint16(endOffset + 10, true);
+  const entriesOnDisk = view.getUint16(endOffset + 8, true);
   const directorySize = view.getUint32(endOffset + 12, true);
   const directoryOffset = view.getUint32(endOffset + 16, true);
   if (view.getUint16(endOffset + 4, true) !== 0 || view.getUint16(endOffset + 6, true) !== 0
-    || entryCount !== files.size || directoryOffset !== offset || directoryOffset + directorySize !== endOffset) {
+    || entriesOnDisk !== entryCount || entryCount !== files.size || directoryOffset !== offset || directoryOffset + directorySize !== endOffset) {
     throw new Error('Project bundle ZIP directory does not match its file entries.');
   }
   let directoryCursor = directoryOffset;
