@@ -327,6 +327,11 @@ export function Timeline() {
                 <input aria-label={track.name + ' track name'} value={track.name}
                   onChange={(e) => updateMediaTrack(track.id, { name: e.target.value.slice(0, 60) })}
                   onPointerDown={(e) => e.stopPropagation()} />
+                <button className={`mini ${track.visible ? 'on' : 'off'}`} title={track.visible ? 'Hide track' : 'Show track'}
+                  aria-label={track.visible ? 'Hide ' + track.name : 'Show ' + track.name}
+                  onClick={() => updateMediaTrack(track.id, { visible: !track.visible })}>
+                  <Icon name={track.visible ? 'eye' : 'eyeOff'} />
+                </button>
                 <button className={`mini ${track.muted ? 'off' : 'on'}`} title={track.muted ? 'Unmute track' : 'Mute track'}
                   aria-label={track.muted ? 'Unmute ' + track.name : 'Mute ' + track.name}
                   onClick={() => updateMediaTrack(track.id, { muted: !track.muted })}>
