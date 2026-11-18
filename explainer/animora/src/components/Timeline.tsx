@@ -34,7 +34,10 @@ function popAbove(el: HTMLElement | null): React.CSSProperties {
 export function togglePlay() {
   const s = getState();
   if (!s.playing && s.time >= s.doc.duration - 1e-3) setState({ time: 0 });
-  setState({ playing: !s.playing });
+  const shouldPlay = !s.playing;
+  setState({ playing: shouldPlay });
+  // Start media synchronously in the user's gesture so mobile autoplay policies can authorize it.
+  if (shouldPlay) window.dispatchEvent(new Event('animora:media-play'));
 }
 
 type KfGroup = { t: number; refs: KfRef[] };
