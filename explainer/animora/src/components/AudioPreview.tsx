@@ -3,12 +3,15 @@ import { useStore, notify } from '../state/store';
 import { readMediaAsset } from '../io/mediaLibrary';
 import type { TimelineClip } from '../model/types';
 
+const EMPTY_TRACKS: ReturnType<typeof useStore.getState>['doc']['timelineTracks'] = [];
+
 /**
  * Keeps audio timeline clips synchronized with the editor transport.
  * One HTMLAudioElement is retained per clip so scrubbing does not recreate decoders.
  */
 export function AudioPreview() {
-  const tracks = useStore((s) => s.doc.timelineTracks ?? []);
+  const storedTracks = useStore((s) => s.doc.timelineTracks);
+  const tracks = storedTracks ?? EMPTY_TRACKS;
   const time = useStore((s) => s.time);
   const playing = useStore((s) => s.playing);
   const mediaRef = useRef(new Map<string, { audio: HTMLAudioElement; url: string }>());
