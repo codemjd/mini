@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { readAudioWaveform } from '../io/waveform';
 
-export function MediaWaveform({ source, sourceStart, sourceDuration }: {
+export function MediaWaveform({ source, sourceStart, sourceDuration, duration }: {
   source: string;
   sourceStart: number;
   sourceDuration: number;
+  duration: number;
 }) {
   const [peaks, setPeaks] = useState<number[] | null>(null);
   useEffect(() => {
@@ -17,9 +18,9 @@ export function MediaWaveform({ source, sourceStart, sourceDuration }: {
   }, [source]);
 
   if (!peaks?.length) return null;
-  const duration = Math.max(0.01, sourceDuration || 0.01);
-  const start = Math.max(0, Math.min(peaks.length - 1, Math.floor((sourceStart / duration) * peaks.length)));
-  const end = Math.max(start + 1, Math.min(peaks.length, Math.ceil(((sourceStart + duration) / duration) * peaks.length)));
+  const sourceLength = Math.max(0.01, sourceDuration || 0.01);
+  const start = Math.max(0, Math.min(peaks.length - 1, Math.floor((sourceStart / sourceLength) * peaks.length)));
+  const end = Math.max(start + 1, Math.min(peaks.length, Math.ceil(((sourceStart + duration) / sourceLength) * peaks.length)));
   const visible = peaks.slice(start, end);
   return (
     <svg className="media-waveform" viewBox={`0 0 ${visible.length} 20`} preserveAspectRatio="none" aria-hidden="true">
