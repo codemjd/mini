@@ -12,7 +12,7 @@ export function isVideoMediaFile(file: File) {
   return file.type.startsWith('video/') || /\\.(mp4|m4v|webm|mov|mkv|avi|ogv)$/i.test(file.name);
 }
 
-function isImageMediaFile(file: File) {
+export function isImageMediaFile(file: File) {
   return file.type.startsWith('image/') || /\\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(file.name);
 }
 
