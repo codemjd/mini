@@ -18,61 +18,6 @@ export interface AssetCategory {
 
 const svg = (body: string, w = 200, h = 200) => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
 
-const CHARACTERS: Asset[] = [
-  {
-    id: 'man',
-    name: 'Bearded man',
-    svg: svg(`
-<g id="body"><path d="M28 200 C28 150 60 128 100 128 C140 128 172 150 172 200 Z" fill="#5d2a4f"/>
-<path d="M78 128 L100 165 L122 128 Z" fill="#e8a679"/><path d="M76 128 L92 152 L100 140 Z M124 128 L108 152 L100 140 Z" fill="#76345f"/>
-<path d="M100 150 V200" stroke="#45193a" stroke-width="3"/></g>
-<g id="neck"><rect x="88" y="104" width="24" height="28" fill="#e8a679"/></g>
-<g id="ears"><circle cx="52" cy="78" r="12" fill="#f5c39b"/><circle cx="148" cy="78" r="12" fill="#f5c39b"/></g>
-<g id="head"><path d="M56 58 C56 22 144 22 144 58 V96 C144 130 56 130 56 96 Z" fill="#6b5a52"/>
-<rect x="64" y="36" width="72" height="72" rx="20" fill="#f5c39b"/>
-<path d="M58 60 C60 30 80 22 100 22 C120 22 140 30 142 60 L142 48 C142 18 58 18 58 48 Z" fill="#6b5a52"/></g>
-<g id="beard"><path d="M58 76 C58 128 142 128 142 76 L134 76 C134 96 120 104 100 104 C80 104 66 96 66 76 Z" fill="#5a4a43"/>
-<path d="M82 92 C88 84 112 84 118 92 C112 90 106 92 100 96 C94 92 88 90 82 92 Z" fill="#5a4a43"/></g>
-<g id="eyes"><circle cx="84" cy="70" r="5" fill="#4a5568"/><circle cx="116" cy="70" r="5" fill="#4a5568"/></g>
-<g id="brows"><rect x="72" y="54" width="22" height="7" rx="3.5" fill="#5a4a43"/><rect x="106" y="54" width="22" height="7" rx="3.5" fill="#5a4a43"/></g>`),
-  },
-  {
-    id: 'woman',
-    name: 'Woman',
-    svg: svg(`
-<g id="hair-back"><path d="M44 80 C44 20 156 20 156 80 V150 H44 Z" fill="#2d1e2f"/></g>
-<g id="body"><path d="M30 200 C30 152 62 132 100 132 C138 132 170 152 170 200 Z" fill="#2ec4b6"/></g>
-<g id="neck"><rect x="88" y="108" width="24" height="28" fill="#c98b6b"/></g>
-<g id="head"><rect x="62" y="40" width="76" height="80" rx="34" fill="#e0a882"/></g>
-<g id="hair"><path d="M58 76 C58 30 96 26 118 34 C140 40 146 60 144 82 C130 60 104 50 76 62 C68 66 62 70 58 76 Z" fill="#2d1e2f"/></g>
-<g id="eyes"><circle cx="86" cy="82" r="5" fill="#2d1e2f"/><circle cx="114" cy="82" r="5" fill="#2d1e2f"/></g>
-<g id="mouth"><path d="M90 100 Q100 108 110 100" fill="none" stroke="#a0524d" stroke-width="3.5" stroke-linecap="round"/></g>
-<g id="cheeks"><circle cx="78" cy="96" r="6" fill="#f08a8a" opacity="0.5"/><circle cx="122" cy="96" r="6" fill="#f08a8a" opacity="0.5"/></g>`),
-  },
-  {
-    id: 'cat',
-    name: 'Cat',
-    svg: svg(`
-<g id="tail"><path d="M150 160 C190 150 186 100 160 100" fill="none" stroke="#f4a261" stroke-width="12" stroke-linecap="round"/></g>
-<g id="body"><ellipse cx="104" cy="160" rx="54" ry="36" fill="#f4a261"/></g>
-<g id="ears"><path d="M58 58 L64 18 L92 46 Z M142 58 L136 18 L108 46 Z" fill="#e76f51"/></g>
-<g id="head"><circle cx="100" cy="80" r="46" fill="#f4a261"/></g>
-<g id="eyes"><ellipse cx="82" cy="78" rx="6" ry="9" fill="#264653"/><ellipse cx="118" cy="78" rx="6" ry="9" fill="#264653"/></g>
-<g id="nose"><path d="M94 96 H106 L100 103 Z" fill="#e76f51"/></g>
-<g id="whiskers"><path d="M70 100 H44 M70 108 L46 116 M130 100 H156 M130 108 L154 116" stroke="#264653" stroke-width="2.5" stroke-linecap="round"/></g>`),
-  },
-  {
-    id: 'robot',
-    name: 'Robot',
-    svg: svg(`
-<g id="antenna"><path d="M100 22 V44" stroke="#8d99ae" stroke-width="5"/><circle cx="100" cy="18" r="8" fill="#ef233c"/></g>
-<g id="head"><rect x="52" y="44" width="96" height="72" rx="18" fill="#8d99ae"/><rect x="64" y="58" width="72" height="42" rx="12" fill="#2b2d42"/></g>
-<g id="eyes"><circle cx="84" cy="79" r="9" fill="#4cc9f0"/><circle cx="116" cy="79" r="9" fill="#4cc9f0"/></g>
-<g id="body"><rect x="62" y="124" width="76" height="62" rx="14" fill="#edf2f4" stroke="#8d99ae" stroke-width="4"/><circle cx="100" cy="155" r="10" fill="#ef233c"/></g>
-<g id="arms"><rect x="34" y="128" width="20" height="46" rx="10" fill="#8d99ae"/><rect x="146" y="128" width="20" height="46" rx="10" fill="#8d99ae"/></g>`),
-  },
-];
-
 const BUSINESS: Asset[] = [
   {
     id: 'bar-chart',
@@ -256,7 +201,6 @@ const ICONS: Asset[] = [
 ];
 
 export const ASSET_CATEGORIES: AssetCategory[] = [
-  { id: 'characters', name: 'Characters', icon: 'user', assets: CHARACTERS },
   { id: 'business', name: 'Business', icon: 'chart', assets: BUSINESS },
   { id: 'devices', name: 'Devices', icon: 'device', assets: DEVICES },
   { id: 'food', name: 'Food & drinks', icon: 'cup', assets: FOOD },
