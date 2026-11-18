@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { useStore, notify } from '../state/store';
 import { readMediaAsset } from '../io/mediaLibrary';
-import type { TimelineClip } from '../model/types';
+import type { TimelineClip, TimelineTrack } from '../model/types';
 
-const EMPTY_TRACKS: ReturnType<typeof useStore.getState>['doc']['timelineTracks'] = [];
+const EMPTY_TRACKS: TimelineTrack[] = [];
 
 /**
  * Keeps audio timeline clips synchronized with the editor transport.
