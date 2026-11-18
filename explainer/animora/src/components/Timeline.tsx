@@ -281,6 +281,34 @@ export function Timeline() {
     patchDoc({ timelineTracks: tracks.filter((track) => track.id !== id) });
   };
 
+  /** Split a media clip at the playhead while preserving its source-time continuity. */
+  const splitMediaClip = (trackId: string, clipId: string) => {
+    const state = getState();
+    const track = state.doc.timelineTracks?.find((item) => item.id === trackId);
+    const clip = track?.clips.find((item) => item.id === clipId);
+    if (!track || !clip || track.locked) return;
+    const offset = Math.round((state.time - clip.start) * 1000) / 1000;
+    if (offset < 0.1 || offset > clip.duration - 0.1) return;
+    const first = { ...clip, duration: offset };
+    const secondId = uid();
+    const second = {
+      ...clip,
+      id: secondId,
+      name: clip.name + ' (split)',
+      start: Math.round(state.time * 1000) / 1000,
+      duration: Math.round((clip.duration - offset) * 1000) / 1000,
+      sourceStart: Math.round((clip.sourceStart + offset) * 1000) / 1000,
+    };
+    patchDoc({
+      timelineTracks: (state.doc.timelineTracks ?? []).map((item) => item.id !== trackId ? item : {
+        ...item,
+        clips: item.clips.flatMap((entry) => entry.id === clipId ? [first, second] : [entry])
+          .sort((a, b) => a.start - b.start),
+      }),
+    });
+    setSelectedClipId(secondId);
+  };
+
   // Rows: animated elements plus the selection, in layer order (top first).
   const all = flatten(doc.elements).reverse();
   const rows = all.filter((el) => selection.includes(el.id) || Object.values(el.tracks).some((t) => t?.length));
@@ -393,12 +421,15 @@ export function Timeline() {
                 {track.clips.map((clip) => (
                   <div key={clip.id} className={`media-clip ${clip.kind} ${track.locked ? 'disabled' : ''} ${selectedClipId === clip.id ? 'selected' : ''}`}
                     style={{ left: PAD + clip.start * pps, width: Math.max(3, clip.duration * pps) }}
-                    title={`${clip.name} · ${clip.start.toFixed(2)}s · ${clip.duration.toFixed(2)}s`}
+                    title={`${clip.name} · ${clip.start.toFixed(2)}s · ${clip.duration.toFixed(2)}s · Press S to split at playhead`}
                     role="button" tabIndex={track.locked ? -1 : 0} aria-label={`${clip.name}, starts at ${clip.start.toFixed(2)} seconds, duration ${clip.duration.toFixed(2)} seconds`}
                     onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'move')}
                     onKeyDown={(e) => {
                       if (track.locked) return;
-                      if (e.key === 'Delete' || e.key === 'Backspace') {
+                      if (e.key.toLowerCase() === 's') {
+                        e.preventDefault();
+                        splitMediaClip(track.id, clip.id);
+                      } else if (e.key === 'Delete' || e.key === 'Backspace') {
                         e.preventDefault();
                         const tracks = getState().doc.timelineTracks ?? [];
                         patchDoc({ timelineTracks: tracks.map((item) => item.id === track.id ? { ...item, clips: item.clips.filter((entry) => entry.id !== clip.id) } : item) });
