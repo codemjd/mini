@@ -54,6 +54,8 @@ const checks = [
   ['transition controls have responsive touch-sized fields', css.includes('.scene-transition-controls') && css.includes('@media (max-width: 700px)')],
   ['scene bar exposes duplicate and ordering controls', sceneBar.includes('aria-label="Duplicate active scene"') && sceneBar.includes('aria-label="Move scene earlier"') && sceneBar.includes('aria-label="Move scene later"')],
   ['scene strip exposes accessible scene controls', sceneBar.includes('aria-label="Scenes"') && sceneBar.includes('aria-label="Add scene"') && sceneBar.includes('aria-pressed={scene.id === activeId}')],
+  ['sequential playback advances to the next scene when preview looping is off', scenes.includes('export function advanceSceneForPlayback(): boolean') && scenes.includes('const next = scenes[index + 1]') && scenes.includes('time: 0')],
+  ['scene sequence playback keeps transport running across a scene boundary', app.includes('advanceSceneForPlayback()') && app.includes('raf = requestAnimationFrame(tick)')],
   ['scene strip has mobile touch targets', css.includes('.scene-bar') && css.includes('.scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order { min-width: 36px')],
 ];
 for (const [name, ok] of checks) {
