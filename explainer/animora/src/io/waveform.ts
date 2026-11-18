@@ -1,7 +1,7 @@
 import { readMediaAsset } from './mediaLibrary';
 
 const cache = new Map<string, Promise<number[] | null>>();
-const MAX_DECODE_BYTES = 20 * 1024 * 1024;
+const MAX_DECODE_BYTES = 8 * 1024 * 1024;
 const PEAK_COUNT = 256;
 
 /** Decode small audio assets once and retain only a compact peak envelope. */
