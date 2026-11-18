@@ -15,6 +15,7 @@ import { TYPE_ICON } from './LeftPanel';
 import { useDropdown } from './TopBar';
 import { Icon } from './Icon';
 import { MediaImportButton } from './MediaImportButton';
+import { MediaWaveform } from './MediaWaveform';
 
 export const TL_LEFT = 300;
 /** Room before 0s so keyframes at the very start aren't hidden under the layer column. */
@@ -533,6 +534,10 @@ export function Timeline() {
                     }}>
                     <span className="media-clip-handle start" aria-hidden="true" title="Drag to trim start"
                       onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'trim-start')} />
+                    {track.kind === 'audio' && clip.kind === 'audio' && (
+                      <MediaWaveform source={clip.source} sourceStart={clip.sourceStart}
+                        sourceDuration={clip.sourceDuration} duration={clip.duration} />
+                    )}
                     <span className="media-clip-label">{clip.name}</span>
                     <span className="media-clip-handle end" aria-hidden="true" title="Drag to trim end"
                       onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'trim-end')} />
