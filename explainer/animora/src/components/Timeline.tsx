@@ -451,14 +451,29 @@ export function Timeline() {
                 {track.clips.map((clip) => (
                   <div key={clip.id} className={`media-clip ${clip.kind} ${track.locked ? 'disabled' : ''} ${selectedClipId === clip.id ? 'selected' : ''}`}
                     style={{ left: PAD + clip.start * pps, width: Math.max(3, clip.duration * pps) }}
-                    title={`${clip.name} · ${clip.start.toFixed(2)}s · ${clip.duration.toFixed(2)}s · Press S to split at playhead · hold Alt to disable snapping`}
-                    role="button" tabIndex={track.locked ? -1 : 0} aria-label={`${clip.name}, starts at ${clip.start.toFixed(2)} seconds, duration ${clip.duration.toFixed(2)} seconds`}
+                    title={`${clip.name} · ${clip.start.toFixed(2)}s · ${clip.duration.toFixed(2)}s · S: split · M: mute · +/-: volume · hold Alt to disable snapping`}
+                    role="button" tabIndex={track.locked ? -1 : 0} aria-label={`${clip.name}, starts at ${clip.start.toFixed(2)} seconds, duration ${clip.duration.toFixed(2)} seconds, ${clip.muted ? 'muted' : 'unmuted'}, volume ${Math.round((clip.volume ?? 1) * 100)} percent`}
                     onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'move')}
                     onKeyDown={(e) => {
                       if (track.locked) return;
                       if (e.key.toLowerCase() === 's') {
                         e.preventDefault();
                         splitMediaClip(track.id, clip.id);
+                      } else if (e.key.toLowerCase() === 'm') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const tracks = getState().doc.timelineTracks ?? [];
+                        patchDoc({ timelineTracks: tracks.map((item) => item.id === track.id ? {
+                          ...item, clips: item.clips.map((entry) => entry.id === clip.id ? { ...entry, muted: !entry.muted } : entry),
+                        } : item) });
+                      } else if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const delta = e.key === '+' || e.key === '=' ? 0.1 : -0.1;
+                        const tracks = getState().doc.timelineTracks ?? [];
+                        patchDoc({ timelineTracks: tracks.map((item) => item.id === track.id ? {
+                          ...item, clips: item.clips.map((entry) => entry.id === clip.id ? { ...entry, volume: Math.max(0, Math.min(1, Math.round(((entry.volume ?? 1) + delta) * 10) / 10)) } : entry),
+                        } : item) });
                       } else if (e.key === 'Delete' || e.key === 'Backspace') {
                         e.preventDefault();
                         const tracks = getState().doc.timelineTracks ?? [];
