@@ -321,7 +321,7 @@ export default function App() {
       <Timeline />
       <AudioPreview />
 
-      <input ref={openRef} type="file" accept=".json,application/json" hidden onChange={(e) => { e.target.files && importFiles(e.target.files); e.target.value = ''; }} />
+      <input ref={openRef} type="file" accept=".json,.animora.zip,application/json,application/zip" hidden onChange={(e) => { e.target.files && importFiles(e.target.files); e.target.value = ''; }} />
       <input ref={importRef} type="file" accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp,.mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,.mp4,.m4v,.webm,.mov,.mkv,.avi,audio/*,video/*" multiple hidden onChange={(e) => { e.target.files && importFiles(e.target.files); e.target.value = ''; }} />
 
       <ContextMenu />
