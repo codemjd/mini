@@ -19,6 +19,7 @@ const assets = readFileSync(new URL('../src/model/assets.ts', import.meta.url), 
 const sceneState = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
 const mediaImport = readFileSync(new URL('../src/components/MediaImportButton.tsx', import.meta.url), 'utf8');
 const mediaLibrary = readFileSync(new URL('../src/io/mediaLibrary.ts', import.meta.url), 'utf8');
+const audioPreview = readFileSync(new URL('../src/components/AudioPreview.tsx', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
 const checks = [
@@ -51,6 +52,11 @@ const checks = [
   ['timeline exposes the media import control', tl.includes('MediaImportButton') && mediaImport.includes('Import media')],
   ['media import accepts audio, video and image files with a bounded size', mediaImport.includes('audio/*,video/*,image/*') && mediaImport.includes('250 * 1024 * 1024')],
   ['original media blobs are stored in IndexedDB outside project JSON', mediaLibrary.includes("indexedDB.open(DB_NAME, DB_VERSION)") && mediaImport.includes('storeMediaAsset(file)') && !mediaImport.includes('readAsDataURL')],
+  ['audio preview is mounted in the editor transport', app.includes("import { AudioPreview } from './components/AudioPreview'") && app.includes('<AudioPreview />')],
+  ['audio preview resolves stored media blobs into revocable object URLs', audioPreview.includes('readMediaAsset(clip.source)') && audioPreview.includes('URL.createObjectURL(asset.blob)') && audioPreview.includes('URL.revokeObjectURL(item.url)')],
+  ['audio preview synchronizes active clips to source time and transport state', audioPreview.includes('clip.sourceStart + time - clip.start') && audioPreview.includes('playing && !track.muted && !clip.muted') && audioPreview.includes('audio.currentTime = target')],
+  ['audio preview respects per-track mute and per-clip volume', audioPreview.includes('audio.muted = track.muted || clip.muted') && audioPreview.includes('audio.volume = Math.max(0, Math.min(1')],
+  ['audio preview pauses inactive clips and releases decoders on unmount', audioPreview.includes('audio.pause()') && audioPreview.includes('mediaRef.current.clear()')],
   ['media imports create typed clips at the playhead in compatible tracks', mediaImport.includes('start: Math.max(0, state.time)') && mediaImport.includes("kind: isAudio ? 'audio' : isVideo ? 'video' : 'image'") && mediaImport.includes('compatibleTrack(tracks, kind)')],
   ['media import does not mutate the existing timeline track array', mediaImport.includes('const tracks = [...(state.doc.timelineTracks ?? [])]')],
   ['media clips support pointer dragging with snap increments', tl.includes("mode: 'move' | 'trim-start' | 'trim-end'") && tl.includes('const rawDelta = (ev.clientX - x0) / pps') && tl.includes('Math.round(rawDelta / step) * step')],
