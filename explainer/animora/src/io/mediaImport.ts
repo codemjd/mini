@@ -5,15 +5,15 @@ import type { TimelineClip, TimelineTrack, TimelineTrackKind } from '../model/ty
 import { storeMediaAsset } from './mediaLibrary';
 
 export function isAudioMediaFile(file: File) {
-  return file.type.startsWith('audio/') || /\\.(mp3|wav|ogg|oga|m4a|aac|flac|opus)$/i.test(file.name);
+  return file.type.startsWith('audio/') || /\.(mp3|wav|ogg|oga|m4a|aac|flac|opus)$/i.test(file.name);
 }
 
 export function isVideoMediaFile(file: File) {
-  return file.type.startsWith('video/') || /\\.(mp4|m4v|webm|mov|mkv|avi|ogv)$/i.test(file.name);
+  return file.type.startsWith('video/') || /\.(mp4|m4v|webm|mov|mkv|avi|ogv)$/i.test(file.name);
 }
 
 export function isImageMediaFile(file: File) {
-  return file.type.startsWith('image/') || /\\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(file.name);
+  return file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(file.name);
 }
 
 function mediaDuration(file: File, isAudio: boolean): Promise<number> {
