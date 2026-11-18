@@ -67,6 +67,7 @@ export function Timeline() {
   const [viewW, setViewW] = useState(800);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const refMap = useRef(new Map<string, KfRef[]>());
   refMap.current = new Map();
 
@@ -228,6 +229,7 @@ export function Timeline() {
     const clip = track?.clips.find((item) => item.id === clipId);
     if (!track || !clip || track.locked) return;
     setState({ playing: false });
+    setSelectedClipId(clipId);
     const x0 = e.clientX;
     const start0 = clip.start;
     const duration0 = clip.duration;
@@ -388,14 +390,32 @@ export function Timeline() {
               </div>
               <div className={`tl-track media-track-lane ${track.muted ? 'muted' : ''}`} style={{ width }} aria-label={track.name + ' lane'}>
                 {track.clips.map((clip) => (
-                  <div key={clip.id} className={`media-clip ${clip.kind} ${track.locked ? 'disabled' : ''}`}
+                  <div key={clip.id} className={`media-clip ${clip.kind} ${track.locked ? 'disabled' : ''} ${selectedClipId === clip.id ? 'selected' : ''}`}
                     style={{ left: PAD + clip.start * pps, width: Math.max(3, clip.duration * pps) }}
                     title={`${clip.name} · ${clip.start.toFixed(2)}s · ${clip.duration.toFixed(2)}s`}
-                    onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'move')}>
-                    <span className="media-clip-handle start" role="button" aria-label={`Trim start of ${clip.name}`}
+                    role="button" tabIndex={track.locked ? -1 : 0} aria-label={`${clip.name}, starts at ${clip.start.toFixed(2)} seconds, duration ${clip.duration.toFixed(2)} seconds`}
+                    onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'move')}
+                    onKeyDown={(e) => {
+                      if (track.locked) return;
+                      if (e.key === 'Delete' || e.key === 'Backspace') {
+                        e.preventDefault();
+                        const tracks = getState().doc.timelineTracks ?? [];
+                        patchDoc({ timelineTracks: tracks.map((item) => item.id === track.id ? { ...item, clips: item.clips.filter((entry) => entry.id !== clip.id) } : item) });
+                        setSelectedClipId(null);
+                      } else if (e.key.startsWith('Arrow')) {
+                        e.preventDefault();
+                        const step = e.shiftKey ? 0.1 : 0.01;
+                        const delta = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+                        if (delta) {
+                          const tracks = getState().doc.timelineTracks ?? [];
+                          patchDoc({ timelineTracks: tracks.map((item) => item.id === track.id ? { ...item, clips: item.clips.map((entry) => entry.id === clip.id ? { ...entry, start: Math.max(0, Math.round((entry.start + delta) * 1000) / 1000) } : entry) } : item) });
+                        }
+                      }
+                    }}>
+                    <span className="media-clip-handle start" aria-hidden="true" title="Drag to trim start"
                       onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'trim-start')} />
                     <span className="media-clip-label">{clip.name}</span>
-                    <span className="media-clip-handle end" role="button" aria-label={`Trim end of ${clip.name}`}
+                    <span className="media-clip-handle end" aria-hidden="true" title="Drag to trim end"
                       onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'trim-end')} />
                   </div>
                 ))}
