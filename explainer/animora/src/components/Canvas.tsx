@@ -13,6 +13,7 @@ import { editorMarkup, staticElementMarkup } from '../engine/render';
 import { fmt, mapPath, parsePath, polygonPath, serializePath, starPath, type Cmd } from '../engine/path';
 import { canvasApi, type Measured } from './canvasApi';
 import { Icon } from './Icon';
+import { VisualMediaPreview } from './VisualMediaPreview';
 
 type Pt = { x: number; y: number };
 
@@ -891,6 +892,7 @@ export function Canvas({ onImport }: { onImport: () => void }) {
           </pattern>
         </defs>
         <rect width={doc.width} height={doc.height} fill={transparent ? 'url(#__checker)' : doc.background} className="artboard" />
+        <VisualMediaPreview />
         {doc.defs && <defs dangerouslySetInnerHTML={{ __html: doc.defs }} />}
         {transitionProgress !== null && outgoingScene && transition && (
           <>
