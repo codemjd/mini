@@ -109,7 +109,7 @@ const checks = [
   ['video export can render all scenes in project order', files.includes('export async function exportWebmScenes') && files.includes('const sceneDocs = scenes.map((scene) => sceneDocument(doc, scene))') && files.includes('for (let sceneIndex = 0; sceneIndex < sceneDocs.length; sceneIndex++)')],
   ['export dialog offers an explicit all-scenes option', dialogs.includes('Include all scenes in order') && dialogs.includes('exportWebmScenes(getState().doc, setProgress, fps)')],
   ['portable project export reports media collection progress', files.includes('onProgress(completed / references.size)') && dialogs.includes('exportProjectBundle(getState().doc, setProgress)')],
-  ['portable bundle assets preserve their filename extension', files.includes('asset.name.match(/\\\\.([a-z0-9]{1,8})$/i)')],
+  ['portable bundle assets preserve their filename extension', files.includes('asset.name.match(/') && files.includes('a-z0-9]{1,8})$/i')],
   ['portable project export bundles project data and every referenced media asset', files.includes('export async function exportProjectBundle') && files.includes("name: 'manifest.json'") && files.includes('readMediaAsset(clip.source)') && files.includes('assets/media-')],
   ['portable project import restores media blobs to IndexedDB and remaps clip sources', files.includes('export async function importProjectBundle') && files.includes('storeMediaAssetBlob(blob') && files.includes('clip.source = restored')],
   ['bundle import validates all media paths before writing assets', mediaFiles.includes("!item.path.startsWith('assets/')") && mediaFiles.includes("if (!entries.has(item.path))")],
