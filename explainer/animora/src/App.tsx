@@ -16,6 +16,7 @@ import { TopBar, TOOLS } from './components/TopBar';
 import { Canvas } from './components/Canvas';
 import { canvasApi } from './components/canvasApi';
 import { Timeline, togglePlay } from './components/Timeline';
+import { advanceSceneForPlayback } from './state/scenes';
 import { SceneBar } from './components/SceneBar';
 import { LeftPanel } from './components/LeftPanel';
 import { RightPanel } from './components/RightPanel';
@@ -73,7 +74,11 @@ export default function App() {
       last = now;
       if (t >= D) {
         if (s.loopPreview) t = t % D;
-        else {
+        else if (advanceSceneForPlayback()) {
+          // Keep the animation loop alive while the active scene changes.
+          raf = requestAnimationFrame(tick);
+          return;
+        } else {
           setState({ time: D, playing: false });
           return;
         }
