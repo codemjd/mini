@@ -56,3 +56,42 @@ export function zip(files: { name: string; data: Uint8Array<ArrayBuffer> }[]): B
   end.setUint32(16, offset, true);
   return new Blob([...parts, ...central, end.buffer], { type: 'application/zip' });
 }
+
+
+/** Reads the uncompressed ZIP format emitted by zip(); compressed entries are rejected explicitly. */
+export async function unzipStored(blob: Blob): Promise<Map<string, Uint8Array<ArrayBuffer>>> {
+  if (blob.size > 600 * 1024 * 1024) throw new Error('Project bundle is larger than the 600 MB safety limit.');
+  const buffer = await blob.arrayBuffer();
+  const view = new DataView(buffer);
+  const bytes = new Uint8Array(buffer);
+  const decoder = new TextDecoder();
+  const files = new Map<string, Uint8Array<ArrayBuffer>>();
+  let offset = 0;
+  while (offset + 4 <= view.byteLength && view.getUint32(offset, true) === 0x04034b50) {
+    if (files.size >= 10000) throw new Error('Project bundle contains too many files.');
+    if (offset + 30 > view.byteLength) throw new Error('Project bundle is damaged.');
+    const flags = view.getUint16(offset + 6, true);
+    const method = view.getUint16(offset + 8, true);
+    const compressedSize = view.getUint32(offset + 18, true);
+    const size = view.getUint32(offset + 22, true);
+    const nameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    if ((flags & 0x08) !== 0 || method !== 0 || compressedSize !== size) {
+      throw new Error('This ZIP uses compression or data descriptors not supported by Animora bundles.');
+    }
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    const dataEnd = dataStart + size;
+    if (dataEnd > view.byteLength) throw new Error('Project bundle is truncated.');
+    const name = decoder.decode(bytes.subarray(nameStart, nameStart + nameLength));
+    if (!name || name.startsWith('/') || name.split('/').includes('..') || files.has(name)) {
+      throw new Error('Project bundle contains an unsafe or duplicate file path.');
+    }
+    const copy = new Uint8Array(size);
+    copy.set(bytes.subarray(dataStart, dataEnd));
+    files.set(name, copy);
+    offset = dataEnd;
+  }
+  if (!files.size) throw new Error('No supported project files were found in this ZIP.');
+  return files;
+}
