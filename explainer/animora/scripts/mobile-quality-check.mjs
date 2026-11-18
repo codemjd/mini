@@ -23,6 +23,7 @@ const mediaLibrary = readFileSync(new URL('../src/io/mediaLibrary.ts', import.me
 const audioPreview = readFileSync(new URL('../src/components/AudioPreview.tsx', import.meta.url), 'utf8');
 const visualPreview = readFileSync(new URL('../src/components/VisualMediaPreview.tsx', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
+const zip = readFileSync(new URL('../src/io/zip.ts', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
 const checks = [
   ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
@@ -106,6 +107,12 @@ const checks = [
   ['scene ordering moves a scene without changing its identity', scenes.includes('export function moveScene(id: string, direction: -1 | 1)') && scenes.includes('[reordered[index], reordered[target]] = [reordered[target], reordered[index]]')],
   ['video export can render all scenes in project order', files.includes('export async function exportWebmScenes') && files.includes('const sceneDocs = scenes.map((scene) => sceneDocument(doc, scene))') && files.includes('for (let sceneIndex = 0; sceneIndex < sceneDocs.length; sceneIndex++)')],
   ['export dialog offers an explicit all-scenes option', dialogs.includes('Include all scenes in order') && dialogs.includes('exportWebmScenes(getState().doc, setProgress, fps)')],
+  ['portable project export bundles project data and every referenced media asset', files.includes('export async function exportProjectBundle') && files.includes("name: 'manifest.json'") && files.includes('readMediaAsset(clip.source)') && files.includes('assets/media-')],
+  ['portable project import restores media blobs to IndexedDB and remaps clip sources', files.includes('export async function importProjectBundle') && files.includes('storeMediaAssetBlob(blob') && files.includes('clip.source = restored')],
+  ['ZIP reader rejects unsupported compression and unsafe paths', zip.includes('method !== 0') && zip.includes("name.startsWith('/')") && zip.includes("name.split('/').includes('..')")],
+  ['ZIP reader validates each asset CRC before accepting it', zip.includes('crc32(copy) !== view.getUint32(offset + 14, true)')],
+  ['main file picker can open portable project bundles', app.includes("name.endsWith('.animora.zip')") && app.includes('importProjectBundle(file)') && app.includes('accept=".json,.animora.zip,application/json,application/zip"')],
+  ['export dialog exposes portable project plus media archive', dialogs.includes('exportProjectBundle') && dialogs.includes('Portable project + media (.animora.zip)')],
   ['built-in asset library excludes living-character artwork', !assets.includes("id: 'characters'") && !assets.includes('const CHARACTERS: Asset[]')],
   ['scene transition types include all planned entrance styles', types.includes("'slide-left'") && types.includes("'slide-right'") && types.includes("'slide-up'") && types.includes("'slide-down'") && types.includes("'zoom-in'") && types.includes("'zoom-out'") && types.includes("'wipe'") && types.includes("'dissolve'")],
   ['older scene data receives a safe default transition', factory.includes('normalizeSceneTransition(scene.transitionIn)') && factory.includes('DEFAULT_SCENE_TRANSITION')],
