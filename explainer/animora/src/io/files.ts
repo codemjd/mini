@@ -1,7 +1,7 @@
 import type { Doc, Scene, SceneTransitionType, TimelineTrack } from '../model/types';
 import { exportSvg } from '../engine/render';
 import { zip, unzipStored } from './zip';
-import { readMediaAsset, storeMediaAssetBlob } from './mediaLibrary';
+import { deleteMediaAsset, readMediaAsset, storeMediaAssetBlob } from './mediaLibrary';
 
 export function download(data: Blob | string, filename: string, type = 'application/octet-stream') {
   const blob = typeof data === 'string' ? new Blob([data], { type }) : data;
@@ -70,23 +70,39 @@ export async function importProjectBundle(file: Blob): Promise<string> {
     throw new Error('Unsupported or invalid Animora project bundle.');
   }
   const sourceMap = new Map<string, string>();
+  const restoredKeys: string[] = [];
+  const assetPaths = new Set<string>();
   for (const item of manifest.assets) {
-    const data = entries.get(item.path);
-    if (!data) throw new Error(`The project bundle is missing ${item.path}.`);
-    const blob = new Blob([data], { type: item.type || 'application/octet-stream' });
-    sourceMap.set(item.source, await storeMediaAssetBlob(blob, item.name || item.path, item.type || blob.type));
+    if (!item || typeof item.source !== 'string' || !item.source || typeof item.path !== 'string'
+      || !item.path.startsWith('assets/') || assetPaths.has(item.path)) {
+      throw new Error('The project bundle contains an invalid media asset reference.');
+    }
+    assetPaths.add(item.path);
+    if (!entries.has(item.path)) throw new Error(`The project bundle is missing ${item.path}.`);
   }
-  const project = manifest.project;
-  for (const tracks of projectTracks(project)) {
-    for (const track of tracks) {
-      for (const clip of track.clips) {
-        const restored = sourceMap.get(clip.source);
-        if (!restored) throw new Error(`No bundled media was found for “${clip.name}”.`);
-        clip.source = restored;
+  try {
+    for (const item of manifest.assets) {
+      const data = entries.get(item.path)!;
+      const blob = new Blob([data], { type: item.type || 'application/octet-stream' });
+      const key = await storeMediaAssetBlob(blob, item.name || item.path, item.type || blob.type);
+      restoredKeys.push(key);
+      sourceMap.set(item.source, key);
+    }
+    const project = manifest.project;
+    for (const tracks of projectTracks(project)) {
+      for (const track of tracks) {
+        for (const clip of track.clips) {
+          const restored = sourceMap.get(clip.source);
+          if (!restored) throw new Error(`No bundled media was found for “${clip.name}”.`);
+          clip.source = restored;
+        }
       }
     }
-  }
   return JSON.stringify(project);
+  } catch (error) {
+    await Promise.all(restoredKeys.map((key) => deleteMediaAsset(key).catch(() => undefined)));
+    throw error;
+  }
 }
 
 export function saveProject(doc: Doc) {
