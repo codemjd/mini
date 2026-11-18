@@ -117,6 +117,9 @@ export function duplicateScene(id: string) {
     elements: source.elements.map(cloneElement),
     guides: { x: [...source.guides.x], y: [...source.guides.y] },
     comments: source.comments.map((comment) => ({ ...comment, id: uid() })),
+    timelineTracks: (source.timelineTracks ?? []).map((track) => ({
+      ...track, id: uid(), clips: track.clips.map((clip) => ({ ...clip, id: uid() })),
+    })),
   };
   const index = doc.scenes.findIndex((scene) => scene.id === id);
   const scenes = [...doc.scenes];
