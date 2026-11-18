@@ -1,8 +1,51 @@
-import type { Doc, ElementType, Keyframe, PropKey, SvgEl, Value } from './types';
+import type { Doc, ElementType, Keyframe, PropKey, SvgEl, TimelineTrack, TimelineTrackKind, Value } from './types';
 import { DEFAULT_SCENE_TRANSITION, SCENE_TRANSITION_TYPES } from './types';
 import { ellipsePath, rectPath, starPath } from '../engine/path';
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
+
+export function createDefaultTimelineTracks(): TimelineTrack[] {
+  return [
+    { id: uid(), name: 'Video 1', kind: 'video', visible: true, muted: false, locked: false, clips: [] },
+    { id: uid(), name: 'Audio 1', kind: 'audio', visible: true, muted: false, locked: false, clips: [] },
+    { id: uid(), name: 'Overlay 1', kind: 'overlay', visible: true, muted: false, locked: false, clips: [] },
+  ];
+}
+
+const TRACK_KINDS: TimelineTrackKind[] = ['video', 'audio', 'overlay'];
+
+export function normalizeTimelineTracks(value: unknown): TimelineTrack[] {
+  if (!Array.isArray(value)) return createDefaultTimelineTracks();
+  return value.slice(0, 64).map((raw, index) => {
+    const track = raw && typeof raw === 'object' ? raw as Partial<TimelineTrack> : {};
+    const kind = TRACK_KINDS.includes(track.kind as TimelineTrackKind) ? track.kind as TimelineTrackKind : 'overlay';
+    const clips = Array.isArray(track.clips) ? track.clips.slice(0, 500).filter((clip) => clip && typeof clip === 'object').map((rawClip, clipIndex) => {
+      const clip = rawClip as Partial<import('./types').TimelineClip>;
+      const duration = Number.isFinite(clip.duration) ? Math.max(0, Number(clip.duration)) : 0;
+      const start = Number.isFinite(clip.start) ? Math.max(0, Number(clip.start)) : 0;
+      const sourceStart = Number.isFinite(clip.sourceStart) ? Math.max(0, Number(clip.sourceStart)) : 0;
+      const clipKind = ['video', 'audio', 'image', 'text'].includes(String(clip.kind)) ? clip.kind! : (kind === 'audio' ? 'audio' : 'video');
+      return {
+        id: typeof clip.id === 'string' && clip.id ? clip.id : uid(),
+        name: typeof clip.name === 'string' && clip.name.trim() ? clip.name.slice(0, 100) : 'Clip ' + (clipIndex + 1),
+        kind: clipKind,
+        source: typeof clip.source === 'string' ? clip.source : '',
+        start, duration, sourceStart,
+        volume: Number.isFinite(clip.volume) ? Math.max(0, Math.min(2, Number(clip.volume))) : 1,
+        muted: Boolean(clip.muted),
+      };
+    }) : [];
+    return {
+      id: typeof track.id === 'string' && track.id ? track.id : uid(),
+      name: typeof track.name === 'string' && track.name.trim() ? track.name.slice(0, 60) : (kind[0].toUpperCase() + kind.slice(1) + ' ' + (index + 1)),
+      kind,
+      visible: track.visible !== false,
+      muted: Boolean(track.muted),
+      locked: Boolean(track.locked),
+      clips,
+    };
+  });
+}
 
 export function normalizeSceneTransition(value: unknown): import('./types').SceneTransition {
   const candidate = value && typeof value === 'object' ? value as Partial<import('./types').SceneTransition> : {};
@@ -49,6 +92,7 @@ function sceneSnapshot(doc: Doc, id: string, name: string): import('./types').Sc
     duration: doc.duration, loop: doc.loop, iterations: doc.iterations,
     direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed,
     elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments,
+    timelineTracks: doc.timelineTracks ?? createDefaultTimelineTracks(),
     transitionIn: normalizeSceneTransition(doc.scenes?.find((scene) => scene.id === id)?.transitionIn),
   };
 }
@@ -78,6 +122,7 @@ export function newDoc(): Doc {
     defs: '',
     guides: { x: [], y: [] },
     comments: [],
+    timelineTracks: createDefaultTimelineTracks(),
   };
   const id = uid();
   doc.activeSceneId = id;
@@ -108,6 +153,7 @@ export function migrateDoc(raw: unknown): Doc {
     defs: d.defs ?? '',
     guides: { x: d.guides?.x ?? [], y: d.guides?.y ?? [] },
     comments: Array.isArray(d.comments) ? d.comments : [],
+    timelineTracks: normalizeTimelineTracks(d.timelineTracks),
     elements: d.elements.map(migrateEl),
     scenes: Array.isArray(d.scenes) && d.scenes.length
       ? d.scenes.map((scene, index) => ({
@@ -118,6 +164,7 @@ export function migrateDoc(raw: unknown): Doc {
           defs: scene.defs ?? '',
           guides: { x: scene.guides?.x ?? [], y: scene.guides?.y ?? [] },
           comments: Array.isArray(scene.comments) ? scene.comments : [],
+          timelineTracks: normalizeTimelineTracks(scene.timelineTracks),
           transitionIn: normalizeSceneTransition(scene.transitionIn),
         }))
       : [],
