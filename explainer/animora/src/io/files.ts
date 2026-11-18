@@ -68,24 +68,35 @@ export async function exportWebm(doc: Doc, onProgress: (p: number) => void, fps 
   const ctx = canvas.getContext('2d')!;
   const stream = canvas.captureStream(fps);
   const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
-  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+  const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 8_000_000 });
   const chunks: Blob[] = [];
-  rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-  const stopped = new Promise<void>((r) => (rec.onstop = () => r()));
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  let started = false;
+  let stopped: Promise<void> | null = null;
 
-  await drawFrame(ctx, doc, 0, scale, true);
-  rec.start();
-  const times = cycleTimes(doc, fps);
-  const start = performance.now();
-  for (let i = 0; i < times.length; i++) {
-    await drawFrame(ctx, doc, times[i], scale, true);
-    onProgress((i + 1) / times.length);
-    const wait = start + ((i + 1) * 1000) / fps - performance.now();
-    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  try {
+    await drawFrame(ctx, doc, 0, scale, true);
+    stopped = new Promise<void>((resolve) => { rec.onstop = () => resolve(); });
+    rec.start();
+    started = true;
+    const times = cycleTimes(doc, fps);
+    const start = performance.now();
+    for (let i = 0; i < times.length; i++) {
+      await drawFrame(ctx, doc, times[i], scale, true);
+      onProgress((i + 1) / times.length);
+      const wait = start + ((i + 1) * 1000) / fps - performance.now();
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+    rec.stop();
+    await stopped;
+    download(new Blob(chunks, { type: 'video/webm' }), `${safeName(doc)}.webm`);
+  } catch (error) {
+    if (started && rec.state !== 'inactive') rec.stop();
+    if (started && stopped) await stopped;
+    throw error;
+  } finally {
+    stream.getTracks().forEach((track) => track.stop());
   }
-  rec.stop();
-  await stopped;
-  download(new Blob(chunks, { type: 'video/webm' }), `${safeName(doc)}.webm`);
 }
 
 
