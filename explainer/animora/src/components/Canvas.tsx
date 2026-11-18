@@ -845,6 +845,24 @@ export function Canvas({ onImport }: { onImport: () => void }) {
       default: return undefined;
     }
   })();
+  const outgoingTransform = transitionProgress === null ? undefined : (() => {
+    switch (transition?.type) {
+      case 'slide-left': return 'translate(' + fmt(-doc.width * progress) + ' 0)';
+      case 'slide-right': return 'translate(' + fmt(doc.width * progress) + ' 0)';
+      case 'slide-up': return 'translate(0 ' + fmt(-doc.height * progress) + ')';
+      case 'slide-down': return 'translate(0 ' + fmt(doc.height * progress) + ')';
+      case 'zoom-in': return 'translate(' + fmt(cx) + ' ' + fmt(cy) + ') scale(' + fmt(1 + 0.18 * progress) + ') translate(' + fmt(-cx) + ' ' + fmt(-cy) + ')';
+      case 'zoom-out': return 'translate(' + fmt(cx) + ' ' + fmt(cy) + ') scale(' + fmt(1 - 0.18 * progress) + ') translate(' + fmt(-cx) + ' ' + fmt(-cy) + ')';
+      default: return undefined;
+    }
+  })();
+  const dissolveCells = transitionProgress !== null && transition?.type === 'dissolve'
+    ? Array.from({ length: 100 }, (_, i) => {
+      const x = i % 10, y = Math.floor(i / 10);
+      const threshold = ((x * 37 + y * 61 + x * y * 13) % 100) / 100;
+      return threshold <= progress ? { x, y } : null;
+    }).filter((cell): cell is { x: number; y: number } => cell !== null)
+    : [];
   const guideExtent = 100000;
 
   return (
@@ -883,17 +901,29 @@ export function Canvas({ onImport }: { onImport: () => void }) {
                 </clipPath>
               </defs>
             )}
+            {transition.type === 'dissolve' && (
+              <defs>
+                <mask id="__scene-preview-dissolve" maskUnits="userSpaceOnUse" x="0" y="0" width={doc.width} height={doc.height}>
+                  <rect width={doc.width} height={doc.height} fill="#000" />
+                  {dissolveCells.map((cell) => (
+                    <rect key={cell.x + ':' + cell.y} x={cell.x * doc.width / 10} y={cell.y * doc.height / 10}
+                      width={doc.width / 10 + 0.5} height={doc.height / 10 + 0.5} fill="#fff" />
+                  ))}
+                </mask>
+              </defs>
+            )}
             <g pointerEvents="none" opacity={transition.type === 'fade' || transition.type.startsWith('zoom-') || transition.type === 'dissolve' ? 1 - progress : 1}
-              transform={transition.type.startsWith('slide-') ? (transition.type === 'slide-left' ? 'translate(' + fmt(-doc.width * progress) + ' 0)' : transition.type === 'slide-right' ? 'translate(' + fmt(doc.width * progress) + ' 0)' : transition.type === 'slide-up' ? 'translate(0 ' + fmt(-doc.height * progress) + ')' : 'translate(0 ' + fmt(doc.height * progress) + ')') : transitionTransform}>
+              transform={outgoingTransform}>
               <rect width={doc.width} height={doc.height} fill={outgoingScene.background || 'none'} />
               <g dangerouslySetInnerHTML={{ __html: editorMarkup(outgoingScene.elements, outgoingScene.duration) }} />
             </g>
           </>
         )}
         <g className={"content " + (scope ? "scoped" : "")}
-          style={transitionProgress !== null ? { opacity: transition.type === 'fade' || transition.type.startsWith('zoom-') || transition.type === 'dissolve' ? progress : 1 } : undefined}
+          style={transitionProgress !== null ? { opacity: transition?.type === 'fade' || transition?.type.startsWith('zoom-') || transition?.type === 'dissolve' ? progress : 1 } : undefined}
           transform={transitionProgress !== null ? transitionTransform : undefined}
-          clipPath={transitionProgress !== null && transition.type === 'wipe' ? 'url(#__scene-preview-wipe)' : undefined}
+          clipPath={transitionProgress !== null && transition?.type === 'wipe' ? 'url(#__scene-preview-wipe)' : undefined}
+          mask={transitionProgress !== null && transition?.type === 'dissolve' ? 'url(#__scene-preview-dissolve)' : undefined}
           dangerouslySetInnerHTML={{ __html: editorMarkup(doc.elements, time) }} />
         {view.showGrid && <rect width={doc.width} height={doc.height} fill="url(#__grid)" pointerEvents="none" />}
 
