@@ -49,6 +49,8 @@ const checks = [
   ['timeline exposes independent video, audio and overlay lane creation controls', tl.includes("addMediaTrack('video')") && tl.includes("addMediaTrack('audio')") && tl.includes("addMediaTrack('overlay')")],
   ['media lane names, visibility, mute state and lock state are editable', tl.includes('onBlur={(e) => { const name = e.currentTarget.value.trim().slice(0, 60)') && tl.includes('visible: !track.visible') && tl.includes('muted: !track.muted') && tl.includes('locked: !track.locked')],
   ['media track icons are defined instead of falling back to the generic help icon', ic.includes("film: '") && ic.includes("'volume-2': '") && ic.includes("'volume-x': '")],
+  ['media clips expose keyboard mute and bounded gain controls', tl.includes("e.key.toLowerCase() === 'm'") && tl.includes("e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_'") && tl.includes('Math.max(0, Math.min(1, Math.round(((entry.volume ?? 1) + delta) * 10) / 10))')],
+  ['clip accessibility labels announce mute state and volume', tl.includes("clip.muted ? 'muted' : 'unmuted'") && tl.includes('volume ${Math.round((clip.volume ?? 1) * 100)} percent')],
   ['media clips are positioned in the timeline using start and duration', tl.includes('clip.start * pps') && tl.includes('clip.duration * pps')],
   ['timeline exposes the media import control', tl.includes('MediaImportButton') && mediaImport.includes('Import media')],
   ['media import accepts audio, video and image files with a bounded size', mediaImport.includes('audio/*,video/*,image/*') && mediaImport.includes('250 * 1024 * 1024')],
