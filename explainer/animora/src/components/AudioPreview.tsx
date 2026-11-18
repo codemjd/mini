@@ -14,7 +14,7 @@ export function AudioPreview() {
   const tracks = storedTracks ?? EMPTY_TRACKS;
   const time = useStore((s) => s.time);
   const playing = useStore((s) => s.playing);
-  const mediaRef = useRef(new Map<string, { audio: HTMLAudioElement; url: string }>());
+  const mediaRef = useRef(new Map<string, { audio: HTMLAudioElement; url: string; starting: boolean }>());
   const warnedRef = useRef(new Set<string>());
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export function AudioPreview() {
         const audio = new Audio();
         audio.preload = 'auto';
         audio.src = url;
-        mediaRef.current.set(clip.id, { audio, url });
+        mediaRef.current.set(clip.id, { audio, url, starting: false });
       } catch (error) {
         if (!cancelled && !warnedRef.current.has(clip.id)) {
           warnedRef.current.add(clip.id);
@@ -70,6 +70,7 @@ export function AudioPreview() {
           && time >= clip.start && time < clip.start + clip.duration;
         if (!active) {
           if (!audio.paused) audio.pause();
+          item.starting = false;
           continue;
         }
         activeIds.add(clip.id);
@@ -81,8 +82,10 @@ export function AudioPreview() {
         }
         audio.volume = Math.max(0, Math.min(1, Number.isFinite(clip.volume) ? clip.volume : 1));
         audio.muted = track.muted || clip.muted;
-        if (audio.paused) {
-          void audio.play().catch(() => {
+        if (audio.paused && !item.starting) {
+          item.starting = true;
+          void audio.play().then(() => { item.starting = false; }).catch(() => {
+            item.starting = false;
             if (!warnedRef.current.has(`play:${clip.id}`)) {
               warnedRef.current.add(`play:${clip.id}`);
               notify('تعذّر تشغيل الصوت. اضغط تشغيل مرة أخرى أو تحقق من دعم المتصفح للملف.');
