@@ -42,7 +42,7 @@ export async function exportProjectBundle(doc: Doc, onProgress: (progress: numbe
   for (const [source, clipName] of references) {
     const asset = await readMediaAsset(source);
     if (!asset) throw new Error(`Missing media asset: ${clipName}. Re-import it before bundling this project.`);
-    const ext = (asset.name.match(/\\.([a-z0-9]{1,8})$/i)?.[1] ?? 'bin').toLowerCase();
+    const ext = (asset.name.match(/\.([a-z0-9]{1,8})$/i)?.[1] ?? 'bin').toLowerCase();
     const path = `assets/media-${seen.size + 1}.${ext}`;
     seen.set(source, { source, path, name: asset.name, type: asset.type });
     files.push({ name: path, data: new Uint8Array(await asset.blob.arrayBuffer()) });
