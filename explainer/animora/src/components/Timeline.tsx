@@ -6,7 +6,7 @@ import {
   toggleAnimatorKey,
 } from '../state/animate';
 import { animatorsFor, animatorProps, isAnimatorActive, type Animator } from '../model/props';
-import type { KfRef, PropKey, SvgEl } from '../model/types';
+import type { KfRef, PropKey, SvgEl, TimelineTrackKind } from '../model/types';
 import { flatten } from '../model/tree';
 import { uid } from '../model/factory';
 import { getEasing } from '../engine/easing';
@@ -219,6 +219,25 @@ export function Timeline() {
     );
   };
 
+  const addMediaTrack = (kind: TimelineTrackKind) => {
+    const tracks = getState().doc.timelineTracks ?? [];
+    if (tracks.length >= 32) return;
+    const label = kind === 'video' ? 'Video' : kind === 'audio' ? 'Audio' : 'Overlay';
+    patchDoc({ timelineTracks: [...tracks, {
+      id: uid(), name: label + ' ' + (tracks.filter((track) => track.kind === kind).length + 1),
+      kind, visible: true, muted: false, locked: false, clips: [],
+    }] });
+  };
+  const updateMediaTrack = (id: string, patch: { name?: string; visible?: boolean; muted?: boolean; locked?: boolean }) => {
+    const tracks = getState().doc.timelineTracks ?? [];
+    patchDoc({ timelineTracks: tracks.map((track) => track.id === id ? { ...track, ...patch } : track) });
+  };
+  const removeMediaTrack = (id: string) => {
+    const tracks = getState().doc.timelineTracks ?? [];
+    if (tracks.length <= 1) return;
+    patchDoc({ timelineTracks: tracks.filter((track) => track.id !== id) });
+  };
+
   // Rows: animated elements plus the selection, in layer order (top first).
   const all = flatten(doc.elements).reverse();
   const rows = all.filter((el) => selection.includes(el.id) || Object.values(el.tracks).some((t) => t?.length));
@@ -301,6 +320,38 @@ export function Timeline() {
             );
           })}
 
+          {(doc.timelineTracks ?? []).map((track) => (
+            <div key={track.id} className={`tl-row media-track-row ${track.locked ? 'locked' : ''}`} data-media-track={track.id}>
+              <div className="tl-name media-track-name">
+                <Icon name={track.kind === 'video' ? 'film' : track.kind === 'audio' ? 'volume-2' : 'layers'} size={14} />
+                <input aria-label={track.name + ' track name'} value={track.name}
+                  onChange={(e) => updateMediaTrack(track.id, { name: e.target.value.slice(0, 60) })}
+                  onPointerDown={(e) => e.stopPropagation()} />
+                <button className={`mini ${track.muted ? 'off' : 'on'}`} title={track.muted ? 'Unmute track' : 'Mute track'}
+                  aria-label={track.muted ? 'Unmute ' + track.name : 'Mute ' + track.name}
+                  onClick={() => updateMediaTrack(track.id, { muted: !track.muted })}>
+                  <Icon name={track.muted ? 'volume-x' : 'volume-2'} />
+                </button>
+                <button className={`mini ${track.locked ? 'on' : ''}`} title={track.locked ? 'Unlock track' : 'Lock track'}
+                  aria-label={track.locked ? 'Unlock ' + track.name : 'Lock ' + track.name}
+                  onClick={() => updateMediaTrack(track.id, { locked: !track.locked })}>
+                  <Icon name={track.locked ? 'lock' : 'unlock'} />
+                </button>
+                <button className="mini" title="Remove track" aria-label={'Remove ' + track.name + ' track'}
+                  disabled={(doc.timelineTracks ?? []).length <= 1}
+                  onClick={() => removeMediaTrack(track.id)}><Icon name="trash" /></button>
+              </div>
+              <div className={`tl-track media-track-lane ${track.muted ? 'muted' : ''}`} style={{ width }} aria-label={track.name + ' lane'}>
+                {track.clips.map((clip) => (
+                  <div key={clip.id} className={`media-clip ${clip.kind}`}
+                    style={{ left: PAD + clip.start * pps, width: Math.max(3, clip.duration * pps) }} title={clip.name}>
+                    {clip.name}
+                  </div>
+                ))}
+                {track.clips.length === 0 && <span className="media-lane-hint">{track.kind === 'video' ? 'Video clips will appear here' : track.kind === 'audio' ? 'Audio clips will appear here' : 'Titles and graphics will appear here'}</span>}
+              </div>
+            </div>
+          ))}
           <div className="tl-playhead" style={{ left: TL_LEFT + PAD + time * pps }} />
           {marquee && (
             <div className="tl-marquee" style={{
@@ -315,6 +366,11 @@ export function Timeline() {
         <button className={`tl-ic ${loopPreview ? 'on' : ''}`} title={loopPreview ? 'Loop preview: on' : 'Loop preview: off'} onClick={() => setState({ loopPreview: !loopPreview })}>
           <Icon name="loop" size={16} />
         </button>
+        <div className="media-track-add" aria-label="Add media track">
+          <button onClick={() => addMediaTrack('video')} title="Add video track">+ Video</button>
+          <button onClick={() => addMediaTrack('audio')} title="Add audio track">+ Audio</button>
+          <button onClick={() => addMediaTrack('overlay')} title="Add overlay track">+ Overlay</button>
+        </div>
         <div className="tl-zoom">
           <button onClick={() => setView({ pps: Math.max(20, Math.round(pps / 1.25)) })} title="Zoom out timeline">−</button>
           <input type="range" min={20} max={600} value={pps} onChange={(e) => setView({ pps: +e.target.value })} title="Timeline zoom" />
