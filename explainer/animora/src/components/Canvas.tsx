@@ -876,18 +876,23 @@ export function Canvas({ onImport }: { onImport: () => void }) {
         {doc.defs && <defs dangerouslySetInnerHTML={{ __html: doc.defs }} />}
         {transitionProgress !== null && outgoingScene && transition && (
           <>
-            <g pointerEvents="none" opacity={transition.type === 'fade' || transition.type.startsWith('zoom-') ? 1 - progress : 1}
+            {transition.type === 'wipe' && (
+              <defs>
+                <clipPath id="__scene-preview-wipe">
+                  <rect x="0" y="0" width={doc.width * progress} height={doc.height} />
+                </clipPath>
+              </defs>
+            )}
+            <g pointerEvents="none" opacity={transition.type === 'fade' || transition.type.startsWith('zoom-') || transition.type === 'dissolve' ? 1 - progress : 1}
               transform={transition.type.startsWith('slide-') ? (transition.type === 'slide-left' ? 'translate(' + fmt(-doc.width * progress) + ' 0)' : transition.type === 'slide-right' ? 'translate(' + fmt(doc.width * progress) + ' 0)' : transition.type === 'slide-up' ? 'translate(0 ' + fmt(-doc.height * progress) + ')' : 'translate(0 ' + fmt(doc.height * progress) + ')') : transitionTransform}>
               <rect width={doc.width} height={doc.height} fill={outgoingScene.background || 'none'} />
               <g dangerouslySetInnerHTML={{ __html: editorMarkup(outgoingScene.elements, outgoingScene.duration) }} />
             </g>
-            <g pointerEvents="none" opacity={transition.type === 'fade' || transition.type.startsWith('zoom-') ? progress : 1} transform={transitionTransform}>
-              <g dangerouslySetInnerHTML={{ __html: editorMarkup(doc.elements, time) }} />
-            </g>
           </>
         )}
         <g className={"content " + (scope ? "scoped" : "")}
-          style={transitionProgress !== null ? { opacity: transition.type === 'fade' || transition.type.startsWith('zoom-') ? progress : 1 } : undefined}
+          style={transitionProgress !== null ? { opacity: transition.type === 'fade' || transition.type.startsWith('zoom-') || transition.type === 'dissolve' ? progress : 1, transform: transitionTransform } : undefined}
+          clipPath={transitionProgress !== null && transition.type === 'wipe' ? 'url(#__scene-preview-wipe)' : undefined}
           dangerouslySetInnerHTML={{ __html: editorMarkup(doc.elements, time) }} />
         {view.showGrid && <rect width={doc.width} height={doc.height} fill="url(#__grid)" pointerEvents="none" />}
 
