@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useStore } from '../state/store';
+import { useStore, getState, notify } from '../state/store';
 import { readMediaAsset } from '../io/mediaLibrary';
 import type { TimelineClip, TimelineTrack } from '../model/types';
 
@@ -17,6 +17,7 @@ export function VisualMediaPreview() {
   const playing = useStore((s) => s.playing);
   const assetsRef = useRef(new Map<string, ResolvedAsset>());
   const videoRefs = useRef(new Map<string, HTMLVideoElement>());
+  const warnedRef = useRef(new Set<string>());
   const [assets, setAssets] = useState<Record<string, ResolvedAsset>>({});
 
   useEffect(() => {
@@ -66,6 +67,32 @@ export function VisualMediaPreview() {
     assetsRef.current.clear();
     videoRefs.current.clear();
   }, []);
+
+  useEffect(() => {
+    const startFromGesture = () => {
+      const state = getState();
+      if (!state.playing) return;
+      for (const track of state.doc.timelineTracks ?? []) {
+        if (track.kind !== 'video' || !track.visible) continue;
+        for (const clip of track.clips) {
+          if (clip.kind !== 'video' || state.time < clip.start || state.time >= clip.start + clip.duration) continue;
+          const video = videoRefs.current.get(clip.id);
+          if (!video) continue;
+          video.muted = track.muted || clip.muted;
+          video.volume = Math.max(0, Math.min(1, Number.isFinite(clip.volume) ? clip.volume : 1));
+          video.currentTime = Math.max(0, clip.sourceStart + state.time - clip.start);
+          void video.play().catch(() => {
+            if (!warnedRef.current.has(clip.id)) {
+              warnedRef.current.add(clip.id);
+              notify('قد يمنع المتصفح تشغيل صوت الفيديو تلقائيًا؛ أوقف المعاينة ثم اضغط تشغيل مرة أخرى.');
+            }
+          });
+        }
+      }
+    };
+    window.addEventListener('animora:media-play', startFromGesture);
+    return () => window.removeEventListener('animora:media-play', startFromGesture);
+  }, [tracks]);
 
   useEffect(() => {
     for (const track of tracks) {
