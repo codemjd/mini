@@ -1,8 +1,34 @@
 import { readMediaAsset } from './mediaLibrary';
 
 const cache = new Map<string, Promise<number[] | null>>();
-const MAX_DECODE_BYTES = 8 * 1024 * 1024;
+const MAX_DECODE_BYTES = 2 * 1024 * 1024;
+const MAX_DECODE_SECONDS = 120;
+const MAX_CACHE_ENTRIES = 64;
 const PEAK_COUNT = 256;
+
+function readDuration(blob: Blob): Promise<number | null> {
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    const url = URL.createObjectURL(blob);
+    let settled = false;
+    const finish = (duration: number | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      audio.onloadedmetadata = null;
+      audio.onerror = null;
+      audio.removeAttribute('src');
+      audio.load();
+      URL.revokeObjectURL(url);
+      resolve(duration);
+    };
+    const timeout = window.setTimeout(() => finish(null), 5000);
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => finish(Number.isFinite(audio.duration) ? audio.duration : null);
+    audio.onerror = () => finish(null);
+    audio.src = url;
+  });
+}
 
 /** Decode small audio assets once and retain only a compact peak envelope. */
 export function readAudioWaveform(source: string): Promise<number[] | null> {
@@ -11,6 +37,8 @@ export function readAudioWaveform(source: string): Promise<number[] | null> {
   const pending = (async () => {
     const asset = await readMediaAsset(source);
     if (!asset || asset.blob.size > MAX_DECODE_BYTES) return null;
+    const duration = await readDuration(asset.blob);
+    if (duration === null || duration <= 0 || duration > MAX_DECODE_SECONDS) return null;
     const AudioContextClass = window.AudioContext;
     if (!AudioContextClass) return null;
     const context = new AudioContextClass();
@@ -33,6 +61,8 @@ export function readAudioWaveform(source: string): Promise<number[] | null> {
       await context.close().catch(() => undefined);
     }
   })().catch(() => null);
+  cache.delete(source);
   cache.set(source, pending);
+  while (cache.size > MAX_CACHE_ENTRIES) cache.delete(cache.keys().next().value!);
   return pending;
 }
