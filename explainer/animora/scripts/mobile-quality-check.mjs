@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { zip, unzipStored } from '../src/io/zip.ts';
+import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -27,12 +27,12 @@ const visualPreview = readFileSync(new URL('../src/components/VisualMediaPreview
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const zip = readFileSync(new URL('../src/io/zip.ts', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
-const zipFixture = zip([{ name: 'manifest.json', data: new TextEncoder().encode('animora bundle test') }]);
-const zipRoundTrip = await unzipStored(zipFixture);
+const zipFixture = createZipArchive([{ name: 'manifest.json', data: new TextEncoder().encode('animora bundle test') }]);
+const zipRoundTrip = await readZipArchive(zipFixture);
 assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animora bundle test', 'ZIP writer/reader round-trip must preserve entry bytes');
 const corruptZipBytes = new Uint8Array(await zipFixture.arrayBuffer());
 corruptZipBytes[43] ^= 1;
-await assert.rejects(() => unzipStored(new Blob([corruptZipBytes])), /integrity check/, 'ZIP reader must reject corrupted asset bytes');
+await assert.rejects(() => readZipArchive(new Blob([corruptZipBytes])), /integrity check/, 'ZIP reader must reject corrupted asset bytes');
 
 const checks = [
   ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
