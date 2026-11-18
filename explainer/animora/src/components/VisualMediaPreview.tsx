@@ -80,7 +80,7 @@ export function VisualMediaPreview() {
           if (!video) continue;
           video.muted = track.muted || clip.muted;
           video.volume = Math.max(0, Math.min(1, Number.isFinite(clip.volume) ? clip.volume : 1));
-          video.currentTime = Math.max(0, clip.sourceStart + state.time - clip.start);
+          try { video.currentTime = Math.max(0, clip.sourceStart + state.time - clip.start); } catch { /* Wait for metadata. */ }
           void video.play().catch(() => {
             if (!warnedRef.current.has(clip.id)) {
               warnedRef.current.add(clip.id);
