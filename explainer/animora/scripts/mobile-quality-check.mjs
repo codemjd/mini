@@ -60,7 +60,7 @@ const checks = [
   ['media clip trims preserve a minimum duration and non-negative source offset', tl.includes('start0 + duration0 - 0.1') && tl.includes('Math.max(0.1') && tl.includes('sourceStart = Math.max(0')],
   ['media clips retain original source duration for safe trim bounds', types.includes('sourceDuration: number') && mediaImport.includes('sourceDuration: duration') && factory.includes('sourceStart + rawDuration')],
   ['legacy media clips are normalized without exceeding their source duration', factory.includes('Math.min(rawDuration, Math.max(0, sourceDuration - sourceStart))')],
-  ['trim-end cannot extend a clip beyond the remaining source media', tl.includes('const availableSource = Math.max(0, clip.sourceDuration - sourceStart0)') && tl.includes('Math.min(availableSource, Math.max(0.1, Math.round((duration0 + delta) * 1000) / 1000))')],
+  ['trim-end cannot extend a clip beyond the remaining source media', tl.includes('const availableSource = Math.max(0, clip.sourceDuration - sourceStart0)') && tl.includes('const maxEnd = start0 + availableSource') && tl.includes('Math.min(availableSource, Math.max(0.1')],
   ['media clips can split at the playhead without breaking source-time continuity', tl.includes('const splitMediaClip = (trackId: string, clipId: string)') && tl.includes('sourceStart: Math.round((clip.sourceStart + offset) * 1000) / 1000') && tl.includes('e.key.toLowerCase() === \'s\'')],
   ['media clip splitting enforces a minimum 0.1 second segment', tl.includes('if (offset < 0.1 || offset > clip.duration - 0.1) return')],
   ['media clips expose independent start and end trim handles', tl.includes("startClipEdit(e, track.id, clip.id, 'trim-start')") && tl.includes("startClipEdit(e, track.id, clip.id, 'trim-end')")],
