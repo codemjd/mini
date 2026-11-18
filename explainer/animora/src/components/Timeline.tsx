@@ -541,13 +541,14 @@ export function Timeline() {
           <div className="media-clip-controls" aria-label="Selected media clip controls">
             <span className="media-clip-control-name" title={selectedMedia.clip.name}>{selectedMedia.clip.name}</span>
             <button className={`mini ${selectedMedia.clip.muted ? 'on' : ''}`}
+              disabled={selectedMedia.track.locked}
               aria-label={selectedMedia.clip.muted ? 'Unmute selected clip' : 'Mute selected clip'}
               title={selectedMedia.clip.muted ? 'Unmute selected clip (M)' : 'Mute selected clip (M)'}
               onClick={() => updateMediaClip(selectedMedia.track.id, selectedMedia.clip.id, { muted: !selectedMedia.clip.muted })}>
               <Icon name={selectedMedia.clip.muted ? 'volume-x' : 'volume-2'} size={14} />
             </button>
             <input type="range" min="0" max="1" step="0.05" value={selectedMedia.clip.volume ?? 1}
-              aria-label="Selected clip volume"
+              aria-label="Selected clip volume" disabled={selectedMedia.track.locked}
               onChange={(event) => updateMediaClip(selectedMedia.track.id, selectedMedia.clip.id, { volume: Number(event.currentTarget.value) })} />
             <span className="media-clip-volume">{Math.round((selectedMedia.clip.volume ?? 1) * 100)}%</span>
           </div>
