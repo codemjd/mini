@@ -4,11 +4,23 @@ import { uid } from '../model/factory';
 import type { TimelineClip, TimelineTrack, TimelineTrackKind } from '../model/types';
 import { storeMediaAsset } from './mediaLibrary';
 
-function mediaDuration(file: File): Promise<number> {
-  if (file.type.startsWith('image/')) return Promise.resolve(5);
+export function isAudioMediaFile(file: File) {
+  return file.type.startsWith('audio/') || /\\.(mp3|wav|ogg|oga|m4a|aac|flac|opus)$/i.test(file.name);
+}
+
+export function isVideoMediaFile(file: File) {
+  return file.type.startsWith('video/') || /\\.(mp4|m4v|webm|mov|mkv|avi|ogv)$/i.test(file.name);
+}
+
+function isImageMediaFile(file: File) {
+  return file.type.startsWith('image/') || /\\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(file.name);
+}
+
+function mediaDuration(file: File, isAudio: boolean): Promise<number> {
+  if (isImageMediaFile(file)) return Promise.resolve(5);
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
-    const media = document.createElement(file.type.startsWith('audio/') ? 'audio' : 'video');
+    const media = document.createElement(isAudio ? 'audio' : 'video');
     media.preload = 'metadata';
     media.onloadedmetadata = () => {
       const duration = Number.isFinite(media.duration) && media.duration > 0 ? media.duration : 5;
@@ -30,9 +42,9 @@ function compatibleTrack(tracks: TimelineTrack[], kind: TimelineTrackKind) {
 /** Imports media blobs to IndexedDB and creates clips in the active scene timeline. */
 export async function importMediaFilesToTimeline(files: FileList | File[]) {
   for (const file of Array.from(files)) {
-    const isAudio = file.type.startsWith('audio/');
-    const isVideo = file.type.startsWith('video/');
-    const isImage = file.type.startsWith('image/');
+    const isAudio = isAudioMediaFile(file);
+    const isVideo = isVideoMediaFile(file);
+    const isImage = isImageMediaFile(file);
     if (!isAudio && !isVideo && !isImage) {
       notify(`نوع الملف غير مدعوم: ${file.name}`);
       continue;
@@ -43,7 +55,7 @@ export async function importMediaFilesToTimeline(files: FileList | File[]) {
     }
     try {
       const kind: TimelineTrackKind = isAudio ? 'audio' : 'video';
-      const duration = await mediaDuration(file);
+      const duration = await mediaDuration(file, isAudio);
       const source = await storeMediaAsset(file);
       const state = getState();
       const tracks = [...(state.doc.timelineTracks ?? [])];
