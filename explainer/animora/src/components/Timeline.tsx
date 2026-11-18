@@ -285,10 +285,13 @@ export function Timeline() {
         duration = Math.min(availableSource, Math.max(0.1, Math.round((Math.max(minEnd, Math.min(maxEnd, snappedEnd)) - start0) * 1000) / 1000));
       }
       const tracks = getState().doc.timelineTracks ?? [];
-      patchDoc({ timelineTracks: tracks.map((item) => item.id !== trackId ? item : {
-        ...item,
-        clips: item.clips.map((entry) => entry.id === clipId ? { ...entry, start, duration, sourceStart } : entry),
-      }) }, key);
+      patchDoc({
+        timelineTracks: tracks.map((item) => item.id !== trackId ? item : {
+          ...item,
+          clips: item.clips.map((entry) => entry.id === clipId ? { ...entry, start, duration, sourceStart } : entry),
+        }),
+        duration: Math.max(getState().doc.duration, start + duration),
+      }, key);
     });
   };
 
@@ -485,7 +488,11 @@ export function Timeline() {
                         const delta = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
                         if (delta) {
                           const tracks = getState().doc.timelineTracks ?? [];
-                          patchDoc({ timelineTracks: tracks.map((item) => item.id === track.id ? { ...item, clips: item.clips.map((entry) => entry.id === clip.id ? { ...entry, start: Math.max(0, Math.round((entry.start + delta) * 1000) / 1000) } : entry) } : item) });
+                          const nextStart = Math.max(0, Math.round((clip.start + delta) * 1000) / 1000);
+                          patchDoc({
+                            timelineTracks: tracks.map((item) => item.id === track.id ? { ...item, clips: item.clips.map((entry) => entry.id === clip.id ? { ...entry, start: nextStart } : entry) } : item),
+                            duration: Math.max(getState().doc.duration, nextStart + clip.duration),
+                          });
                         }
                       }
                     }}>
