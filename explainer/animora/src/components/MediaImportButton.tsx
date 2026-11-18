@@ -53,7 +53,7 @@ export function MediaImportButton() {
         const duration = await mediaDuration(file);
         const source = await storeMediaAsset(file);
         const state = getState();
-        const tracks = state.doc.timelineTracks ?? [];
+        const tracks = [...(state.doc.timelineTracks ?? [])];
         let target = compatibleTrack(tracks, kind);
         if (!target) {
           target = {
