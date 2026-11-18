@@ -71,7 +71,7 @@ export async function importMediaFilesToTimeline(files: FileList | File[]) {
       const nextTracks = tracks.map((track) => track.id === target!.id
         ? { ...track, clips: [...track.clips, clip].sort((a, b) => a.start - b.start) }
         : track);
-      patchDoc({ timelineTracks: nextTracks });
+      patchDoc({ timelineTracks: nextTracks, duration: Math.max(state.doc.duration, clip.start + clip.duration) });
       notify(`تمت إضافة ${file.name} إلى ${target.name}`);
     } catch (error) {
       notify((error as Error)?.message || `تعذّر استيراد ${file.name}`);
