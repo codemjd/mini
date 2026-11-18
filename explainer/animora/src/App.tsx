@@ -11,6 +11,7 @@ import { insertImage, insertSvg } from './state/insert';
 import { frameAt } from './engine/interpolate';
 import { migrateDoc, syncActiveScene } from './model/factory';
 import { readFileAsDataUrl } from './io/importSvg';
+import { importMediaFilesToTimeline } from './io/mediaImport';
 import { exportAnimatedSvg, saveProject } from './io/files';
 import { TopBar, TOOLS } from './components/TopBar';
 import { Canvas } from './components/Canvas';
@@ -154,6 +155,8 @@ export default function App() {
           setState({ leftTab: 'elements' });
           const count = res.elements.length;
           notify(`Imported “${file.name}” as a group of ${count} layer${count > 1 ? 's' : ''}. Double-click it to edit inside.`);
+        } else if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
+          await importMediaFilesToTimeline([file]);
         } else if (file.type.startsWith('image/')) {
           await insertImage(await readFileAsDataUrl(file), file.name.replace(/\.[^.]+$/, ''));
           notify(`Imported image ${file.name}`);
@@ -316,13 +319,13 @@ export default function App() {
       <AudioPreview />
 
       <input ref={openRef} type="file" accept=".json,application/json" hidden onChange={(e) => { e.target.files && importFiles(e.target.files); e.target.value = ''; }} />
-      <input ref={importRef} type="file" accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp" multiple hidden onChange={(e) => { e.target.files && importFiles(e.target.files); e.target.value = ''; }} />
+      <input ref={importRef} type="file" accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp,audio/*,video/*" multiple hidden onChange={(e) => { e.target.files && importFiles(e.target.files); e.target.value = ''; }} />
 
       <ContextMenu />
       {dialog === 'export' && <ExportDialog onClose={() => setDialog(null)} />}
       {dialog === 'help' && <HelpDialog onClose={() => setDialog(null)} />}
       {showWelcome && !dialog && <WelcomeDialog onImport={openImport} onTemplates={() => setState({ leftTab: 'templates', leftOpen: true })} />}
-      {dropping && <div className="drop-overlay"><div>Drop an SVG, image or Animora project</div></div>}
+      {dropping && <div className="drop-overlay"><div>Drop an SVG, image, audio, video or Animora project</div></div>}
       {toast && <div className="toast" key={toast.id}>{toast.msg}</div>}
     </div>
   );
