@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore, getState, dismissWelcome } from '../state/store';
 import { loadDoc, newProject, patchDoc } from '../state/actions';
 import { exportSvg } from '../engine/render';
-import { download, exportGif, exportPng, exportPngSequence, exportStaticSvg, exportWebm, exportWebmScenes, safeName, saveProject, svgDataUrl } from '../io/files';
+import { download, exportGif, exportPng, exportPngSequence, exportProjectBundle, exportStaticSvg, exportWebm, exportWebmScenes, safeName, saveProject, svgDataUrl } from '../io/files';
 import { TOOLS } from './TopBar';
 import { ANIMATORS } from '../model/props';
 import { demoDoc } from '../model/factory';
@@ -199,7 +199,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               <div className="btn-col">
                 <button className="btn" onClick={() => exportPng(getState().doc, getState().time)}>PNG of current frame (2×)</button>
                 <button className="btn" onClick={() => exportStaticSvg(getState().doc, getState().time)}>Static SVG of current frame</button>
-                <button className="btn primary" onClick={() => saveProject(getState().doc)}>Project file (.animora.json)</button>
+                <button className="btn" onClick={() => saveProject(getState().doc)}>Project file (.animora.json)</button>
+                <button className="btn primary" disabled={busy} onClick={() => run(() => exportProjectBundle(getState().doc))}>Portable project + media (.animora.zip)</button>
               </div>
             </>
           )}
