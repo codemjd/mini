@@ -35,6 +35,13 @@ assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animo
 const corruptZipBytes = new Uint8Array(await zipFixture.arrayBuffer());
 corruptZipBytes[43] ^= 1;
 await assert.rejects(() => readZipArchive(new Blob([corruptZipBytes])), /integrity check/, 'ZIP reader must reject corrupted asset bytes');
+const centralOffset = 30 + new TextEncoder().encode('manifest.json').length + new TextEncoder().encode('animora bundle test').length;
+const inconsistentMethod = new Uint8Array(await zipFixture.arrayBuffer());
+inconsistentMethod[centralOffset + 10] = 8;
+await assert.rejects(() => readZipArchive(new Blob([inconsistentMethod])), /unsupported or truncated metadata/, 'ZIP reader must reject unsupported central-directory compression');
+const inconsistentName = new Uint8Array(await zipFixture.arrayBuffer());
+inconsistentName[centralOffset + 46] ^= 1;
+await assert.rejects(() => readZipArchive(new Blob([inconsistentName])), /integrity check/, 'ZIP reader must reject central/local filename mismatches');
 
 const checks = [
   ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
@@ -132,6 +139,7 @@ const checks = [
   ['ZIP reader rejects encrypted entries and inconsistent per-disk entry counts', zip.includes('(flags & ~0x0800) !== 0') && zip.includes('entriesOnDisk !== entryCount')],
   ['ZIP reader rejects unsupported compression and unsafe paths', zip.includes('method !== 0') && zip.includes("name.startsWith('/')") && zip.includes("name.split('/').includes('..')")],
   ['ZIP reader validates end-of-central-directory counts and local offsets', zip.includes('directoryOffset !== offset') && zip.includes('localOffsets.get(name) !== localOffset') && zip.includes('directoryCursor !== endOffset')],
+  ['ZIP reader cross-checks central and local flags, compression methods and filenames', zip.includes('flags !== view.getUint16(localOffset + 6, true)') && zip.includes('method !== view.getUint16(localOffset + 8, true)') && zip.includes('name !== localName') && zip.includes('centralNames.has(name)')],
   ['ZIP reader validates each asset CRC before accepting it', zip.includes('crc32(copy) !== view.getUint32(offset + 14, true)')],
   ['main file picker can open portable project bundles', app.includes("name.endsWith('.animora.zip')") && app.includes('importProjectBundle(file)') && app.includes('accept=".json,.animora.zip,application/json,application/zip"')],
   ['export dialog exposes portable project plus media archive', dialogs.includes('exportProjectBundle') && dialogs.includes('Portable project + media (.animora.zip)')],
