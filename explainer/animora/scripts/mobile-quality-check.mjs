@@ -8,6 +8,7 @@ const store = readFileSync(new URL('../src/state/store.ts', import.meta.url), 'u
 const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const sceneBar = readFileSync(new URL('../src/components/SceneBar.tsx', import.meta.url), 'utf8');
 const canvas = readFileSync(new URL('../src/components/Canvas.tsx', import.meta.url), 'utf8');
+const tl = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8');
 const factory = readFileSync(new URL('../src/model/factory.ts', import.meta.url), 'utf8');
 const actions = readFileSync(new URL('../src/state/actions.ts', import.meta.url), 'utf8');
 const types = readFileSync(new URL('../src/model/types.ts', import.meta.url), 'utf8');
@@ -40,6 +41,9 @@ const checks = [
   ['new and migrated projects receive normalized independent media lanes', factory.includes('createDefaultTimelineTracks()') && factory.includes('normalizeTimelineTracks(d.timelineTracks') && factory.includes('timelineTracks: doc.timelineTracks ?? createDefaultTimelineTracks()')],
   ['media lanes persist with scene snapshots and restore on scene switch', factory.includes('timelineTracks: doc.timelineTracks ?? createDefaultTimelineTracks()') && scenes.includes('timelineTracks: scene.timelineTracks ?? []')],
   ['duplicating scenes regenerates track and clip identities', scenes.includes('timelineTracks: (source.timelineTracks ?? []).map((track) => ({') && scenes.includes('clips: track.clips.map((clip) => ({ ...clip, id: uid() }))')],
+  ['timeline exposes independent video, audio and overlay lane creation controls', tl.includes("addMediaTrack('video')") && tl.includes("addMediaTrack('audio')") && tl.includes("addMediaTrack('overlay')")],
+  ['media lane names, mute state and lock state are editable', tl.includes('updateMediaTrack(track.id, { name: e.target.value.slice(0, 60) })') && tl.includes('muted: !track.muted') && tl.includes('locked: !track.locked')],
+  ['media clips are positioned in the timeline using start and duration', tl.includes('clip.start * pps') && tl.includes('clip.duration * pps')],
   ['new projects start with a named scene', factory.includes("sceneSnapshot(doc, id, 'Scene 1')") && factory.includes('doc.activeSceneId = id')],
   ['demo project scene snapshot includes its initial artwork', factory.includes('return syncActiveScene(doc);')],
   ['scene rename is available through a dedicated touch control', sceneBar.includes('aria-label="Rename active scene"')],
