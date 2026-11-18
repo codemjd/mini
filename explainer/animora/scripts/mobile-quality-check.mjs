@@ -7,6 +7,7 @@ const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const store = readFileSync(new URL('../src/state/store.ts', import.meta.url), 'utf8');
 const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const sceneBar = readFileSync(new URL('../src/components/SceneBar.tsx', import.meta.url), 'utf8');
+const canvas = readFileSync(new URL('../src/components/Canvas.tsx', import.meta.url), 'utf8');
 const factory = readFileSync(new URL('../src/model/factory.ts', import.meta.url), 'utf8');
 const actions = readFileSync(new URL('../src/state/actions.ts', import.meta.url), 'utf8');
 const types = readFileSync(new URL('../src/model/types.ts', import.meta.url), 'utf8');
@@ -52,6 +53,10 @@ const checks = [
   ['transition durations are constrained to a safe 0.1–5 second range', factory.includes('Math.min(5, Math.max(0.1, Number(candidate.duration)))')],
   ['video export composites all transition families', files.includes("type === 'slide-left'") && files.includes("type === 'wipe'") && files.includes("type === 'dissolve'") && files.includes("type === 'fade'") && files.includes("type === 'zoom-in'") && files.includes("type === 'zoom-out'")],
   ['scene transitions use the previous final frame and incoming scene frames', files.includes('previousSceneStill') && files.includes('transitionFrames') && files.includes('drawSceneTransition(')],
+  ['live preview resolves the previous and incoming scenes from the active scene index', canvas.includes('const outgoingScene = sceneIndex > 0 ? doc.scenes?.[sceneIndex - 1] : undefined') && canvas.includes('const incomingScene = sceneIndex > 0 ? doc.scenes?.[sceneIndex] : undefined')],
+  ['live preview renders the outgoing scene final frame without intercepting pointer input', canvas.includes('editorMarkup(outgoingScene.elements, outgoingScene.duration)') && canvas.includes('pointerEvents="none"')],
+  ['live preview applies scene entrance transforms and fade/zoom opacity', canvas.includes('const transitionTransform = transitionProgress === null') && canvas.includes('transform={transitionProgress !== null ? transitionTransform : undefined}') && canvas.includes('transition.type.startsWith(\'zoom-\')')],
+  ['live preview supports wipe clipping on the incoming scene', canvas.includes('__scene-preview-wipe') && canvas.includes("clipPath={transitionProgress !== null && transition.type === 'wipe'")],
   ['transition duration is contained within the incoming scene timeline', files.includes('Math.round(Math.max(0.1, transition.duration) * fps)') && files.includes('Math.min(times.length')],
   ['transition controls have responsive touch-sized fields', css.includes('.scene-transition-controls') && css.includes('@media (max-width: 700px)')],
   ['scene bar exposes duplicate and ordering controls', sceneBar.includes('aria-label="Duplicate active scene"') && sceneBar.includes('aria-label="Move scene earlier"') && sceneBar.includes('aria-label="Move scene later"')],
