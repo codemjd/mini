@@ -76,7 +76,7 @@ const checks = [
   ['media clip movement and trimming respect locked tracks', tl.includes('if (!track || !clip || track.locked) return')],
   ['media clip movement never starts before timeline zero', tl.includes("start = Math.max(0, target)") && tl.includes("const target = snapMediaTime(start0 + delta")],
   ['media clip trims preserve a minimum duration and non-negative source offset', tl.includes('start0 + duration0 - 0.1') && tl.includes('Math.max(0.1') && tl.includes('sourceStart = Math.max(0')],
-  ['media clips retain original source duration for safe trim bounds', types.includes('sourceDuration: number') && mediaImport.includes('sourceDuration: duration') && factory.includes('sourceStart + rawDuration')],
+  ['media clips retain original source duration for safe trim bounds', types.includes('sourceDuration: number') && mediaImportFlow.includes('sourceDuration: duration') && factory.includes('sourceStart + rawDuration')],
   ['legacy media clips are normalized without exceeding their source duration', factory.includes('Math.min(rawDuration, Math.max(0, sourceDuration - sourceStart))')],
   ['trim-end cannot extend a clip beyond the remaining source media', tl.includes('const availableSource = Math.max(0, clip.sourceDuration - sourceStart0)') && tl.includes('const maxEnd = start0 + availableSource') && tl.includes('Math.min(availableSource, Math.max(0.1')],
   ['media clips can split at the playhead without breaking source-time continuity', tl.includes('const splitMediaClip = (trackId: string, clipId: string)') && tl.includes('sourceStart: Math.round((clip.sourceStart + offset) * 1000) / 1000') && tl.includes('e.key.toLowerCase() === \'s\'')],
