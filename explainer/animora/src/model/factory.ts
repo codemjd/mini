@@ -153,7 +153,7 @@ export function migrateDoc(raw: unknown): Doc {
     defs: d.defs ?? '',
     guides: { x: d.guides?.x ?? [], y: d.guides?.y ?? [] },
     comments: Array.isArray(d.comments) ? d.comments : [],
-    timelineTracks: normalizeTimelineTracks(d.timelineTracks),
+    timelineTracks: normalizeTimelineTracks(d.timelineTracks ?? d.scenes?.find((scene) => scene.id === d.activeSceneId)?.timelineTracks ?? d.scenes?.[0]?.timelineTracks),
     elements: d.elements.map(migrateEl),
     scenes: Array.isArray(d.scenes) && d.scenes.length
       ? d.scenes.map((scene, index) => ({
@@ -179,7 +179,7 @@ export function migrateDoc(raw: unknown): Doc {
   } else if (!out.scenes.some((scene) => scene.id === out.activeSceneId)) {
     out.activeSceneId = out.scenes[0].id;
   }
-  return out;
+  return syncActiveScene(out);
 }
 
 function migrateEl(e: SvgEl): SvgEl {
