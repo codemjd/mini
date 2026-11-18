@@ -96,6 +96,8 @@ export interface TimelineClip {
   start: number;
   duration: number;
   sourceStart: number;
+  /** Original source length in seconds, used to prevent trims beyond media bounds. */
+  sourceDuration: number;
   volume: number;
   muted: boolean;
 }
