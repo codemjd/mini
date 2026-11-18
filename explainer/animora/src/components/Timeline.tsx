@@ -6,7 +6,7 @@ import {
   toggleAnimatorKey,
 } from '../state/animate';
 import { animatorsFor, animatorProps, isAnimatorActive, type Animator } from '../model/props';
-import type { KfRef, PropKey, SvgEl, TimelineTrackKind } from '../model/types';
+import type { KfRef, PropKey, SvgEl, TimelineClip, TimelineTrackKind } from '../model/types';
 import { flatten } from '../model/tree';
 import { uid } from '../model/factory';
 import { getEasing } from '../engine/easing';
@@ -75,6 +75,7 @@ export function Timeline() {
   refMap.current = new Map();
 
   const selKeys = new Set(selectedKfs.map(kfKey));
+  const selectedMedia = (doc.timelineTracks ?? []).flatMap((track) => track.clips.map((clip) => ({ track, clip }))).find((item) => item.clip.id === selectedClipId);
   const span = Math.max(doc.duration + 2, (viewW - TL_LEFT - PAD) / pps);
   const width = span * pps + PAD * 2;
 
@@ -307,6 +308,12 @@ export function Timeline() {
       kind, visible: true, muted: false, locked: false, clips: [],
     }] });
   };
+  const updateMediaClip = (trackId: string, clipId: string, patch: Partial<Pick<TimelineClip, 'muted' | 'volume'>>) => {
+    const tracks = getState().doc.timelineTracks ?? [];
+    patchDoc({ timelineTracks: tracks.map((track) => track.id === trackId ? {
+      ...track, clips: track.clips.map((clip) => clip.id === clipId ? { ...clip, ...patch } : clip),
+    } : track) });
+  };
   const updateMediaTrack = (id: string, patch: { name?: string; visible?: boolean; muted?: boolean; locked?: boolean }) => {
     const tracks = getState().doc.timelineTracks ?? [];
     patchDoc({ timelineTracks: tracks.map((track) => track.id === id ? { ...track, ...patch } : track) });
@@ -530,6 +537,21 @@ export function Timeline() {
           <button onClick={() => addMediaTrack('audio')} title="Add audio track">+ Audio</button>
           <button onClick={() => addMediaTrack('overlay')} title="Add overlay track">+ Overlay</button>
         </div>
+        {selectedMedia && (
+          <div className="media-clip-controls" aria-label="Selected media clip controls">
+            <span className="media-clip-control-name" title={selectedMedia.clip.name}>{selectedMedia.clip.name}</span>
+            <button className={`mini ${selectedMedia.clip.muted ? 'on' : ''}`}
+              aria-label={selectedMedia.clip.muted ? 'Unmute selected clip' : 'Mute selected clip'}
+              title={selectedMedia.clip.muted ? 'Unmute selected clip (M)' : 'Mute selected clip (M)'}
+              onClick={() => updateMediaClip(selectedMedia.track.id, selectedMedia.clip.id, { muted: !selectedMedia.clip.muted })}>
+              <Icon name={selectedMedia.clip.muted ? 'volume-x' : 'volume-2'} size={14} />
+            </button>
+            <input type="range" min="0" max="1" step="0.05" value={selectedMedia.clip.volume ?? 1}
+              aria-label="Selected clip volume"
+              onChange={(event) => updateMediaClip(selectedMedia.track.id, selectedMedia.clip.id, { volume: Number(event.currentTarget.value) })} />
+            <span className="media-clip-volume">{Math.round((selectedMedia.clip.volume ?? 1) * 100)}%</span>
+          </div>
+        )}
         <div className="tl-zoom">
           <button onClick={() => setView({ pps: Math.max(20, Math.round(pps / 1.25)) })} title="Zoom out timeline">−</button>
           <input type="range" min={20} max={600} value={pps} onChange={(e) => setView({ pps: +e.target.value })} title="Timeline zoom" />
