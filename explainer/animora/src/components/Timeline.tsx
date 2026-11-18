@@ -219,6 +219,45 @@ export function Timeline() {
     );
   };
 
+  /** Move or trim a media clip while preserving non-negative source and timeline offsets. */
+  const startClipEdit = (e: React.PointerEvent, trackId: string, clipId: string, mode: 'move' | 'trim-start' | 'trim-end') => {
+    e.stopPropagation();
+    if (e.button !== 0) return;
+    const track = getState().doc.timelineTracks?.find((item) => item.id === trackId);
+    const clip = track?.clips.find((item) => item.id === clipId);
+    if (!track || !clip || track.locked) return;
+    setState({ playing: false });
+    const x0 = e.clientX;
+    const start0 = clip.start;
+    const duration0 = clip.duration;
+    const sourceStart0 = clip.sourceStart;
+    const key = 'g:' + uid();
+    drag((ev) => {
+      const rawDelta = (ev.clientX - x0) / pps;
+      const step = ev.shiftKey ? 0.1 : 0.01;
+      const delta = Math.round(rawDelta / step) * step;
+      let start = start0;
+      let duration = duration0;
+      let sourceStart = sourceStart0;
+      if (mode === 'move') {
+        start = Math.max(0, Math.round((start0 + delta) * 1000) / 1000);
+      } else if (mode === 'trim-start') {
+        const applied = Math.max(-sourceStart0, Math.min(duration0 - 0.1, delta));
+        start = Math.max(0, Math.round((start0 + applied) * 1000) / 1000);
+        const actual = start - start0;
+        duration = Math.max(0.1, Math.round((duration0 - actual) * 1000) / 1000);
+        sourceStart = Math.max(0, Math.round((sourceStart0 + actual) * 1000) / 1000);
+      } else {
+        duration = Math.max(0.1, Math.round((duration0 + delta) * 1000) / 1000);
+      }
+      const tracks = getState().doc.timelineTracks ?? [];
+      patchDoc({ timelineTracks: tracks.map((item) => item.id !== trackId ? item : {
+        ...item,
+        clips: item.clips.map((entry) => entry.id === clipId ? { ...entry, start, duration, sourceStart } : entry),
+      }) }, key);
+    });
+  };
+
   const addMediaTrack = (kind: TimelineTrackKind) => {
     const tracks = getState().doc.timelineTracks ?? [];
     if (tracks.length >= 32) return;
@@ -348,9 +387,15 @@ export function Timeline() {
               </div>
               <div className={`tl-track media-track-lane ${track.muted ? 'muted' : ''}`} style={{ width }} aria-label={track.name + ' lane'}>
                 {track.clips.map((clip) => (
-                  <div key={clip.id} className={`media-clip ${clip.kind}`}
-                    style={{ left: PAD + clip.start * pps, width: Math.max(3, clip.duration * pps) }} title={clip.name}>
-                    {clip.name}
+                  <div key={clip.id} className={`media-clip ${clip.kind} ${track.locked ? 'disabled' : ''}`}
+                    style={{ left: PAD + clip.start * pps, width: Math.max(3, clip.duration * pps) }}
+                    title={`${clip.name} · ${clip.start.toFixed(2)}s · ${clip.duration.toFixed(2)}s`}
+                    onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'move')}>
+                    <span className="media-clip-handle start" role="button" aria-label={`Trim start of ${clip.name}`}
+                      onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'trim-start')} />
+                    <span className="media-clip-label">{clip.name}</span>
+                    <span className="media-clip-handle end" role="button" aria-label={`Trim end of ${clip.name}`}
+                      onPointerDown={(e) => startClipEdit(e, track.id, clip.id, 'trim-end')} />
                   </div>
                 ))}
                 {track.clips.length === 0 && <span className="media-lane-hint">{track.kind === 'video' ? 'Video clips will appear here' : track.kind === 'audio' ? 'Audio clips will appear here' : 'Titles and graphics will appear here'}</span>}
