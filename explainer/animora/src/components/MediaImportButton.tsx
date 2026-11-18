@@ -71,6 +71,7 @@ export function MediaImportButton() {
           start: Math.max(0, state.time),
           duration,
           sourceStart: 0,
+          sourceDuration: duration,
           volume: 1,
           muted: false,
         };
