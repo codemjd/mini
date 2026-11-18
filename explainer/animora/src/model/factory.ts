@@ -21,16 +21,20 @@ export function normalizeTimelineTracks(value: unknown): TimelineTrack[] {
     const kind = TRACK_KINDS.includes(track.kind as TimelineTrackKind) ? track.kind as TimelineTrackKind : 'overlay';
     const clips = Array.isArray(track.clips) ? track.clips.slice(0, 500).filter((clip) => clip && typeof clip === 'object').map((rawClip, clipIndex) => {
       const clip = rawClip as Partial<import('./types').TimelineClip>;
-      const duration = Number.isFinite(clip.duration) ? Math.max(0, Number(clip.duration)) : 0;
+      const rawDuration = Number.isFinite(clip.duration) ? Math.max(0, Number(clip.duration)) : 0;
       const start = Number.isFinite(clip.start) ? Math.max(0, Number(clip.start)) : 0;
       const sourceStart = Number.isFinite(clip.sourceStart) ? Math.max(0, Number(clip.sourceStart)) : 0;
+      const sourceDuration = Number.isFinite(clip.sourceDuration)
+        ? Math.max(sourceStart, Number(clip.sourceDuration))
+        : sourceStart + rawDuration;
+      const duration = Math.min(rawDuration, Math.max(0, sourceDuration - sourceStart));
       const clipKind = ['video', 'audio', 'image', 'text'].includes(String(clip.kind)) ? clip.kind! : (kind === 'audio' ? 'audio' : 'video');
       return {
         id: typeof clip.id === 'string' && clip.id ? clip.id : uid(),
         name: typeof clip.name === 'string' && clip.name.trim() ? clip.name.slice(0, 100) : 'Clip ' + (clipIndex + 1),
         kind: clipKind,
         source: typeof clip.source === 'string' ? clip.source : '',
-        start, duration, sourceStart,
+        start, duration, sourceStart, sourceDuration,
         volume: Number.isFinite(clip.volume) ? Math.max(0, Math.min(2, Number(clip.volume))) : 1,
         muted: Boolean(clip.muted),
       };
