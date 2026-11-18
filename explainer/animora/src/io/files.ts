@@ -39,10 +39,14 @@ export async function exportProjectBundle(doc: Doc, onProgress: (progress: numbe
   const seen = new Map<string, BundleAsset>();
   const files: { name: string; data: Uint8Array<ArrayBuffer> }[] = [];
   let completed = 0;
+  let totalBytes = 0;
+  const maxBundleBytes = 550 * 1024 * 1024;
   for (const [source, clipName] of references) {
     const asset = await readMediaAsset(source);
     if (!asset) throw new Error(`Missing media asset: ${clipName}. Re-import it before bundling this project.`);
     const ext = (asset.name.match(/\.([a-z0-9]{1,8})$/i)?.[1] ?? 'bin').toLowerCase();
+    if (totalBytes + asset.blob.size > maxBundleBytes) throw new Error('The portable project exceeds the 550 MB media bundle limit. Remove unused or large media before exporting.');
+    totalBytes += asset.blob.size;
     const path = `assets/media-${seen.size + 1}.${ext}`;
     seen.set(source, { source, path, name: asset.name, type: asset.type });
     files.push({ name: path, data: new Uint8Array(await asset.blob.arrayBuffer()) });
