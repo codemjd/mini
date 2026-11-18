@@ -19,7 +19,7 @@ export function MediaImportButton() {
 
   return (
     <>
-      <input ref={input} type="file" accept="audio/*,video/*,image/*" multiple hidden
+      <input ref={input} type="file" accept="audio/*,video/*,image/*,.mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,.mp4,.m4v,.webm,.mov,.mkv,.avi,.png,.jpg,.jpeg,.gif,.webp" multiple hidden
         onChange={(event) => void importFiles(event.currentTarget.files)} />
       <button className="media-import-button" disabled={busy} onClick={() => input.current?.click()}
         title="Import audio, video or images into the timeline">
