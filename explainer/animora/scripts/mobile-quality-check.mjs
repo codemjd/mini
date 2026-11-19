@@ -36,21 +36,20 @@ const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', 
 const zipFixture = createZipArchive([{ name: 'manifest.json', data: new TextEncoder().encode('animora bundle test') }]);
 const zipRoundTrip = await readZipArchive(zipFixture);
 const defaultCamera = normalizeSceneCamera(null);
-assert.deepEqual(defaultCamera, { x: 0, y: 0, zoom: 1, keyframes: [] });
+assert.deepEqual(defaultCamera, { enabled: false, keyframes: [] });
 const rawCamera = {
-  x: Infinity, y: -1_000_000, zoom: 99,
+  enabled: true,
   keyframes: [
     { id: 'later', time: 2, x: 20, y: 10, zoom: 2, easing: 'linear' },
     { id: 'invalid', time: NaN, x: 0, y: 0, zoom: 1, easing: 'linear' },
-    { id: 'earlier', time: 1, x: -20, y: -10, zoom: 0.01, easing: 'easeOut' },
+    { id: 'earlier', time: 1, x: -1_000_000, y: -10, zoom: 0.01, easing: 'easeOut' },
   ],
 };
 const rawCameraSnapshot = JSON.stringify(rawCamera);
 const normalizedCamera = normalizeSceneCamera(rawCamera);
-assert.equal(normalizedCamera.x, 0);
-assert.equal(normalizedCamera.y, -100_000);
-assert.equal(normalizedCamera.zoom, 8);
-assert.deepEqual(normalizedCamera.keyframes.map((frame) => frame.id), ['earlier', 'later']);
+assert.equal(normalizedCamera.enabled, true);
+assert.deepEqual(normalizedCamera.keyframes.map((frame) => frame.id), ['earlier', 'invalid', 'later']);
+assert.equal(normalizedCamera.keyframes[0].x, -100_000);
 assert.equal(normalizedCamera.keyframes[0].zoom, 0.1);
 assert.equal(JSON.stringify(rawCamera), rawCameraSnapshot, 'camera normalization must not mutate project data');
 
@@ -138,8 +137,10 @@ const checks = [
   ['visual media preview hides inactive or invisible tracks and releases object URLs', visualPreview.includes('!track.visible') && visualPreview.includes('video.pause()') && visualPreview.includes('URL.revokeObjectURL(asset.url)')],
   ['audio preview is mounted in the editor transport', app.includes("import { AudioPreview } from './components/AudioPreview'") && app.includes('<AudioPreview />')],
   ['audio waveform extraction is cached, bounded by compressed size and duration, and closes its decoder', waveform.includes('MAX_DECODE_BYTES = 2 * 1024 * 1024') && waveform.includes('MAX_DECODE_SECONDS = 120') && waveform.includes('PEAK_COUNT = 256') && waveform.includes('context.close()') && waveform.includes('readDuration(asset.blob)')],
-  ['audio waveform decoding uses a two-slot semaphore with race-free permit handoff', waveform.includes('MAX_CONCURRENT_DECODERS = 2') && waveform.includes('withDecoderSlot(async () =>') && waveform.includes('if (next) next();') && waveform.includes('else activeDecoders--;') && waveform.includes('else {\n    activeDecoders++;')],
-  ['waveform cache refreshes recently used entries before eviction', waveform.includes('cache.delete(source);\n    cache.set(source, cached)')],
+  ['audio waveform decoding uses a two-slot semaphore with race-free permit handoff', waveform.includes('MAX_CONCURRENT_DECODERS = 2') && waveform.includes('withDecoderSlot(async () =>') && waveform.includes('if (next) next();') && waveform.includes('else activeDecoders--;') && waveform.includes('else {
+    activeDecoders++;')],
+  ['waveform cache refreshes recently used entries before eviction', waveform.includes('cache.delete(source);
+    cache.set(source, cached)')],
   ['audio waveform peaks include every channel instead of only the left channel', waveform.includes('buffer.numberOfChannels') && waveform.includes('for (const channel of channels) peak = Math.max(peak, Math.abs(channel[sample] ?? 0))')],
   ['audio waveform cache evicts old entries instead of growing without a limit', waveform.includes('MAX_CACHE_ENTRIES = 64') && waveform.includes('while (cache.size > MAX_CACHE_ENTRIES) cache.delete(cache.keys().next().value!)')],
   ['waveform metadata probe releases its media element and object URL on completion or timeout', waveform.includes('window.setTimeout(() => finish(null), 5000)') && waveform.includes("audio.removeAttribute('src')") && waveform.includes('URL.revokeObjectURL(url)')],
@@ -204,7 +205,8 @@ const checks = [
   ['transition settings are editable and saved per scene', sceneBar.includes('aria-label="Transition into active scene"') && sceneBar.includes('aria-label="Transition duration in seconds"') && sceneState.includes('export function setSceneTransition')],
   ['transition durations are constrained to a safe 0.1–5 second range', factory.includes('Math.min(5, Math.max(0.1, Number(candidate.duration)))')],
   ['video export composites all transition families', files.includes("type === 'slide-left'") && files.includes("type === 'wipe'") && files.includes("type === 'dissolve'") && files.includes("type === 'fade'") && files.includes("type === 'zoom-in'") && files.includes("type === 'zoom-out'")],
-  ['single-scene WebM export falls back when no preferred MIME type is reported and always releases capture tracks', files.includes("...(mime ? { mimeType: mime } : {})") && files.includes("finally {\n    stream.getTracks().forEach((track) => track.stop());") && files.includes("if (started && rec.state !== 'inactive') rec.stop();")],
+  ['single-scene WebM export falls back when no preferred MIME type is reported and always releases capture tracks', files.includes("...(mime ? { mimeType: mime } : {})") && files.includes("finally {
+    stream.getTracks().forEach((track) => track.stop());") && files.includes("if (started && rec.state !== 'inactive') rec.stop();")],
   ['scene transitions use the previous final frame and incoming scene frames', files.includes('previousSceneStill') && files.includes('transitionFrames') && files.includes('drawSceneTransition(')],
   ['live preview resolves the previous and incoming scenes from the active scene index', canvas.includes('const outgoingScene = sceneIndex > 0 ? doc.scenes?.[sceneIndex - 1] : undefined') && canvas.includes('const incomingScene = sceneIndex > 0 ? doc.scenes?.[sceneIndex] : undefined')],
   ['live preview renders the outgoing scene final frame without intercepting pointer input', canvas.includes('editorMarkup(outgoingScene.elements, outgoingScene.duration)') && canvas.includes('pointerEvents="none"')],
@@ -225,6 +227,9 @@ const checks = [
 
 for (const [name, ok] of checks) {
   assert.equal(ok, true, `Mobile regression check failed: ${name}`);
-  process.stdout.write(`PASS ${name}\n`);
+  process.stdout.write(`PASS ${name}
+`);
 }
-process.stdout.write(`\n${checks.length} mobile regression checks passed.\n`);
+process.stdout.write(`
+${checks.length} mobile regression checks passed.
+`);
