@@ -21,7 +21,7 @@ function applyScene(doc: ReturnType<typeof getState>['doc'], scene: Scene) {
     defs: scene.defs,
     guides: scene.guides,
     comments: scene.comments,
-    timelineTracks: scene.timelineTracks ?? [],
+    timelineTracks: scene.timelineTracks ?? [],\n    camera: scene.camera,
   };
 }
 
