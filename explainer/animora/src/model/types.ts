@@ -187,7 +187,7 @@ export interface Scene {
   guides: Guides;
   comments: Comment[];
   /** How this scene enters from the previous scene. Missing values mean a hard cut. */
-  transitionIn?: SceneTransition;\n  /** Optional for backwards compatibility; normalized on project import. */\n  camera?: SceneCamera;
+  transitionIn?: SceneTransition;
   /** Optional per-scene camera framing; absent in legacy projects. */
   camera?: SceneCamera;
   /** Independent audio/video/overlay lanes; optional for legacy projects. */
@@ -221,7 +221,7 @@ export interface Doc {
   timelineTracks?: TimelineTrack[];
   /** Optional for backwards compatibility with single-scene files. */
   scenes?: Scene[];
-  activeSceneId?: string;\n  /** Active scene camera snapshot; independent of object transforms. */\n  camera?: SceneCamera;
+  activeSceneId?: string;
   /** Active scene camera, mirrored into its scene snapshot. */
   camera?: SceneCamera;
 }
