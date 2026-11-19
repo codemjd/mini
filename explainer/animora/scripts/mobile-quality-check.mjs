@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
+import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -32,6 +33,29 @@ const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', 
 const zipFixture = createZipArchive([{ name: 'manifest.json', data: new TextEncoder().encode('animora bundle test') }]);
 const zipRoundTrip = await readZipArchive(zipFixture);
 assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animora bundle test', 'ZIP writer/reader round-trip must preserve entry bytes');
+
+const audioClip = (id, start, duration, sourceStart = 0, sourceDuration = 20, volume = 1, muted = false) => ({
+  id, name: id, kind: 'audio', source: `asset:${id}`, start, duration, sourceStart, sourceDuration, volume, muted,
+});
+const audioTracks = [
+  { id: 'a', name: 'Audio A', kind: 'audio', visible: true, muted: false, locked: false, clips: [
+    audioClip('later', 4, 3), audioClip('trimmed', 1, 8, 5, 10, 1.5),
+    audioClip('muted-clip', 2, 2, 0, 20, 1, true),
+    audioClip('invalid', 3, 0),
+  ] },
+  { id: 'b', name: 'Muted lane', kind: 'audio', visible: true, muted: true, locked: false, clips: [audioClip('muted-lane', 0, 4)] },
+  { id: 'v', name: 'Video', kind: 'video', visible: true, muted: false, locked: false, clips: [audioClip('not-audio', 0, 4)] },
+];
+const audioPlan = buildAudioSchedule(audioTracks, 10, 2);
+assert.deepEqual(audioPlan.map((item) => item.clipId), ['trimmed', 'later'], 'audio schedule must sort clips and omit muted/invalid/non-audio clips');
+assert.deepEqual(audioPlan[0], {
+  clipId: 'trimmed', source: 'asset:trimmed', start: 10.5, duration: 2.5,
+  sourceStart: 5, sourceEnd: 10, volume: 1,
+}, 'audio schedule must preserve source trim, clamp gain and apply scene offset/playback rate');
+assert.equal(audioPlan[1].start, 12, 'audio clips must be offset into the continuous scene timeline');
+assert.throws(() => buildAudioSchedule(audioTracks, -1, 1), /scene offset/, 'negative scene offsets must be rejected');
+assert.throws(() => buildAudioSchedule(audioTracks, 0, 0), /playback rate/, 'non-positive playback rates must be rejected');
+
 const corruptZipBytes = new Uint8Array(await zipFixture.arrayBuffer());
 corruptZipBytes[43] ^= 1;
 await assert.rejects(() => readZipArchive(new Blob([corruptZipBytes])), /integrity check/, 'ZIP reader must reject corrupted asset bytes');
