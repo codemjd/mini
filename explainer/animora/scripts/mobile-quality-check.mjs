@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
+import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
+import { DEFAULT_SCENE_CAMERA, normalizeSceneCamera } from '../src/model/camera.ts';
+import { migrateDoc } from '../src/model/factory.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -221,7 +224,7 @@ const checks = [
 ];
 
   ['scene camera model is independent from element transform properties', types.includes('interface SceneCamera') && types.includes('interface SceneCameraKeyframe') && !types.includes("'cameraX'")],
-  ['new projects receive a neutral camera and legacy scenes are normalized', factory.includes('camera: normalizeSceneCamera(doc.camera ?? DEFAULT_SCENE_CAMERA)') && factory.includes('camera: normalizeSceneCamera(scene.camera)')],
+  ['new projects receive a neutral camera and legacy scenes are normalized', factory.includes('camera: normalizeSceneCamera(doc.camera ?? doc.scenes?.find((scene) => scene.id === id)?.camera ?? DEFAULT_SCENE_CAMERA)') && factory.includes('camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA)')],
   ['camera framing is restored when switching scenes and defaults on new scenes', scenes.includes('camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA)') && scenes.includes('camera: { ...DEFAULT_SCENE_CAMERA, keyframes: [] }')],
   ['camera normalization clamps unsafe framing and sorts valid keyframes without mutating input', normalizedCamera.x === 0 && normalizedCamera.y === -100_000 && normalizedCamera.zoom === 8 && normalizedCamera.keyframes[0].id === 'earlier' && JSON.stringify(rawCamera) === rawCameraSnapshot],
 for (const [name, ok] of checks) {
