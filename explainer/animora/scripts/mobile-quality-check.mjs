@@ -4,6 +4,7 @@ import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/i
 import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
 import { DEFAULT_SCENE_CAMERA, evaluateSceneCamera, normalizeSceneCamera, sceneCameraTransform } from '../src/model/camera.ts';
 import { migrateDoc } from '../src/model/factory.ts';
+import { exportSvg } from '../src/engine/render.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -32,6 +33,7 @@ const waveformView = readFileSync(new URL('../src/components/MediaWaveform.tsx',
 const visualPreview = readFileSync(new URL('../src/components/VisualMediaPreview.tsx', import.meta.url), 'utf8');
 const camera = readFileSync(new URL('../src/model/camera.ts', import.meta.url), 'utf8');
 const canvasSource = readFileSync(new URL('../src/components/Canvas.tsx', import.meta.url), 'utf8');
+const renderSource = readFileSync(new URL('../src/engine/render.ts', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const zip = readFileSync(new URL('../src/io/zip.ts', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
@@ -77,6 +79,20 @@ assert.equal(evaluateSceneCamera({ enabled: true, keyframes: [
 
 assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animora bundle test', 'ZIP writer/reader round-trip must preserve entry bytes');
 
+const cameraExportProject = migrateDoc({
+  version: 1, name: 'Camera export', width: 800, height: 500, background: '#fff',
+  duration: 3, loop: false, iterations: 1, direction: 'normal', trigger: 'load',
+  fillMode: 'freeze', speed: 100, elements: [], defs: '', guides: { x: [], y: [] }, comments: [],
+  camera: { enabled: true, keyframes: [
+    { id: 'start', time: 0, x: 0, y: 0, zoom: 1, easing: 'linear' },
+    { id: 'end', time: 2, x: 10, y: -5, zoom: 2, easing: 'linear' },
+  ] },
+});
+const cameraExportSvg = exportSvg(cameraExportProject, { animated: false, time: 2 });
+assert.ok(cameraExportSvg.includes('<g transform="translate(400 250) scale(2) translate(-410 -245)">'), 'static SVG frames must apply the evaluated scene camera');
+const neutralExportSvg = exportSvg(migrateDoc({ version: 1, name: 'Neutral', width: 800, height: 500, background: '#fff', duration: 3, loop: true, iterations: 1, direction: 'normal', trigger: 'load', fillMode: 'freeze', speed: 100, elements: [], defs: '', guides: { x: [], y: [] }, comments: [] }), { animated: false, time: 0 });
+assert.ok(!neutralExportSvg.includes('scale(1) translate(-400 -250)'), 'neutral camera must not add an unnecessary transform');
+
 const legacyProject = migrateDoc({ version: 1, name: 'Legacy', width: 800, height: 500, background: '#fff', duration: 3, loop: true, iterations: 1, direction: 'normal', trigger: 'load', fillMode: 'freeze', speed: 100, elements: [], defs: '', guides: { x: [], y: [] }, comments: [] });
 assert.deepEqual(legacyProject.camera, DEFAULT_SCENE_CAMERA, 'legacy projects without camera data must migrate to neutral scene framing');
 assert.deepEqual(legacyProject.scenes[0].camera, DEFAULT_SCENE_CAMERA, 'legacy scene snapshots must receive neutral camera framing');
@@ -115,6 +131,8 @@ inconsistentName[centralOffset + 46] ^= 1;
 await assert.rejects(() => readZipArchive(new Blob([inconsistentName])), /integrity check/, 'ZIP reader must reject central/local filename mismatches');
 
 const checks = [
+  ['static SVG frame export uses the same evaluated scene camera transform', renderSource.includes('sceneCameraTransform(evaluateSceneCamera(doc.camera, opts.time ?? 0)') && renderSource.includes('opts.animated')],
+  ['multi-scene export copies active scene camera settings into its render snapshot', files.includes('comments: doc.comments, camera: doc.camera')],
   ['scene camera is evaluated and applied to the active playback canvas', canvasSource.includes('evaluateSceneCamera(doc.camera, time)') && canvasSource.includes('sceneCameraTransform') && canvasSource.includes('transform={contentTransform}')],
   ['outgoing scene camera is retained during scene transitions', canvasSource.includes('evaluateSceneCamera(outgoingScene.camera, outgoingScene.duration)') && canvasSource.includes('transform={combinedOutgoingTransform}')],
   ['advanced drawing and arrangement tools remain reachable from More menu', topbar.includes('ADVANCED_TOOLS') && topbar.includes('MoreMenu') && topbar.includes('Arrange selection') && topbar.includes('Canvas helpers')],
