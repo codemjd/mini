@@ -114,57 +114,6 @@ function Check({ on, label, kbd, onClick }: { on: boolean; label: string; kbd?: 
   );
 }
 
-function SnapMenu() {
-  const view = useStore((s) => s.view);
-  const dd = useDropdown();
-  return (
-    <div className="tool-group" ref={dd.ref}>
-      <button className={`tb-btn ${view.snap ? 'on' : ''}`} onClick={() => setView({ snap: !view.snap })} title={`Snapping ${view.snap ? 'on' : 'off'} (Alt+S)`}>
-        <Icon name="magnet" size={18} />
-      </button>
-      <button className="tb-caret" onClick={() => dd.setOpen(!dd.open)} aria-label="Snapping options"><Icon name="chevD" size={10} /></button>
-      {dd.open && (
-        <div className="menu-pop">
-          <Check on={view.snapObjects} label="Snap to objects" onClick={() => setView({ snapObjects: !view.snapObjects })} />
-          <Check on={view.snapGuides} label="Snap to guides" onClick={() => setView({ snapGuides: !view.snapGuides })} />
-          <Check on={view.snapGrid} label="Snap to grid" onClick={() => setView({ snapGrid: !view.snapGrid })} />
-          <Check on={view.snapPixel} label="Snap to pixel" onClick={() => setView({ snapPixel: !view.snapPixel })} />
-          <div className="menu-sep" />
-          <Check on={view.snap} label="Enable snapping" kbd="Alt+S" onClick={() => setView({ snap: !view.snap })} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StageMenu() {
-  const view = useStore((s) => s.view);
-  const dd = useDropdown();
-  return (
-    <div className="tool-group" ref={dd.ref}>
-      <button className={`tb-btn ${view.showGrid ? 'on' : ''}`} onClick={() => setView({ showGrid: !view.showGrid })} title="Show grid (Alt+G)">
-        <Icon name="grid" size={18} />
-      </button>
-      <button className="tb-caret" onClick={() => dd.setOpen(!dd.open)} aria-label="Stage options"><Icon name="chevD" size={10} /></button>
-      {dd.open && (
-        <div className="menu-pop">
-          <Check on={view.showGrid} label="Show grid" kbd="Alt+G" onClick={() => setView({ showGrid: !view.showGrid })} />
-          <div className="menu-row">
-            <span>Grid size</span>
-            <input type="number" min={2} max={500} value={view.gridSize} onChange={(e) => setView({ gridSize: Math.max(2, +e.target.value || 20) })} />
-          </div>
-          <div className="menu-sep" />
-          <Check on={view.showRulers} label="Show rulers" kbd="Alt+R" onClick={() => setView({ showRulers: !view.showRulers })} />
-          <Check on={view.showGuides} label="Show guides" kbd="Alt+L" onClick={() => setView({ showGuides: !view.showGuides })} />
-          <button className="menu-item" onClick={() => { clearGuides(); dd.setOpen(false); }}>
-            <span className="mi-icon" /><span className="mi-label">Clear all guides</span>
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function MoreMenu({ any, selectionCount }: { any: boolean; selectionCount: number }) {
   const dd = useDropdown();
   const view = useStore((s) => s.view);
@@ -177,7 +126,7 @@ function MoreMenu({ any, selectionCount }: { any: boolean; selectionCount: numbe
   return (
     <div className="tool-group" ref={dd.ref}>
       <button className="tb-btn" onClick={() => dd.setOpen(!dd.open)} title="More tools and options" aria-label="More tools and options" aria-expanded={dd.open}>
-        <Icon name="moreHorizontal" size={18} />
+        <Icon name="more" size={18} />
       </button>
       {dd.open && (
         <div className="menu-pop">
