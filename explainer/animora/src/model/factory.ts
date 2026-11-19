@@ -69,7 +69,7 @@ export function normalizeSceneCamera(value: unknown): import('./types').SceneCam
   const keyframes = Array.isArray(candidate.keyframes) ? candidate.keyframes.slice(0, 500).flatMap((raw, index) => {
     if (!raw || typeof raw !== 'object') return [];
     const frame = raw as Partial<import('./types').SceneCameraKeyframe>;
-    if (![frame.time, frame.x, frame.y, frame.zoom].every(Number.isFinite)) return [];
+    if (![frame.time, frame.x, frame.y, frame.zoom].every(Number.isFinite) || Number(frame.time) < 0) return [];
     return [{
       id: typeof frame.id === 'string' && frame.id ? frame.id : 'camera-' + index,
       time: finite(frame.time, 0, 0, 86400),
