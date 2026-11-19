@@ -1,5 +1,5 @@
 import { getState, setState, notify } from './store';
-import { cloneElement, createDefaultTimelineTracks, normalizeSceneTransition, syncActiveScene, uid } from '../model/factory';
+import { cloneElement, createDefaultTimelineTracks, normalizeSceneCamera, normalizeSceneTransition, syncActiveScene, uid } from '../model/factory';
 import { DEFAULT_SCENE_TRANSITION } from '../model/types';
 import type { Scene, SceneTransition } from '../model/types';
 
@@ -22,6 +22,7 @@ function applyScene(doc: ReturnType<typeof getState>['doc'], scene: Scene) {
     guides: scene.guides,
     comments: scene.comments,
     timelineTracks: scene.timelineTracks ?? [],
+    camera: normalizeSceneCamera(scene.camera, scene.width, scene.height),
   };
 }
 
@@ -65,6 +66,7 @@ export function addScene() {
     fillMode: 'freeze', speed: 100, elements: [], defs: '', guides: { x: [], y: [] }, comments: [],
     transitionIn: { ...DEFAULT_SCENE_TRANSITION },
     timelineTracks: createDefaultTimelineTracks(),
+    camera: normalizeSceneCamera(undefined, current.width, current.height),
   };
   const doc = { ...current, scenes: [...(current.scenes ?? []), scene] };
   setState({
