@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - stage-0/explainer-animora-foundation
+      - animora/professional-studio-continuation
     paths:
       - "explainer/animora/**"
       - ".github/workflows/explainer-animora-ci.yml"
