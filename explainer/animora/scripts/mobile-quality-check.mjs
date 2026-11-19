@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
 import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
-import { migrateDoc, newDoc } from '../src/model/factory.ts';
+import { normalizeSceneCamera } from '../src/model/camera.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -37,15 +37,13 @@ const zipRoundTrip = await readZipArchive(zipFixture);
 assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animora bundle test', 'ZIP writer/reader round-trip must preserve entry bytes');
 
 
-const cameraProject = newDoc();
-assert.deepEqual(cameraProject.camera, { x: 0, y: 0, zoom: 1, keyframes: [] }, 'new projects must start with neutral independent camera framing');
-const legacyCameraProject = migrateDoc({ version: 1, elements: [], width: 800, height: 500, duration: 3 });
-assert.deepEqual(legacyCameraProject.camera, { x: 0, y: 0, zoom: 1, keyframes: [] }, 'legacy projects receive a neutral scene camera');
-const migratedCameraProject = migrateDoc({ ...cameraProject, camera: { x: 120, y: -45, zoom: 2.5, keyframes: [{ id: 'kf-1', time: 1.5, x: 20, y: 30, zoom: 3, easing: 'easeOut' }] } });
-assert.equal(migratedCameraProject.camera?.zoom, 2.5, 'camera framing must survive project migration');
-assert.equal(migratedCameraProject.camera?.keyframes[0]?.time, 1.5, 'camera keyframes must survive project migration');
-const boundedCameraProject = migrateDoc({ ...cameraProject, camera: { x: Infinity, y: 0, zoom: 99, keyframes: [{ id: 'bad', time: -1, x: 0, y: 0, zoom: 1, easing: 'linear' }] } });
-assert.deepEqual(boundedCameraProject.camera, { x: 0, y: 0, zoom: 8, keyframes: [] }, 'camera migration must clamp invalid framing and discard invalid keyframes');
+const neutralCamera = normalizeSceneCamera(undefined);
+assert.deepEqual(neutralCamera, { x: 0, y: 0, zoom: 1, keyframes: [] }, 'new and legacy projects must receive neutral independent camera framing');
+const migratedCamera = normalizeSceneCamera({ x: 120, y: -45, zoom: 2.5, keyframes: [{ id: 'kf-1', time: 1.5, x: 20, y: 30, zoom: 3, easing: 'easeOut' }] });
+assert.equal(migratedCamera.zoom, 2.5, 'camera framing must survive normalization');
+assert.equal(migratedCamera.keyframes[0]?.time, 1.5, 'camera keyframes must survive normalization');
+const boundedCamera = normalizeSceneCamera({ x: Infinity, y: 0, zoom: 99, keyframes: [{ id: 'bad', time: -1, x: 0, y: 0, zoom: 1, easing: 'linear' }] });
+assert.deepEqual(boundedCamera, { x: 0, y: 0, zoom: 8, keyframes: [] }, 'camera normalization must clamp invalid framing and discard invalid keyframes');
 
 const audioClip = (id, start, duration, sourceStart = 0, sourceDuration = 20, volume = 1, muted = false) => ({
   id, name: id, kind: 'audio', source: `asset:${id}`, start, duration, sourceStart, sourceDuration, volume, muted,
@@ -81,6 +79,8 @@ inconsistentName[centralOffset + 46] ^= 1;
 await assert.rejects(() => readZipArchive(new Blob([inconsistentName])), /integrity check/, 'ZIP reader must reject central/local filename mismatches');
 
 const checks = [
+  ['legacy and active scene snapshots migrate independent camera data safely', factory.includes('camera: normalizeSceneCamera(d.camera ?? d.scenes?.find((scene) => scene.id === d.activeSceneId)?.camera ?? d.scenes?.[0]?.camera)') && factory.includes('camera: normalizeSceneCamera(doc.camera ?? doc.scenes?.find((scene) => scene.id === id)?.camera)') && scenes.includes('camera: scene.camera')],
+  ['duplicating a scene copies camera keyframes independently', scenes.includes('keyframes: source.camera.keyframes.map((frame) => ({ ...frame }))')],
   ['main toolbar stays focused on explainer essentials', topbar.includes('PRIMARY_TOOL_GROUPS') && topbar.includes('Select & move') && topbar.includes('Circle / ellipse') && topbar.includes('Move canvas')],
   ['advanced drawing and arrangement tools remain reachable from More menu', topbar.includes('ADVANCED_TOOLS') && topbar.includes('MoreMenu') && topbar.includes('Arrange selection') && topbar.includes('Canvas helpers')],
   ['all drawing tools remain available to keyboard shortcuts', topbar.includes('export const TOOLS = [...PRIMARY_TOOL_GROUPS.flatMap((group) => group.tools), ...ADVANCED_TOOLS]')],
