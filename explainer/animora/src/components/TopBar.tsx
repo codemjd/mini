@@ -23,23 +23,26 @@ export interface ToolDef {
   key: string;
 }
 
-export const TOOL_GROUPS: { id: string; tools: ToolDef[] }[] = [
-  { id: 'select', tools: [{ id: 'select', icon: 'select', label: 'Transform', key: 'V' }, { id: 'node', icon: 'node', label: 'Node', key: 'A' }] },
-  { id: 'pen', tools: [{ id: 'pen', icon: 'pen', label: 'Pen', key: 'P' }, { id: 'line', icon: 'line', label: 'Line', key: 'L' }] },
-  {
-    id: 'shapes',
-    tools: [
-      { id: 'rect', icon: 'rect', label: 'Rectangle', key: 'R' },
-      { id: 'ellipse', icon: 'ellipse', label: 'Ellipse', key: 'E' },
-      { id: 'polygon', icon: 'polygon', label: 'Polygon', key: 'G' },
-      { id: 'star', icon: 'star', label: 'Star', key: 'S' },
-    ],
-  },
+const PRIMARY_TOOL_GROUPS: { id: string; tools: ToolDef[] }[] = [
+  { id: 'select', tools: [{ id: 'select', icon: 'select', label: 'Select & move', key: 'V' }] },
+  { id: 'shapes', tools: [
+    { id: 'rect', icon: 'rect', label: 'Rectangle', key: 'R' },
+    { id: 'ellipse', icon: 'ellipse', label: 'Circle / ellipse', key: 'E' },
+  ] },
   { id: 'text', tools: [{ id: 'text', icon: 'text', label: 'Text', key: 'T' }] },
-  { id: 'hand', tools: [{ id: 'hand', icon: 'hand', label: 'Hand', key: 'H' }] },
+  { id: 'hand', tools: [{ id: 'hand', icon: 'hand', label: 'Move canvas', key: 'H' }] },
 ];
 
-export const TOOLS = TOOL_GROUPS.flatMap((g) => g.tools);
+const ADVANCED_TOOLS: ToolDef[] = [
+  { id: 'node', icon: 'node', label: 'Edit nodes', key: 'A' },
+  { id: 'pen', icon: 'pen', label: 'Draw path', key: 'P' },
+  { id: 'line', icon: 'line', label: 'Line', key: 'L' },
+  { id: 'polygon', icon: 'polygon', label: 'Polygon', key: 'G' },
+  { id: 'star', icon: 'star', label: 'Star', key: 'S' },
+];
+
+/** All tools remain available to keyboard shortcuts, but advanced tools stay out of the main toolbar. */
+export const TOOLS = [...PRIMARY_TOOL_GROUPS.flatMap((group) => group.tools), ...ADVANCED_TOOLS];
 
 /** Click-outside popover anchored to a button. */
 export function useDropdown() {
@@ -162,6 +165,55 @@ function StageMenu() {
   );
 }
 
+function MoreMenu({ any, selectionCount }: { any: boolean; selectionCount: number }) {
+  const dd = useDropdown();
+  const view = useStore((s) => s.view);
+  const chooseTool = (tool: Tool) => { setTool(tool); dd.setOpen(false); };
+  const action = (label: string, run: () => void, disabled = false) => (
+    <button className="menu-item" disabled={disabled} onClick={() => { run(); dd.setOpen(false); }}>
+      <span className="mi-icon" /><span className="mi-label">{label}</span>
+    </button>
+  );
+  return (
+    <div className="tool-group" ref={dd.ref}>
+      <button className="tb-btn" onClick={() => dd.setOpen(!dd.open)} title="More tools and options" aria-label="More tools and options" aria-expanded={dd.open}>
+        <Icon name="moreHorizontal" size={18} />
+      </button>
+      {dd.open && (
+        <div className="menu-pop">
+          <div className="menu-heading">Advanced drawing</div>
+          {ADVANCED_TOOLS.map((tool) => (
+            <button key={tool.id} className="menu-item" onClick={() => chooseTool(tool.id)}>
+              <span className="mi-icon"><Icon name={tool.icon} size={14} /></span>
+              <span className="mi-label">{tool.label}</span><kbd>{tool.key}</kbd>
+            </button>
+          ))}
+          <div className="menu-sep" />
+          <div className="menu-heading">Arrange selection</div>
+          {action('Bring forward', () => reorderSelection('up'), !any)}
+          {action('Send backward', () => reorderSelection('down'), !any)}
+          {action('Group', groupSelection, selectionCount < 2)}
+          {action('Ungroup', ungroupSelection, !any)}
+          {action('Create mask', createMask, selectionCount < 2)}
+          {action('Merge into path', mergeSelection, selectionCount < 2)}
+          {action('Center transform origin', centerOrigin, !any)}
+          {action('Flip horizontally', () => flipSelection('h'), !any)}
+          {action('Flip vertically', () => flipSelection('v'), !any)}
+          {action('Rotate 90° left', () => rotateSelection(-90), !any)}
+          {action('Rotate 90° right', () => rotateSelection(90), !any)}
+          <div className="menu-sep" />
+          <div className="menu-heading">Canvas helpers</div>
+          <Check on={view.snap} label="Smart snapping" kbd="Alt+S" onClick={() => setView({ snap: !view.snap })} />
+          <Check on={view.showGrid} label="Show grid" kbd="Alt+G" onClick={() => setView({ showGrid: !view.showGrid })} />
+          <Check on={view.showRulers} label="Show rulers" kbd="Alt+R" onClick={() => setView({ showRulers: !view.showRulers })} />
+          <Check on={view.showGuides} label="Show guides" kbd="Alt+L" onClick={() => setView({ showGuides: !view.showGuides })} />
+          {action('Clear all guides', clearGuides)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AppMenu({ onOpen, onImport, onExport, onHelp }: Props) {
   const dd = useDropdown();
   const theme = useStore((s) => s.theme);
@@ -221,24 +273,10 @@ export function TopBar(props: Props) {
       </div>
 
       <div className="tb-tools">
-        {TOOL_GROUPS.map((g) => <ToolGroup key={g.id} tools={g.tools} />)}
+        {PRIMARY_TOOL_GROUPS.map((group) => <ToolGroup key={group.id} tools={group.tools} />)}
         <span className="tb-sep" />
-        <TB icon="up" title="Move up" onClick={() => reorderSelection('up')} disabled={!any} />
-        <TB icon="down" title="Move down" onClick={() => reorderSelection('down')} disabled={!any} />
-        <TB icon="groupAdd" title="Group (Ctrl+G)" onClick={groupSelection} disabled={!any} />
-        <TB icon="ungroup" title="Ungroup (Ctrl+Shift+G)" onClick={ungroupSelection} disabled={!any} />
-        <TB icon="mask" title="Create mask — the top layer masks the others" onClick={createMask} disabled={selection.length < 2} />
-        <TB icon="merge" title="Merge into one path (Ctrl+M)" onClick={mergeSelection} disabled={!any} />
-        <span className="tb-sep" />
-        <TB icon="origin" title="Center origin (Ctrl+Shift+O)" onClick={() => centerOrigin()} disabled={!any} />
-        <TB icon="flipH" title="Flip horizontally" onClick={() => flipSelection('h')} disabled={!any} />
-        <TB icon="flipV" title="Flip vertically" onClick={() => flipSelection('v')} disabled={!any} />
-        <TB icon="rotL" title="Rotate 90° counter-clockwise" onClick={() => rotateSelection(-90)} disabled={!any} />
-        <TB icon="rotR" title="Rotate 90° clockwise" onClick={() => rotateSelection(90)} disabled={!any} />
-        <span className="tb-sep" />
-        <SnapMenu />
-        <StageMenu />
         <TB icon="fitScreen" title="Fit canvas into view (1)" onClick={() => canvasApi.fit()} />
+        <MoreMenu any={any} selectionCount={selection.length} />
         <div className="zoom-ctl">
           <button onClick={() => canvasApi.zoomBy(1 / 1.25)} title="Zoom out">−</button>
           <button className="zoom-val" onClick={() => canvasApi.fit()} title="Fit (Ctrl+0)">{Math.round(zoom * 100)}%</button>
