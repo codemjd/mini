@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
 import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
-import { DEFAULT_SCENE_CAMERA, normalizeSceneCamera } from '../src/model/camera.ts';
+import { DEFAULT_SCENE_CAMERA, evaluateSceneCamera, normalizeSceneCamera } from '../src/model/camera.ts';
 import { migrateDoc } from '../src/model/factory.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
@@ -53,6 +53,21 @@ assert.deepEqual(normalizedCamera.keyframes.map((frame) => frame.id), ['earlier'
 assert.equal(normalizedCamera.keyframes[0].x, -100_000);
 assert.equal(normalizedCamera.keyframes[0].zoom, 0.1);
 assert.equal(JSON.stringify(rawCamera), rawCameraSnapshot, 'camera normalization must not mutate project data');
+
+assert.deepEqual(evaluateSceneCamera({ enabled: false, keyframes: rawCamera.keyframes }, 1.5), { x: 0, y: 0, zoom: 1 }, 'disabled camera must preserve neutral framing');
+const animatedCamera = { enabled: true, keyframes: [
+  { id: 'start', time: 1, x: -20, y: 10, zoom: 1, easing: 'linear' },
+  { id: 'end', time: 3, x: 20, y: 30, zoom: 3, easing: 'linear' },
+] };
+assert.deepEqual(evaluateSceneCamera(animatedCamera, 2), { x: 0, y: 20, zoom: 2 }, 'camera keyframes must interpolate position and zoom on the scene timeline');
+assert.deepEqual(evaluateSceneCamera(animatedCamera, 0), { x: -20, y: 10, zoom: 1 }, 'camera must hold its first keyframe before its range');
+assert.deepEqual(evaluateSceneCamera(animatedCamera, 9), { x: 20, y: 30, zoom: 3 }, 'camera must hold its final keyframe after its range');
+assert.deepEqual(evaluateSceneCamera(animatedCamera, Number.NaN), { x: -20, y: 10, zoom: 1 }, 'invalid camera time must safely resolve to the first frame');
+assert.equal(evaluateSceneCamera({ enabled: true, keyframes: [
+  { id: 'a', time: 0, x: 0, y: 0, zoom: 1, easing: 'linear' },
+  { id: 'b', time: 1, x: 0, y: 0, zoom: 20, easing: 'linear' },
+] }, 1).zoom, 8, 'evaluated camera zoom must remain inside safe bounds');
+
 
 assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animora bundle test', 'ZIP writer/reader round-trip must preserve entry bytes');
 
