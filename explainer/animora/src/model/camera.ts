@@ -1,4 +1,5 @@
 import type { CameraKeyframe, SceneCamera } from './types';
+import { getEasing } from '../engine/easing';
 
 export const DEFAULT_SCENE_CAMERA: SceneCamera = {
   enabled: false,
@@ -35,4 +36,36 @@ export function normalizeSceneCamera(value: unknown): SceneCamera {
     })
     .sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
   return { enabled: candidate.enabled === true, keyframes };
+}
+
+
+export interface CameraFrame {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+/** Evaluate a scene camera at a timeline time. Keyframe easing controls the segment to the next keyframe. */
+export function evaluateSceneCamera(value: unknown, time: number): CameraFrame {
+  const camera = normalizeSceneCamera(value);
+  if (!camera.enabled || camera.keyframes.length === 0) return { x: 0, y: 0, zoom: 1 };
+  const keys = camera.keyframes;
+  const t = Number.isFinite(time) ? Math.max(0, Math.min(MAX_CAMERA_TIME, time)) : 0;
+  if (t <= keys[0].time) return { x: keys[0].x, y: keys[0].y, zoom: keys[0].zoom };
+  const last = keys[keys.length - 1];
+  if (t >= last.time) return { x: last.x, y: last.y, zoom: last.zoom };
+
+  const index = keys.findIndex((key, i) => i < keys.length - 1 && t >= key.time && t <= keys[i + 1].time);
+  if (index < 0) return { x: last.x, y: last.y, zoom: last.zoom };
+  const from = keys[index];
+  const to = keys[index + 1];
+  const span = to.time - from.time;
+  if (span <= 0) return { x: to.x, y: to.y, zoom: to.zoom };
+  const progress = Math.max(0, Math.min(1, (t - from.time) / span));
+  const eased = Math.max(0, Math.min(1, getEasing(from.easing).fn(progress)));
+  return {
+    x: from.x + (to.x - from.x) * eased,
+    y: from.y + (to.y - from.y) * eased,
+    zoom: Math.max(MIN_CAMERA_ZOOM, Math.min(MAX_CAMERA_ZOOM, from.zoom + (to.zoom - from.zoom) * eased)),
+  };
 }
