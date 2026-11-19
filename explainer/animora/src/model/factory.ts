@@ -1,5 +1,6 @@
 import type { Doc, ElementType, Keyframe, PropKey, SvgEl, TimelineTrack, TimelineTrackKind, Value } from './types';
 import { DEFAULT_SCENE_TRANSITION, SCENE_TRANSITION_TYPES } from './types';
+import { DEFAULT_SCENE_CAMERA, normalizeSceneCamera } from './camera';
 import { ellipsePath, rectPath, starPath } from '../engine/path';
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -97,6 +98,7 @@ function sceneSnapshot(doc: Doc, id: string, name: string): import('./types').Sc
     direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed,
     elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments,
     timelineTracks: doc.timelineTracks ?? createDefaultTimelineTracks(),
+    camera: normalizeSceneCamera(doc.camera ?? DEFAULT_SCENE_CAMERA),
     transitionIn: normalizeSceneTransition(doc.scenes?.find((scene) => scene.id === id)?.transitionIn),
   };
 }
@@ -127,6 +129,7 @@ export function newDoc(): Doc {
     guides: { x: [], y: [] },
     comments: [],
     timelineTracks: createDefaultTimelineTracks(),
+    camera: { ...DEFAULT_SCENE_CAMERA, keyframes: [] },
   };
   const id = uid();
   doc.activeSceneId = id;
@@ -158,6 +161,7 @@ export function migrateDoc(raw: unknown): Doc {
     guides: { x: d.guides?.x ?? [], y: d.guides?.y ?? [] },
     comments: Array.isArray(d.comments) ? d.comments : [],
     timelineTracks: normalizeTimelineTracks(d.timelineTracks ?? d.scenes?.find((scene) => scene.id === d.activeSceneId)?.timelineTracks ?? d.scenes?.[0]?.timelineTracks),
+    camera: normalizeSceneCamera(d.camera ?? d.scenes?.find((scene) => scene.id === d.activeSceneId)?.camera ?? d.scenes?.[0]?.camera ?? DEFAULT_SCENE_CAMERA),
     elements: d.elements.map(migrateEl),
     scenes: Array.isArray(d.scenes) && d.scenes.length
       ? d.scenes.map((scene, index) => ({
@@ -170,6 +174,7 @@ export function migrateDoc(raw: unknown): Doc {
           comments: Array.isArray(scene.comments) ? scene.comments : [],
           timelineTracks: normalizeTimelineTracks(scene.timelineTracks),
           transitionIn: normalizeSceneTransition(scene.transitionIn),
+          camera: normalizeSceneCamera(scene.camera),
         }))
       : [],
     activeSceneId: typeof d.activeSceneId === 'string' && d.activeSceneId
