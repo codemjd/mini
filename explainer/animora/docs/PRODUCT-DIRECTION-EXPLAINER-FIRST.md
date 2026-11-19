@@ -1,88 +1,210 @@
-# Animora — Product Direction: Explainer-first
+# Animora — اتجاه المنتج الاحترافي المتخصص في فيديوهات الشرح
 
-**Status:** Product direction adopted; implementation is incremental.  
-**Target:** Mobile-first browser editor for short and medium explainer videos.
+**الحالة:** اتجاه منتجي معتمد؛ التنفيذ تدريجي ولا تعني هذه الوثيقة أن الميزات المذكورة أصبحت منفذة.  
+**المنتج:** استوديو ويب احترافي، مصمم للهاتف أولًا، لصناعة فيديوهات Explainer تعليمية ووثائقية وتحليلية وتقنية.  
+**المبدأ الحاكم:** عمق احترافي حقيقي خلف واجهة منظمة؛ سهولة الاستخدام لا تعني حذف الأدوات المتقدمة.
 
-## Product promise
+## 1. وعد المنتج وحدوده
 
-Animora helps a creator turn an explanation into a sequence of clear visual scenes. The core workflow is:
+Animora ليس محرر مونتاج عامًا يحاول تقليد Premiere أو DaVinci Resolve في كل تخصصاته، وليس محررًا بسيطًا محدودًا. إنه استوديو متخصص يجعل تحويل فكرة أو نص أو تعليق صوتي إلى فيديو شرح بصري متماسك عملية واضحة، مع الاحتفاظ بإمكانات تحكم احترافية عند الحاجة.
 
-1. Create a project and choose a video format.
-2. Add scenes or start from an explainer template.
-3. Add text, shapes, icons, diagrams, charts, images, and video.
-4. Apply camera-style movement and object animation using simple presets.
-5. Arrange scenes, narration, and optional sound.
-6. Preview the complete explanation and export one video.
+سير العمل المستهدف:
 
-The editor is **not** intended to be a general-purpose nonlinear video editor. Internal media tracks may remain where needed by the rendering engine, but the default user experience should expose only the controls that help make an explainer.
+1. بدء مشروع أو اختيار قالب متخصص.
+2. إدخال نص الشرح أو التعليق الصوتي أو بناء المشاهد يدويًا.
+3. إعداد Storyboard وتقسيم الفكرة إلى مشاهد قابلة للتحرير.
+4. تركيب عناصر الشرح والرسوم والوسائط.
+5. ضبط الكاميرا والحركة والتوقيت والصوت.
+6. معاينة الفيديو كاملًا ثم تصديره بإعدادات موثوقة.
 
-## Primary editing model
+## 2. ثلاثة أوضاع للعمل
 
-- **Scene-first:** scenes are the main unit of structure. The scene strip should be easy to understand and reorder.
-- **Canvas-first:** the preview/canvas is the visual center; select an object to edit it directly.
-- **Simple timeline:** show scene duration, playhead, and a small number of meaningful lanes. Advanced keyframe and media-lane controls should be progressively disclosed, not presented as the first thing a beginner sees.
-- **Preset-driven motion:** common actions should be one-tap presets with sensible defaults and editable duration/intensity.
-- **Camera motion:** make zoom, pan, focus, and framing first-class explainer actions, distinct from changing an object's own scale.
-- **Narrative pacing:** transitions and scene timing should help the viewer follow the explanation rather than imitate a full professional NLE.
+### الوضع السريع
+- اختيار قالب ومقاس فيديو.
+- تعديل النصوص والألوان والصور والأرقام.
+- استبدال الوسائط وتغيير ترتيب المشاهد.
+- تطبيق حركات وانتقالات جاهزة.
+- تصدير مباشر بإعدادات مناسبة.
 
-## Core controls
+هذا الوضع يختصر الخطوات، لكنه لا يقفل المشروع أو يمنع الانتقال إلى التحرير الاحترافي.
 
-### Camera and focus
-- Zoom in / zoom out
-- Pan left / right / up / down
-- Focus on selected object
-- Return to full-scene framing
-- Set start and end framing for a scene
-- Smooth easing and duration presets
+### الوضع الاحترافي
+- تحرير المشاهد والعناصر على لوحة الرسم.
+- كاميرا مستقلة، وKeyframes، ومنحنيات Easing، ومسارات حركة.
+- Timeline متعدد المسارات مع قص المقاطع وتقسيمها وتزامنها.
+- تحكم دقيق بالمدة والطبقات والانتقالات والصوت.
+- خصائص متقدمة للعناصر والرسوم والتصدير.
 
-### Object motion
-- Fade in / fade out
-- Slide in / slide out
-- Pop / scale in
-- Move along a simple path
-- Emphasize / pulse / highlight
-- Stagger multiple objects
+### الوضع الذكي
+- تحليل نص الشرح أو تفريغ/نص التعليق الصوتي.
+- اقتراح تقسيم النص إلى فقرات ومشاهد.
+- إنشاء Storyboard أولي قابل للتعديل.
+- اقتراح قوالب وتخطيطات وعناصر بصرية مناسبة لكل مشهد.
+- اقتراح حركة الكاميرا والتركيز والانتقالات والإيقاع.
+- اقتراح مزامنة الجمل والتعليقات التوضيحية مع المشاهد.
+- عرض التغييرات المقترحة قبل تطبيقها؛ لا يغيّر المساعد المشروع نهائيًا دون موافقة المستخدم.
 
-### Explainer content
-- Titles, subtitles, labels, callouts, arrows, circles, markers
-- Simple diagrams, steps, timelines, comparison layouts
-- Charts and numeric counters
-- Maps and icon-led visual explanations
-- Captions and narration alignment
+الأوضاع الثلاثة طرق دخول مختلفة إلى الأدوات نفسها، وليست ثلاثة منتجات منفصلة أو قيودًا على إمكانات المشروع.
 
-## Default workspace
+## 3. مكتبة القوالب والمشروعات
 
-1. Top bar: project name, undo/redo, preview, export.
-2. Main canvas: large preview with direct selection and camera framing.
-3. Scene strip: thumbnails, add, duplicate, reorder, transition.
-4. Contextual side panel: only the selected scene/object's most relevant controls.
-5. Compact timeline: scene duration and a few visible content/audio lanes; advanced lanes and keyframes are optional panels.
+تُبنى مكتبة واسعة قابلة للبحث والتصفية والتخصيص، وتُوسّع على دفعات بدل إطلاق أرقام تسويقية غير واقعية. الفئات المستهدفة:
 
-On narrow screens, use a single focused editing surface with bottom actions and contextual sheets. Avoid three permanently open desktop-style columns.
+- تعليمي وشرح المفاهيم والدروس.
+- وثائقي وسرد قصصي.
+- تاريخي وتسلسل الأحداث والخطوط الزمنية.
+- أعمال وشركات وعروض منتجات.
+- اقتصاد وأسواق ومؤشرات.
+- تقني وعلوم وشرح آليات.
+- بيانات وإحصائيات ومقارنات وإنفوجرافيك.
+- نصوص وحركة وعناوين ومقدمات وخواتيم.
 
-## Explicitly out of scope for the first release
+كل قالب جيد يجب أن يكون مشروعًا قابلًا للتحرير: مشاهد وعناصر ونصوص وألوان وتوقيت وحركة قابلة للتغيير، لا فيديو مغلقًا أو صورة خلفية لا يمكن تفكيكها. يجب توضيح الأصول المضمنة وما يحتاج المستخدم إلى استبداله.
 
-- A general-purpose multitrack editor comparable to Premiere, DaVinci Resolve, or Kdenlive.
-- Complex audio mixing consoles, advanced color grading, multicamera editing, and elaborate codec controls.
-- Requiring users to understand keyframes, easing curves, source offsets, or track routing for common tasks.
-- An expansive asset marketplace before the core scene, motion, and export workflow is dependable.
+## 4. محرك الكاميرا المستقل
 
-These capabilities may remain as internal foundations or optional advanced tools, but must not dominate the default experience.
+الكاميرا نظام على مستوى المشهد/المشروع، منفصل عن Transform الخاص بكل عنصر. لا يجوز تمثيل Zoom الكاميرا بتكبير كل عنصر على حدة.
 
-## Product acceptance criteria
+القدرات المستهدفة:
+- Zoom in / Zoom out.
+- Pan أفقي ورأسي.
+- Focus على عنصر أو مجموعة أو منطقة.
+- Framing وإعادة ضبط الإطار إلى المشهد.
+- نقاط بداية ونهاية للكاميرا مع Keyframes.
+- Easing قابل للاختيار والتحرير.
+- انتقالات كاميرا وتتابع حركات مع مدة قابلة للضبط.
+- حدود آمنة تمنع فقدان المحتوى خارج الإطار، مع دعم اختلاف نسب الأبعاد.
 
-- A beginner can create a short multi-scene explainer without needing to configure advanced tracks.
-- Zoom/pan/focus can be applied to a scene with a small number of direct actions.
-- Text, shapes, diagrams, and callouts can be animated with presets.
-- Scene order, duration, and transitions are understandable from the scene strip.
-- Preview and export use the same scene timing and camera framing.
-- The interface works at mobile widths without persistent desktop sidebars.
-- Export is not labelled complete until imported media and audio are actually included and synchronization is verified.
+يجب أن تحفظ بيانات الكاميرا في نموذج مستقل، مع ترحيل آمن للمشاريع القديمة التي لا تحتوي على كاميرا صريحة.
 
-## Engineering implications
+## 5. نظام الحركة والأنيميشن
 
-- Preserve the existing SVG/keyframe renderer and project compatibility while adding a camera transform layer.
-- Keep camera framing data separate from individual object transforms.
-- Keep audio scheduling and media decoding modular; integrate them into the final video recorder only with real synchronization tests.
-- Build explainer-specific templates and content primitives before adding general-purpose editing features.
-- Treat the current multi-lane timeline as infrastructure. Simplify its default presentation rather than deleting project data or breaking older projects.
+الهدف هو نظام موحد يجمع سهولة Presets مع دقة التحرير اليدوي:
+- Keyframes للخصائص المدعومة.
+- منحنيات Easing مفهومة مع محرر متقدم عند الحاجة.
+- Motion presets قابلة للتخصيص.
+- Motion paths.
+- Stagger لتتابع ظهور العناصر.
+- دخول وخروج وتركيز وتأكيد بصري.
+- مزامنة الحركة مع زمن المشهد والصوت.
+- حفظ الحركة كإعداد قابل لإعادة الاستخدام.
+
+المحرك الحالي يحتوي بالفعل على بنية Keyframes وEasing ومسارات حركة لبعض خصائص العناصر؛ توحيد Presets وتوسيعها عمل لاحق، وليس مكتملًا بمجرد اعتماد هذه الخطة.
+
+## 6. عناصر الشرح البصرية
+
+تُعامل أدوات الشرح كعناصر أساسية وليست رسومات مرتجلة فقط:
+- Callouts وLabels وCaptions.
+- أسهم وخطوط توجيه وأقواس ودوائر Highlight.
+- بطاقات ومقارنات وخطوات مرقمة.
+- Charts ورسوم بيانات.
+- Timelines وخرائط ومخططات علاقات وتدفق.
+- Counters وأرقام متحركة.
+- Diagrams وطبقات توضيح ومفاتيح إيضاح.
+
+يجب أن تكون البيانات والمحتوى قابلة للتحرير، وأن تحافظ العناصر على وضوحها في أحجام الهاتف ودقات التصدير المختلفة.
+
+## 7. نظام الصوت والتعليق
+
+المستهدف نظام صوت متكامل مرتبط بالمشاهد والتوقيت:
+- Narration وتعليق صوتي.
+- موسيقى خلفية ومؤثرات SFX.
+- قص وتوقيت وإزاحة مصدرية ومستوى صوت لكل مقطع.
+- كتم المسارات والمقاطع.
+- Ducking لخفض الموسيقى عند الكلام.
+- Waveform ومؤشرات توقيت.
+- مزامنة التعليق مع المشاهد والجمل وCaptions.
+- Mix نهائي مع حدود ذروة وحماية من clipping.
+
+الموجود حاليًا يشمل معاينة صوتية داخل المحرر وجدولة صوتية بنيوية؛ لا يعني ذلك أن مزجًا نهائيًا أو تصديرًا متزامنًا للصوت والصورة أصبح جاهزًا.
+
+## 8. التصدير والجودة
+
+واجهة تصدير احترافية تستهدف:
+- نسب أبعاد متعددة مثل 16:9 و9:16 و1:1 و4:5.
+- دقات وأحجام إطارات مناسبة للمنصات.
+- معدلات إطارات قابلة للاختيار.
+- إعدادات جودة وحجم ملف واضحة.
+- صوت وصورة متزامنان في ملف نهائي واحد.
+- فحص الأصول المفقودة، ومدة المشاهد، وأبعاد المشروع، والتوافق قبل التصدير.
+- رسائل خطأ قابلة للفهم، وتقدم تصدير، وتنظيف الموارد بعد النجاح أو الفشل.
+
+لا يُعلن دعم MP4 أو أي إعداد تصدير قبل اختبار حقيقي في المتصفحات المستهدفة. التصدير الحالي لا يضمّن تلقائيًا كل مسارات الوسائط الصوتية/البصرية في الناتج النهائي.
+
+## 9. الأصول والهوية
+
+- مكتبة أصول منظمة حسب الفئة والاستخدام.
+- أصول قابلة للتعديل من حيث اللون والحجم والنص والطبقات حيث تسمح طبيعتها.
+- حفظ أصول المستخدم محليًا وربطها بالمشروعات.
+- معلومات مصدر وترخيص لكل أصل خارجي.
+- قوالب لا تحتجز المستخدم داخل بنية مغلقة.
+- الحفاظ على قيد المشروع الحالي: لا تُضمّن المكتبة الأساسية بشرًا أو حيوانات أو رسومات ذوات أرواح.
+
+## 10. واجهة الاستخدام: Progressive Disclosure
+
+- تبدأ الواجهة بأهم المهام فقط.
+- تظهر الخصائص السياقية عند تحديد المشهد أو العنصر أو المقطع.
+- الأدوات الاحترافية موجودة ويمكن الوصول إليها بوضوح، لكنها لا تزاحم المبتدئ.
+- لا تُحذف المسارات أو Keyframes أو خيارات الكاميرا المتقدمة لمجرد تبسيط الشاشة.
+- دعم RTL والعربية وتخطيط الهاتف جزء من جودة المنتج، لا طبقة تجميلية لاحقة.
+- يجب ألا تتحول الواجهة إلى أعمدة سطح مكتب مصغرة على الهاتف؛ تستخدم لوحات سياقية وشاشات تحرير مركزة.
+
+## 11. حدود النسخة الأولى ومراحل التوسع
+
+### أساس النسخة الأولى القابلة للاستخدام
+- مشروعات ومشاهد متعددة مع حفظ واسترداد موثوقين.
+- لوحة تحرير مستقرة وعناصر شرح أساسية ونصوص.
+- كاميرا مشهد أساسية مستقلة عن Transform العناصر.
+- حركات Presets أساسية مع توقيت قابل للتعديل.
+- انتقالات مشاهد واضحة.
+- قوالب أولية عالية الجودة وقابلة للتحرير في عدد محدود من الفئات.
+- تعليق صوتي/صوت أساسي يعمل مع المعاينة والتصدير المتزامن بعد اختباره.
+- تصدير فعلي موثوق بدقة ونسبة أبعاد ومعدل إطارات محددين.
+- واجهة هاتف عربية منظمة واختبارات متصفح حقيقية.
+
+### تحديثات احترافية لاحقة
+- محرر منحنيات متقدم وMotion paths أوسع وStagger مركب.
+- مكتبة قوالب أكبر ومجموعات أصول متخصصة.
+- رسوم بيانات ومخططات وخرائط أكثر تقدمًا.
+- Ducking وMixing وتحكم صوتي متقدم.
+- مساعد ذكي متكامل لتحليل النص والصوت وتوليد Storyboard والمقترحات.
+- تحسينات أداء المشاريع الطويلة والتصدير عالي الدقة.
+
+### خارج النطاق
+Animora ليس مشروعًا لبناء محرر سينمائي عام بكل ميزات NLE أو تصحيح ألوان احترافي أو multicam. يمكن إضافة أدوات تخدم فيديوهات الشرح مباشرة دون تحويل المنتج إلى محرر عام مشتت.
+
+## 12. مبادئ التنفيذ والقبول
+
+1. لا تُحذف أي وظيفة أو بيانات مشروع موجودة لتسريع إعادة تصميم الواجهة.
+2. تُحفظ التوافقية مع المشاريع القديمة وتُختبر عمليات الترحيل.
+3. كل نظام جديد يُبنى في وحدات صغيرة قابلة للاختبار.
+4. لا يُدّعى وجود AI قبل وجود تكامل فعلي ونتائج قابلة للتحقق.
+5. لا يُدّعى اكتمال التصدير الصوتي/البصري قبل اختبار الناتج النهائي.
+6. تُفصل اختبارات المصدر والبناء عن E2E واختبار Android الحقيقي.
+7. يُقاس الأداء والذاكرة على مشاريع صغيرة ومتوسطة وثقيلة.
+8. يظل قرار تطبيق الاقتراحات الذكية بيد المستخدم.
+
+## 13. خريطة ربط التوجيه بالمراحل التسع عشرة
+
+- 0: حماية الأساس والتوافقية.
+- 1: انتقالات المشاهد وإيقاع السرد.
+- 2: Timeline احترافي مع واجهة مبسطة.
+- 3: الصوت والمزج والتصدير المتزامن.
+- 4: الصور والفيديو وإدارة القص.
+- 5: النصوص وRTL وCaptions.
+- 6: مكتبة الأصول القابلة للتعديل والترخيص.
+- 7: القوالب المتخصصة.
+- 8: الرسوم البيانية والإنفوجرافيك والخرائط.
+- 9: الحركة وKeyframes وPresets وMotion paths.
+- 10: واجهة Progressive Disclosure للهاتف.
+- 11: التصدير الاحترافي وفحوص السلامة.
+- 12: حفظ المشاريع والحزم والترحيل.
+- 13: المساعد الذكي وتحليل المحتوى.
+- 14: Narration والتفريغ والمزامنة.
+- 15: الأداء والذاكرة.
+- 16: تجربة الهاتف وRTL واللمس.
+- 17: الجودة وE2E والاختبارات الواقعية.
+- 18: التوثيق والتراخيص.
+- 19: تجميد نطاق الإصدار والإطلاق.
+
+**معيار النجاح النهائي:** أن يتمكن المستخدم من إنتاج فيديو شرح متماسك بمسار سريع، مع امتلاك أدوات احترافية عميقة عند الحاجة، دون أن يضطر إلى تعلم تعقيد المحرك أو أن يصطدم بسقف قدرات منخفض.
