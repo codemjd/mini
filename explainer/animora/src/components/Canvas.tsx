@@ -9,6 +9,7 @@ import { createElement, uid } from '../model/factory';
 import { ancestors } from '../model/tree';
 import type { SvgEl, Tool } from '../model/types';
 import { frameAt } from '../engine/interpolate';
+import { evaluateSceneCamera, sceneCameraTransform } from '../model/camera';
 import { editorMarkup, staticElementMarkup } from '../engine/render';
 import { fmt, mapPath, parsePath, polygonPath, serializePath, starPath, type Cmd } from '../engine/path';
 import { canvasApi, type Measured } from './canvasApi';
@@ -857,6 +858,15 @@ export function Canvas({ onImport }: { onImport: () => void }) {
       default: return undefined;
     }
   })();
+  const cameraTransform = playing
+    ? sceneCameraTransform(evaluateSceneCamera(doc.camera, time), doc.width, doc.height)
+    : undefined;
+  const contentTransform = [cameraTransform, transitionProgress !== null ? transitionTransform : undefined]
+    .filter(Boolean).join(' ') || undefined;
+  const outgoingCameraTransform = playing && outgoingScene
+    ? sceneCameraTransform(evaluateSceneCamera(outgoingScene.camera, outgoingScene.duration), outgoingScene.width, outgoingScene.height)
+    : undefined;
+  const combinedOutgoingTransform = [outgoingCameraTransform, outgoingTransform].filter(Boolean).join(' ') || undefined;
   const dissolveCells = transitionProgress !== null && transition?.type === 'dissolve'
     ? Array.from({ length: 100 }, (_, i) => {
       const x = i % 10, y = Math.floor(i / 10);
@@ -915,7 +925,7 @@ export function Canvas({ onImport }: { onImport: () => void }) {
               </defs>
             )}
             <g pointerEvents="none" opacity={transition.type === 'fade' || transition.type.startsWith('zoom-') || transition.type === 'dissolve' ? 1 - progress : 1}
-              transform={outgoingTransform}>
+              transform={combinedOutgoingTransform}>
               <rect width={doc.width} height={doc.height} fill={outgoingScene.background || 'none'} />
               <g dangerouslySetInnerHTML={{ __html: editorMarkup(outgoingScene.elements, outgoingScene.duration) }} />
             </g>
@@ -923,7 +933,7 @@ export function Canvas({ onImport }: { onImport: () => void }) {
         )}
         <g className={"content " + (scope ? "scoped" : "")}
           style={transitionProgress !== null ? { opacity: transition?.type === 'fade' || transition?.type.startsWith('zoom-') || transition?.type === 'dissolve' ? progress : 1 } : undefined}
-          transform={transitionProgress !== null ? transitionTransform : undefined}
+          transform={contentTransform}
           clipPath={transitionProgress !== null && transition?.type === 'wipe' ? 'url(#__scene-preview-wipe)' : undefined}
           mask={transitionProgress !== null && transition?.type === 'dissolve' ? 'url(#__scene-preview-dissolve)' : undefined}
           dangerouslySetInnerHTML={{ __html: editorMarkup(doc.elements, time) }} />
