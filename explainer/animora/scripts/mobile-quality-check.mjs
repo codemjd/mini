@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
 import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
-import { DEFAULT_SCENE_CAMERA, evaluateSceneCamera, normalizeSceneCamera } from '../src/model/camera.ts';
+import { DEFAULT_SCENE_CAMERA, evaluateSceneCamera, normalizeSceneCamera, sceneCameraTransform } from '../src/model/camera.ts';
 import { migrateDoc } from '../src/model/factory.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
@@ -31,6 +31,7 @@ const waveform = readFileSync(new URL('../src/io/waveform.ts', import.meta.url),
 const waveformView = readFileSync(new URL('../src/components/MediaWaveform.tsx', import.meta.url), 'utf8');
 const visualPreview = readFileSync(new URL('../src/components/VisualMediaPreview.tsx', import.meta.url), 'utf8');
 const camera = readFileSync(new URL('../src/model/camera.ts', import.meta.url), 'utf8');
+const canvasSource = readFileSync(new URL('../src/components/Canvas.tsx', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const zip = readFileSync(new URL('../src/io/zip.ts', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
@@ -63,6 +64,11 @@ assert.deepEqual(evaluateSceneCamera(animatedCamera, 2), { x: 0, y: 20, zoom: 2 
 assert.deepEqual(evaluateSceneCamera(animatedCamera, 0), { x: -20, y: 10, zoom: 1 }, 'camera must hold its first keyframe before its range');
 assert.deepEqual(evaluateSceneCamera(animatedCamera, 9), { x: 20, y: 30, zoom: 3 }, 'camera must hold its final keyframe after its range');
 assert.deepEqual(evaluateSceneCamera(animatedCamera, Number.NaN), { x: -20, y: 10, zoom: 1 }, 'invalid camera time must safely resolve to the first frame');
+assert.equal(sceneCameraTransform({ x: 0, y: 0, zoom: 1 }, 800, 500), undefined, 'neutral camera must not add an SVG transform');
+assert.equal(sceneCameraTransform({ x: 10, y: -5, zoom: 2 }, 800, 500), 'translate(400 250) scale(2) translate(-410 -245)', 'camera transform must zoom around the scene center and apply world-space pan');
+assert.equal(sceneCameraTransform({ x: 0, y: 0, zoom: 1 }, 0, 500), undefined, 'invalid scene dimensions must not produce a camera transform');
+assert.equal(sceneCameraTransform({ x: 0, y: 0, zoom: 99 }, 800, 500), 'translate(400 250) scale(8) translate(-400 -250)', 'camera transform must clamp zoom to the supported maximum');
+
 assert.equal(evaluateSceneCamera({ enabled: true, keyframes: [
   { id: 'a', time: 0, x: 0, y: 0, zoom: 1, easing: 'linear' },
   { id: 'b', time: 1, x: 0, y: 0, zoom: 20, easing: 'linear' },
@@ -109,6 +115,8 @@ inconsistentName[centralOffset + 46] ^= 1;
 await assert.rejects(() => readZipArchive(new Blob([inconsistentName])), /integrity check/, 'ZIP reader must reject central/local filename mismatches');
 
 const checks = [
+  ['scene camera is evaluated and applied to the active playback canvas', canvasSource.includes('evaluateSceneCamera(doc.camera, time)') && canvasSource.includes('sceneCameraTransform') && canvasSource.includes('transform={contentTransform}')],
+  ['outgoing scene camera is retained during scene transitions', canvasSource.includes('evaluateSceneCamera(outgoingScene.camera, outgoingScene.duration)') && canvasSource.includes('transform={combinedOutgoingTransform}')],
   ['advanced drawing and arrangement tools remain reachable from More menu', topbar.includes('ADVANCED_TOOLS') && topbar.includes('MoreMenu') && topbar.includes('Arrange selection') && topbar.includes('Canvas helpers')],
   ['all drawing tools remain available to keyboard shortcuts', topbar.includes('export const TOOLS = [...PRIMARY_TOOL_GROUPS.flatMap((group) => group.tools), ...ADVANCED_TOOLS]')],
   ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
