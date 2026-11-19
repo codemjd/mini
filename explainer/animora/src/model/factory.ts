@@ -1,4 +1,4 @@
-import type { CameraKeyframe, Doc, ElementType, Keyframe, PropKey, SceneCamera, SvgEl, TimelineTrack, TimelineTrackKind, Value } from './types';
+import type { Doc, ElementType, Keyframe, PropKey, SvgEl, TimelineTrack, TimelineTrackKind, Value } from './types';
 import { DEFAULT_SCENE_TRANSITION, SCENE_TRANSITION_TYPES } from './types';
 import { DEFAULT_SCENE_CAMERA, normalizeSceneCamera } from './camera';
 import { ellipsePath, rectPath, starPath } from '../engine/path';
