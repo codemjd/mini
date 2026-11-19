@@ -5,6 +5,10 @@ export const DEFAULT_SCENE_CAMERA: SceneCamera = {
   keyframes: [],
 };
 
+export function createDefaultSceneCamera(): SceneCamera {
+  return { enabled: false, keyframes: [] };
+}
+
 const MAX_CAMERA_KEYFRAMES = 500;
 const MAX_CAMERA_TIME = 24 * 60 * 60;
 const MAX_CAMERA_OFFSET = 100_000;
@@ -16,7 +20,7 @@ export function normalizeSceneCamera(value: unknown): SceneCamera {
   const candidate = value && typeof value === 'object' ? value as Partial<SceneCamera> : {};
   const rawKeys = Array.isArray(candidate.keyframes) ? candidate.keyframes.slice(0, MAX_CAMERA_KEYFRAMES) : [];
   const keyframes: CameraKeyframe[] = rawKeys
-    .filter((raw) => Boolean(raw) && typeof raw === 'object')
+    .filter((raw) => Boolean(raw) && typeof raw === 'object' && Number.isFinite(Number(raw.time)) && Number(raw.time) >= 0)
     .map((raw, index) => {
       const key = raw as Partial<CameraKeyframe>;
       const rawTime = Number(key.time);
