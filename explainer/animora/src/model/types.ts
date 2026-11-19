@@ -144,25 +144,19 @@ export interface SceneTransition {
   duration: number;
 }
 
-/** Camera framing is independent from every element's own transform/keyframes. */
-export interface SceneCameraKeyframe {
+/** Camera framing is independent from element transforms and keyframes. */
+export interface CameraKeyframe {
   id: string;
-  /** Seconds from the start of this scene. */
   time: number;
-  /** Scene-space camera offsets. */
   x: number;
   y: number;
-  /** Relative scale: 1 is the full scene framing. */
   zoom: number;
-  /** Easing applied from this keyframe to the next. */
   easing: string;
 }
 
 export interface SceneCamera {
-  x: number;
-  y: number;
-  zoom: number;
-  keyframes: SceneCameraKeyframe[];
+  enabled: boolean;
+  keyframes: CameraKeyframe[];
 }
 
 export const DEFAULT_SCENE_TRANSITION: SceneTransition = { type: 'none', duration: 0.6 };
