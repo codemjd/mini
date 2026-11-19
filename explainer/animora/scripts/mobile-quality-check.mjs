@@ -228,6 +228,7 @@ const checks = [
   ['scene camera data is a separate model from object transforms', types.includes('interface SceneCamera') && types.includes('interface CameraKeyframe')],
   ['camera settings are normalized and persisted in legacy project migration', factory.includes('normalizeSceneCamera(d.camera') && factory.includes('camera: normalizeSceneCamera(scene.camera')],
   ['scene switching restores camera framing and preserves media timeline tracks', scenes.includes('timelineTracks: scene.timelineTracks ?? []') && scenes.includes('camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA)')],
+  ['duplicating a scene clones its camera keyframes independently', scenes.includes('camera: normalizeSceneCamera(source.camera ?? DEFAULT_SCENE_CAMERA)')],
   ['camera keyframes are bounded, sorted, and invalid timestamps are excluded', camera.includes('MAX_CAMERA_KEYFRAMES') && camera.includes('Number.isFinite(Number(raw.time))') && normalizedCamera.keyframes.map((frame) => frame.id).join(',') === 'earlier,later'],
 ];
 
