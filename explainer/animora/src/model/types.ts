@@ -138,6 +138,21 @@ export const SCENE_TRANSITION_TYPES = [
 
 export type SceneTransitionType = (typeof SCENE_TRANSITION_TYPES)[number];
 
+/** Camera framing is independent from every element's own transform. Coordinates are in scene space. */
+export interface CameraKeyframe {
+  id: string;
+  time: number;
+  x: number;
+  y: number;
+  zoom: number;
+  easing: string;
+}
+
+export interface SceneCamera {
+  enabled: boolean;
+  keyframes: CameraKeyframe[];
+}
+
 export interface SceneTransition {
   type: SceneTransitionType;
   /** Seconds; transition time is contained within the incoming scene duration. */
@@ -187,7 +202,7 @@ export interface Scene {
   guides: Guides;
   comments: Comment[];
   /** How this scene enters from the previous scene. Missing values mean a hard cut. */
-  transitionIn?: SceneTransition;
+  transitionIn?: SceneTransition;\n  /** Optional for backwards compatibility; normalized on project import. */\n  camera?: SceneCamera;
   /** Optional per-scene camera framing; absent in legacy projects. */
   camera?: SceneCamera;
   /** Independent audio/video/overlay lanes; optional for legacy projects. */
@@ -221,7 +236,7 @@ export interface Doc {
   timelineTracks?: TimelineTrack[];
   /** Optional for backwards compatibility with single-scene files. */
   scenes?: Scene[];
-  activeSceneId?: string;
+  activeSceneId?: string;\n  /** Active scene camera snapshot; independent of object transforms. */\n  camera?: SceneCamera;
   /** Active scene camera, mirrored into its scene snapshot. */
   camera?: SceneCamera;
 }
