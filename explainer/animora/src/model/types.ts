@@ -185,7 +185,9 @@ export interface Scene {
   guides: Guides;
   comments: Comment[];
   /** How this scene enters from the previous scene. Missing values mean a hard cut. */
-  transitionIn?: SceneTransition;\n  /** Optional for legacy projects; migration supplies a neutral scene camera. */\n  camera?: SceneCamera;
+  transitionIn?: SceneTransition;
+  /** Optional for legacy projects; migration supplies a neutral scene camera. */
+  camera?: SceneCamera;
   /** Independent audio/video/overlay lanes; optional for legacy projects. */
   timelineTracks?: TimelineTrack[];
 }
@@ -217,7 +219,9 @@ export interface Doc {
   timelineTracks?: TimelineTrack[];
   /** Optional for backwards compatibility with single-scene files. */
   scenes?: Scene[];
-  activeSceneId?: string;\n  /** Active scene camera framing, separate from element transforms. */\n  camera?: SceneCamera;
+  activeSceneId?: string;
+  /** Active scene camera framing, separate from element transforms. */
+  camera?: SceneCamera;
 }
 
 export type Tool =
