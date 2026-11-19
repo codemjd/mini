@@ -1,5 +1,5 @@
 import { getState, setState, notify } from './store';
-import { cloneElement, createDefaultTimelineTracks, defaultSceneCamera, normalizeSceneTransition, syncActiveScene, uid } from '../model/factory';
+import { cloneElement, createDefaultTimelineTracks, normalizeSceneTransition, syncActiveScene, uid } from '../model/factory';
 import { DEFAULT_SCENE_TRANSITION } from '../model/types';
 import { DEFAULT_SCENE_CAMERA, normalizeSceneCamera } from '../model/camera';
 import type { Scene, SceneTransition } from '../model/types';
