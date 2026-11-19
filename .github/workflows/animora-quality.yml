@@ -1,0 +1,33 @@
+name: Animora quality
+
+on:
+  push:
+    branches: [recovery/animora-explainer]
+    paths:
+      - "explainer/animora/**"
+      - ".github/workflows/animora-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: explainer/animora
+    steps:
+      - name: Checkout Animora
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: explainer/animora/package-lock.json
+      - name: Install dependencies
+        run: npm install
+      - name: Run mobile and migration regression checks
+        run: npm run test:mobile
+      - name: TypeScript and production build
+        run: npm run build
