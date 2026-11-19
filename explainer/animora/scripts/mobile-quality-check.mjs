@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
 import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
+import { migrateDoc, newDoc, normalizeSceneCamera } from '../src/model/factory.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -34,6 +35,26 @@ const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', 
 const zipFixture = createZipArchive([{ name: 'manifest.json', data: new TextEncoder().encode('animora bundle test') }]);
 const zipRoundTrip = await readZipArchive(zipFixture);
 assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animora bundle test', 'ZIP writer/reader round-trip must preserve entry bytes');
+
+const defaultCamera = normalizeSceneCamera(undefined, 800, 500);
+assert.deepEqual(defaultCamera, { centerX: 400, centerY: 250, zoom: 1 }, 'new scenes must default to centered, unzoomed camera framing');
+assert.deepEqual(normalizeSceneCamera({ centerX: Number.NaN, centerY: -40, zoom: 99 }, 800, 500),
+  { centerX: 400, centerY: -40, zoom: 8 }, 'camera normalization must replace non-finite centers and bound extreme zoom');
+const freshCameraDoc = newDoc();
+assert.deepEqual(freshCameraDoc.camera, defaultCamera, 'new documents must own independent scene camera data');
+assert.deepEqual(freshCameraDoc.scenes[0].camera, defaultCamera, 'new scene snapshots must persist camera framing');
+const legacyCameraDoc = migrateDoc({
+  version: 1, name: 'Legacy', width: 640, height: 360, elements: [],
+  scenes: [{ id: 'legacy-scene', name: 'Legacy scene', width: 640, height: 360, elements: [] }],
+  activeSceneId: 'legacy-scene',
+});
+assert.deepEqual(legacyCameraDoc.camera, { centerX: 320, centerY: 180, zoom: 1 }, 'legacy documents without camera data must migrate to safe defaults');
+assert.deepEqual(legacyCameraDoc.scenes[0].camera, legacyCameraDoc.camera, 'legacy scene snapshots must receive the migrated camera');
+const savedCameraDoc = migrateDoc({
+  version: 1, name: 'Camera', width: 640, height: 360, elements: [],
+  camera: { centerX: 210, centerY: 140, zoom: 2.5 },
+});
+assert.deepEqual(savedCameraDoc.camera, { centerX: 210, centerY: 140, zoom: 2.5 }, 'saved scene camera settings must survive project migration');
 
 const audioClip = (id, start, duration, sourceStart = 0, sourceDuration = 20, volume = 1, muted = false) => ({
   id, name: id, kind: 'audio', source: `asset:${id}`, start, duration, sourceStart, sourceDuration, volume, muted,
