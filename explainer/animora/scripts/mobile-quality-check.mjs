@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
 import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
+import { normalizeSceneCamera } from '../src/model/camera.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -33,6 +34,25 @@ const zip = readFileSync(new URL('../src/io/zip.ts', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
 const zipFixture = createZipArchive([{ name: 'manifest.json', data: new TextEncoder().encode('animora bundle test') }]);
 const zipRoundTrip = await readZipArchive(zipFixture);
+const defaultCamera = normalizeSceneCamera(null);
+assert.deepEqual(defaultCamera, { x: 0, y: 0, zoom: 1, keyframes: [] });
+const rawCamera = {
+  x: Infinity, y: -1_000_000, zoom: 99,
+  keyframes: [
+    { id: 'later', time: 2, x: 20, y: 10, zoom: 2, easing: 'linear' },
+    { id: 'invalid', time: NaN, x: 0, y: 0, zoom: 1, easing: 'linear' },
+    { id: 'earlier', time: 1, x: -20, y: -10, zoom: 0.01, easing: 'easeOut' },
+  ],
+};
+const rawCameraSnapshot = JSON.stringify(rawCamera);
+const normalizedCamera = normalizeSceneCamera(rawCamera);
+assert.equal(normalizedCamera.x, 0);
+assert.equal(normalizedCamera.y, -100_000);
+assert.equal(normalizedCamera.zoom, 8);
+assert.deepEqual(normalizedCamera.keyframes.map((frame) => frame.id), ['earlier', 'later']);
+assert.equal(normalizedCamera.keyframes[0].zoom, 0.1);
+assert.equal(JSON.stringify(rawCamera), rawCameraSnapshot, 'camera normalization must not mutate project data');
+
 assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animora bundle test', 'ZIP writer/reader round-trip must preserve entry bytes');
 
 const audioClip = (id, start, duration, sourceStart = 0, sourceDuration = 20, volume = 1, muted = false) => ({
@@ -198,6 +218,11 @@ const checks = [
   ['playback clamps malformed scene durations before modulo arithmetic', app.includes('Number.isFinite(s.doc.duration) ? Math.max(0.01, s.doc.duration) : 0.01')],
   ['scene strip has mobile touch targets', css.includes('.scene-bar') && css.includes('.scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order { min-width: 36px')],
 ];
+
+  ['scene camera model is independent from element transform properties', types.includes('interface SceneCamera') && types.includes('interface SceneCameraKeyframe') && !types.includes("'cameraX'")],
+  ['new projects receive a neutral camera and legacy scenes are normalized', factory.includes('camera: normalizeSceneCamera(doc.camera ?? DEFAULT_SCENE_CAMERA)') && factory.includes('camera: normalizeSceneCamera(scene.camera)')],
+  ['camera framing is restored when switching scenes and defaults on new scenes', scenes.includes('camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA)') && scenes.includes('camera: { ...DEFAULT_SCENE_CAMERA, keyframes: [] }')],
+  ['camera normalization clamps unsafe framing and sorts valid keyframes without mutating input', normalizedCamera.x === 0 && normalizedCamera.y === -100_000 && normalizedCamera.zoom === 8 && normalizedCamera.keyframes[0].id === 'earlier' && JSON.stringify(rawCamera) === rawCameraSnapshot],
 for (const [name, ok] of checks) {
   assert.equal(ok, true, `Mobile regression check failed: ${name}`);
   process.stdout.write(`PASS ${name}\n`);
