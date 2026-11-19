@@ -171,7 +171,8 @@ export function migrateDoc(raw: unknown): Doc {
           guides: { x: scene.guides?.x ?? [], y: scene.guides?.y ?? [] },
           comments: Array.isArray(scene.comments) ? scene.comments : [],
           timelineTracks: normalizeTimelineTracks(scene.timelineTracks),
-          transitionIn: normalizeSceneTransition(scene.transitionIn),\n          camera: normalizeSceneCamera(scene.camera),
+          transitionIn: normalizeSceneTransition(scene.transitionIn),
+          camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA),
 
         }))
       : [],
