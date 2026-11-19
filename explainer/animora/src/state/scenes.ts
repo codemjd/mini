@@ -120,6 +120,7 @@ export function duplicateScene(id: string) {
     elements: source.elements.map(cloneElement),
     guides: { x: [...source.guides.x], y: [...source.guides.y] },
     comments: source.comments.map((comment) => ({ ...comment, id: uid() })),
+    camera: normalizeSceneCamera(source.camera ?? DEFAULT_SCENE_CAMERA),
     timelineTracks: (source.timelineTracks ?? []).map((track) => ({
       ...track, id: uid(), clips: track.clips.map((clip) => ({ ...clip, id: uid() })),
     })),
