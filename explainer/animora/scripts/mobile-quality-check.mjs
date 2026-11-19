@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
-import { buildAudioSchedule } from '../src/io/audioSchedule.ts';\nimport { migrateDoc, newDoc } from '../src/model/factory.ts';
+import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
+import { migrateDoc, newDoc } from '../src/model/factory.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -45,7 +46,8 @@ assert.equal(migratedCameraProject.camera?.zoom, 2.5, 'camera framing must survi
 assert.equal(migratedCameraProject.camera?.keyframes[0]?.time, 1.5, 'camera keyframes must survive project migration');
 const boundedCameraProject = migrateDoc({ ...cameraProject, camera: { x: Infinity, y: 0, zoom: 99, keyframes: [{ id: 'bad', time: -1, x: 0, y: 0, zoom: 1, easing: 'linear' }] } });
 assert.deepEqual(boundedCameraProject.camera, { x: 0, y: 0, zoom: 8, keyframes: [] }, 'camera migration must clamp invalid framing and discard invalid keyframes');
-\nconst audioClip = (id, start, duration, sourceStart = 0, sourceDuration = 20, volume = 1, muted = false) => ({
+
+const audioClip = (id, start, duration, sourceStart = 0, sourceDuration = 20, volume = 1, muted = false) => ({
   id, name: id, kind: 'audio', source: `asset:${id}`, start, duration, sourceStart, sourceDuration, volume, muted,
 });
 const audioTracks = [
