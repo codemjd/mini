@@ -153,6 +153,7 @@ export function newDoc(): Doc {
     guides: { x: [], y: [] },
     comments: [],
     timelineTracks: createDefaultTimelineTracks(),
+    camera: { ...DEFAULT_SCENE_CAMERA, keyframes: [] },
   };
   const id = uid();
   doc.activeSceneId = id;
