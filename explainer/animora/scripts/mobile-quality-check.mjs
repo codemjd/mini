@@ -6,6 +6,7 @@ import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const topbar = readFileSync(new URL('../src/components/TopBar.tsx', import.meta.url), 'utf8');
 const store = readFileSync(new URL('../src/state/store.ts', import.meta.url), 'utf8');
 const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const sceneBar = readFileSync(new URL('../src/components/SceneBar.tsx', import.meta.url), 'utf8');
@@ -68,6 +69,9 @@ inconsistentName[centralOffset + 46] ^= 1;
 await assert.rejects(() => readZipArchive(new Blob([inconsistentName])), /integrity check/, 'ZIP reader must reject central/local filename mismatches');
 
 const checks = [
+  ['main toolbar stays focused on explainer essentials', topbar.includes('PRIMARY_TOOL_GROUPS') && topbar.includes('Select & move') && topbar.includes('Circle / ellipse') && topbar.includes('Move canvas')],
+  ['advanced drawing and arrangement tools remain reachable from More menu', topbar.includes('ADVANCED_TOOLS') && topbar.includes('MoreMenu') && topbar.includes('Arrange selection') && topbar.includes('Canvas helpers')],
+  ['all drawing tools remain available to keyboard shortcuts', topbar.includes('export const TOOLS = [...PRIMARY_TOOL_GROUPS.flatMap((group) => group.tools), ...ADVANCED_TOOLS]')],
   ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
   ['narrow phone breakpoint exists', css.includes('@media (max-width: 380px)')],
   ['timeline resizer disables browser gesture stealing', css.includes('.tl-resizer') && css.includes('touch-action: none')],
