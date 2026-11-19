@@ -138,21 +138,6 @@ export const SCENE_TRANSITION_TYPES = [
 
 export type SceneTransitionType = (typeof SCENE_TRANSITION_TYPES)[number];
 
-/** Camera framing is independent from every element's own transform. Coordinates are in scene space. */
-export interface CameraKeyframe {
-  id: string;
-  time: number;
-  x: number;
-  y: number;
-  zoom: number;
-  easing: string;
-}
-
-export interface SceneCamera {
-  enabled: boolean;
-  keyframes: CameraKeyframe[];
-}
-
 export interface SceneTransition {
   type: SceneTransitionType;
   /** Seconds; transition time is contained within the incoming scene duration. */
