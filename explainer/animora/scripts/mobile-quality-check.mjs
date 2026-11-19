@@ -49,7 +49,7 @@ const rawCamera = {
 const rawCameraSnapshot = JSON.stringify(rawCamera);
 const normalizedCamera = normalizeSceneCamera(rawCamera);
 assert.equal(normalizedCamera.enabled, true);
-assert.deepEqual(normalizedCamera.keyframes.map((frame) => frame.id), ['earlier', 'invalid', 'later']);
+assert.deepEqual(normalizedCamera.keyframes.map((frame) => frame.id), ['earlier', 'later']);
 assert.equal(normalizedCamera.keyframes[0].x, -100_000);
 assert.equal(normalizedCamera.keyframes[0].zoom, 0.1);
 assert.equal(JSON.stringify(rawCamera), rawCameraSnapshot, 'camera normalization must not mutate project data');
