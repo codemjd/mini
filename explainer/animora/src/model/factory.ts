@@ -1,5 +1,5 @@
 import type { Doc, ElementType, Keyframe, PropKey, SvgEl, TimelineTrack, TimelineTrackKind, Value } from './types';
-import { DEFAULT_SCENE_TRANSITION, SCENE_TRANSITION_TYPES } from './types';
+import { DEFAULT_SCENE_CAMERA, DEFAULT_SCENE_TRANSITION, SCENE_TRANSITION_TYPES } from './types';
 import { ellipsePath, rectPath, starPath } from '../engine/path';
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -62,6 +62,31 @@ export function normalizeSceneTransition(value: unknown): import('./types').Scen
   return { type, duration };
 }
 
+export function normalizeSceneCamera(value: unknown): import('./types').SceneCamera {
+  const candidate = value && typeof value === 'object' ? value as Partial<import('./types').SceneCamera> : {};
+  const finite = (input: unknown, fallback: number, min: number, max: number) =>
+    Number.isFinite(input) ? Math.max(min, Math.min(max, Number(input))) : fallback;
+  const keyframes = Array.isArray(candidate.keyframes) ? candidate.keyframes.slice(0, 500).flatMap((raw, index) => {
+    if (!raw || typeof raw !== 'object') return [];
+    const frame = raw as Partial<import('./types').SceneCameraKeyframe>;
+    if (![frame.time, frame.x, frame.y, frame.zoom].every(Number.isFinite)) return [];
+    return [{
+      id: typeof frame.id === 'string' && frame.id ? frame.id : 'camera-' + index,
+      time: finite(frame.time, 0, 0, 86400),
+      x: finite(frame.x, 0, -100000, 100000),
+      y: finite(frame.y, 0, -100000, 100000),
+      zoom: finite(frame.zoom, 1, 0.1, 8),
+      easing: typeof frame.easing === 'string' && frame.easing ? frame.easing.slice(0, 40) : 'easeInOut',
+    }];
+  }).sort((a, b) => a.time - b.time || a.id.localeCompare(b.id)) : [];
+  return {
+    x: finite(candidate.x, DEFAULT_SCENE_CAMERA.x, -100000, 100000),
+    y: finite(candidate.y, DEFAULT_SCENE_CAMERA.y, -100000, 100000),
+    zoom: finite(candidate.zoom, DEFAULT_SCENE_CAMERA.zoom, 0.1, 8),
+    keyframes,
+  };
+}
+
 const TYPE_NAMES: Record<ElementType, string> = {
   rect: 'Rectangle',
   ellipse: 'Ellipse',
@@ -97,7 +122,7 @@ function sceneSnapshot(doc: Doc, id: string, name: string): import('./types').Sc
     direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed,
     elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments,
     timelineTracks: doc.timelineTracks ?? createDefaultTimelineTracks(),
-    transitionIn: normalizeSceneTransition(doc.scenes?.find((scene) => scene.id === id)?.transitionIn),
+    transitionIn: normalizeSceneTransition(doc.scenes?.find((scene) => scene.id === id)?.transitionIn),\n    camera: normalizeSceneCamera(doc.camera ?? doc.scenes?.find((scene) => scene.id === id)?.camera),
   };
 }
 
@@ -157,7 +182,7 @@ export function migrateDoc(raw: unknown): Doc {
     defs: d.defs ?? '',
     guides: { x: d.guides?.x ?? [], y: d.guides?.y ?? [] },
     comments: Array.isArray(d.comments) ? d.comments : [],
-    timelineTracks: normalizeTimelineTracks(d.timelineTracks ?? d.scenes?.find((scene) => scene.id === d.activeSceneId)?.timelineTracks ?? d.scenes?.[0]?.timelineTracks),
+    timelineTracks: normalizeTimelineTracks(d.timelineTracks ?? d.scenes?.find((scene) => scene.id === d.activeSceneId)?.timelineTracks ?? d.scenes?.[0]?.timelineTracks),\n    camera: normalizeSceneCamera(d.camera ?? d.scenes?.find((scene) => scene.id === d.activeSceneId)?.camera ?? d.scenes?.[0]?.camera),
     elements: d.elements.map(migrateEl),
     scenes: Array.isArray(d.scenes) && d.scenes.length
       ? d.scenes.map((scene, index) => ({
@@ -169,7 +194,7 @@ export function migrateDoc(raw: unknown): Doc {
           guides: { x: scene.guides?.x ?? [], y: scene.guides?.y ?? [] },
           comments: Array.isArray(scene.comments) ? scene.comments : [],
           timelineTracks: normalizeTimelineTracks(scene.timelineTracks),
-          transitionIn: normalizeSceneTransition(scene.transitionIn),
+          transitionIn: normalizeSceneTransition(scene.transitionIn),\n          camera: normalizeSceneCamera(scene.camera),
         }))
       : [],
     activeSceneId: typeof d.activeSceneId === 'string' && d.activeSceneId
