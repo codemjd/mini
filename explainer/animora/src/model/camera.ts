@@ -69,3 +69,16 @@ export function evaluateSceneCamera(value: unknown, time: number): CameraFrame {
     zoom: Math.max(MIN_CAMERA_ZOOM, Math.min(MAX_CAMERA_ZOOM, from.zoom + (to.zoom - from.zoom) * eased)),
   };
 }
+
+
+/** Build the shared SVG camera transform around the scene center. */
+export function sceneCameraTransform(frame: CameraFrame, width: number, height: number): string | undefined {
+  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) return undefined;
+  const x = Number.isFinite(frame.x) ? frame.x : 0;
+  const y = Number.isFinite(frame.y) ? frame.y : 0;
+  const zoom = Number.isFinite(frame.zoom) ? Math.max(MIN_CAMERA_ZOOM, Math.min(MAX_CAMERA_ZOOM, frame.zoom)) : 1;
+  if (x === 0 && y === 0 && zoom === 1) return undefined;
+  const cx = width / 2;
+  const cy = height / 2;
+  return `translate(${cx} ${cy}) scale(${zoom}) translate(${-cx - x} ${-cy - y})`;
+}
