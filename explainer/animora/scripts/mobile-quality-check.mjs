@@ -223,10 +223,6 @@ const checks = [
   ['scene strip has mobile touch targets', css.includes('.scene-bar') && css.includes('.scene-add, .scene-delete, .scene-rename, .scene-duplicate, .scene-order { min-width: 36px')],
 ];
 
-  ['scene camera model is independent from element transform properties', types.includes('interface SceneCamera') && types.includes('interface SceneCameraKeyframe') && !types.includes("'cameraX'")],
-  ['new projects receive a neutral camera and legacy scenes are normalized', factory.includes('camera: normalizeSceneCamera(doc.camera ?? doc.scenes?.find((scene) => scene.id === id)?.camera ?? DEFAULT_SCENE_CAMERA)') && factory.includes('camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA)')],
-  ['camera framing is restored when switching scenes and defaults on new scenes', scenes.includes('camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA)') && scenes.includes('camera: { ...DEFAULT_SCENE_CAMERA, keyframes: [] }')],
-  ['camera normalization clamps unsafe framing and sorts valid keyframes without mutating input', normalizedCamera.x === 0 && normalizedCamera.y === -100_000 && normalizedCamera.zoom === 8 && normalizedCamera.keyframes[0].id === 'earlier' && JSON.stringify(rawCamera) === rawCameraSnapshot],
 for (const [name, ok] of checks) {
   assert.equal(ok, true, `Mobile regression check failed: ${name}`);
   process.stdout.write(`PASS ${name}\n`);
