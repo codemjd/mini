@@ -117,6 +117,7 @@ export function duplicateScene(id: string) {
     id: uid(),
     name: `${source.name} copy`.slice(0, 60),
     elements: source.elements.map(cloneElement),
+    camera: source.camera ? { ...source.camera, keyframes: source.camera.keyframes.map((frame) => ({ ...frame })) } : { x: 0, y: 0, zoom: 1, keyframes: [] },
     guides: { x: [...source.guides.x], y: [...source.guides.y] },
     comments: source.comments.map((comment) => ({ ...comment, id: uid() })),
     timelineTracks: (source.timelineTracks ?? []).map((track) => ({
