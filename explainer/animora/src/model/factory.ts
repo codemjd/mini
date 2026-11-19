@@ -1,5 +1,6 @@
 import type { Doc, ElementType, Keyframe, PropKey, SvgEl, TimelineTrack, TimelineTrackKind, Value } from './types';
-import { DEFAULT_SCENE_CAMERA, DEFAULT_SCENE_TRANSITION, SCENE_TRANSITION_TYPES } from './types';
+import { DEFAULT_SCENE_TRANSITION, SCENE_TRANSITION_TYPES } from './types';
+import { normalizeSceneCamera } from './camera';
 import { ellipsePath, rectPath, starPath } from '../engine/path';
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -62,30 +63,6 @@ export function normalizeSceneTransition(value: unknown): import('./types').Scen
   return { type, duration };
 }
 
-export function normalizeSceneCamera(value: unknown): import('./types').SceneCamera {
-  const candidate = value && typeof value === 'object' ? value as Partial<import('./types').SceneCamera> : {};
-  const finite = (input: unknown, fallback: number, min: number, max: number) =>
-    Number.isFinite(input) ? Math.max(min, Math.min(max, Number(input))) : fallback;
-  const keyframes = Array.isArray(candidate.keyframes) ? candidate.keyframes.slice(0, 500).flatMap((raw, index) => {
-    if (!raw || typeof raw !== 'object') return [];
-    const frame = raw as Partial<import('./types').SceneCameraKeyframe>;
-    if (![frame.time, frame.x, frame.y, frame.zoom].every(Number.isFinite) || Number(frame.time) < 0) return [];
-    return [{
-      id: typeof frame.id === 'string' && frame.id ? frame.id : 'camera-' + index,
-      time: finite(frame.time, 0, 0, 86400),
-      x: finite(frame.x, 0, -100000, 100000),
-      y: finite(frame.y, 0, -100000, 100000),
-      zoom: finite(frame.zoom, 1, 0.1, 8),
-      easing: typeof frame.easing === 'string' && frame.easing ? frame.easing.slice(0, 40) : 'easeInOut',
-    }];
-  }).sort((a, b) => a.time - b.time || a.id.localeCompare(b.id)) : [];
-  return {
-    x: finite(candidate.x, DEFAULT_SCENE_CAMERA.x, -100000, 100000),
-    y: finite(candidate.y, DEFAULT_SCENE_CAMERA.y, -100000, 100000),
-    zoom: finite(candidate.zoom, DEFAULT_SCENE_CAMERA.zoom, 0.1, 8),
-    keyframes,
-  };
-}
 
 const TYPE_NAMES: Record<ElementType, string> = {
   rect: 'Rectangle',
