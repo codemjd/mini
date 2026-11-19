@@ -144,6 +144,15 @@ export interface SceneTransition {
   duration: number;
 }
 
+/** Scene-level camera framing, deliberately separate from every element transform. */
+export interface SceneCamera {
+  /** Scene-space point placed at the center of the output frame. */
+  centerX: number;
+  centerY: number;
+  /** Output magnification; 1 is the original scene framing. */
+  zoom: number;
+}
+
 export const DEFAULT_SCENE_TRANSITION: SceneTransition = { type: 'none', duration: 0.6 };
 
 /** A self-contained scene inside a multi-scene explainer project. */
@@ -167,6 +176,8 @@ export interface Scene {
   comments: Comment[];
   /** How this scene enters from the previous scene. Missing values mean a hard cut. */
   transitionIn?: SceneTransition;
+  /** Independent scene camera; optional so older project files remain valid. */
+  camera?: SceneCamera;
   /** Independent audio/video/overlay lanes; optional for legacy projects. */
   timelineTracks?: TimelineTrack[];
 }
@@ -196,6 +207,8 @@ export interface Doc {
   comments: Comment[];
   /** Active scene's independent media lanes; mirrored into its scene snapshot. */
   timelineTracks?: TimelineTrack[];
+  /** Camera framing for the active scene; independent from element transforms. */
+  camera?: SceneCamera;
   /** Optional for backwards compatibility with single-scene files. */
   scenes?: Scene[];
   activeSceneId?: string;
