@@ -1,6 +1,6 @@
 import type { Doc, ElementType, Keyframe, PropKey, SvgEl, TimelineTrack, TimelineTrackKind, Value } from './types';
 import { DEFAULT_SCENE_TRANSITION, SCENE_TRANSITION_TYPES } from './types';
-import { DEFAULT_SCENE_CAMERA, normalizeSceneCamera } from './camera';
+import { DEFAULT_SCENE_CAMERA, createDefaultSceneCamera, normalizeSceneCamera } from './camera';
 import { ellipsePath, rectPath, starPath } from '../engine/path';
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -128,7 +128,7 @@ export function newDoc(): Doc {
     guides: { x: [], y: [] },
     comments: [],
     timelineTracks: createDefaultTimelineTracks(),
-    camera: DEFAULT_SCENE_CAMERA,
+    camera: createDefaultSceneCamera(),
   };
   const id = uid();
   doc.activeSceneId = id;
