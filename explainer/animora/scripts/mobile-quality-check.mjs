@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
-import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
+import { buildAudioSchedule } from '../src/io/audioSchedule.ts';\nimport { migrateDoc, normalizeSceneCamera } from '../src/model/factory.ts';
 import { normalizeSceneCamera } from '../src/model/camera.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
@@ -55,6 +55,19 @@ assert.equal(JSON.stringify(rawCamera), rawCameraSnapshot, 'camera normalization
 
 assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animora bundle test', 'ZIP writer/reader round-trip must preserve entry bytes');
 
+const legacyProject = migrateDoc({ version: 1, name: 'Legacy', width: 800, height: 500, background: '#fff', duration: 3, loop: true, iterations: 1, direction: 'normal', trigger: 'load', fillMode: 'freeze', speed: 100, elements: [], defs: '', guides: { x: [], y: [] }, comments: [] });
+assert.deepEqual(legacyProject.camera, { enabled: false, keyframes: [] }, 'legacy projects without camera data must migrate to a neutral camera');
+assert.deepEqual(legacyProject.scenes[0].camera, { enabled: false, keyframes: [] }, 'legacy scene snapshots must receive a neutral camera');
+const normalizedCamera = normalizeSceneCamera({ enabled: true, keyframes: [
+  { id: 'late', time: 2, x: 200000, y: -200000, zoom: 12, easing: 'easeOut' },
+  { id: 'early', time: -1, x: 12, y: 8, zoom: 0, easing: 'linear' },
+] });
+assert.equal(normalizedCamera.enabled, true, 'camera enable state must survive normalization');
+assert.deepEqual(normalizedCamera.keyframes.map((key) => key.id), ['early', 'late'], 'camera keyframes must be sorted by time');
+assert.deepEqual(normalizedCamera.keyframes[0], { id: 'early', time: 0, x: 12, y: 8, zoom: 0.1, easing: 'linear' }, 'camera keyframe values must be bounded and normalized');
+assert.equal(normalizedCamera.keyframes[1].x, 100000, 'camera coordinates must be bounded');
+assert.equal(normalizedCamera.keyframes[1].zoom, 8, 'camera zoom must be bounded');
+
 const audioClip = (id, start, duration, sourceStart = 0, sourceDuration = 20, volume = 1, muted = false) => ({
   id, name: id, kind: 'audio', source: `asset:${id}`, start, duration, sourceStart, sourceDuration, volume, muted,
 });
@@ -89,7 +102,7 @@ inconsistentName[centralOffset + 46] ^= 1;
 await assert.rejects(() => readZipArchive(new Blob([inconsistentName])), /integrity check/, 'ZIP reader must reject central/local filename mismatches');
 
 const checks = [
-  ['main toolbar stays focused on explainer essentials', topbar.includes('PRIMARY_TOOL_GROUPS') && topbar.includes('Select & move') && topbar.includes('Circle / ellipse') && topbar.includes('Move canvas')],
+  ['scene camera data is independent and backward-compatible', types.includes('export interface SceneCamera') && factory.includes('normalizeSceneCamera') && scenes.includes('camera: scene.camera ?? defaultSceneCamera()')],\n  ['main toolbar stays focused on explainer essentials', topbar.includes('PRIMARY_TOOL_GROUPS') && topbar.includes('Select & move') && topbar.includes('Circle / ellipse') && topbar.includes('Move canvas')],
   ['advanced drawing and arrangement tools remain reachable from More menu', topbar.includes('ADVANCED_TOOLS') && topbar.includes('MoreMenu') && topbar.includes('Arrange selection') && topbar.includes('Canvas helpers')],
   ['all drawing tools remain available to keyboard shortcuts', topbar.includes('export const TOOLS = [...PRIMARY_TOOL_GROUPS.flatMap((group) => group.tools), ...ADVANCED_TOOLS]')],
   ['phone breakpoint exists', css.includes('@media (max-width: 700px)')],
