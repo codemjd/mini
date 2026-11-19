@@ -30,6 +30,7 @@ const audioPreview = readFileSync(new URL('../src/components/AudioPreview.tsx', 
 const waveform = readFileSync(new URL('../src/io/waveform.ts', import.meta.url), 'utf8');
 const waveformView = readFileSync(new URL('../src/components/MediaWaveform.tsx', import.meta.url), 'utf8');
 const visualPreview = readFileSync(new URL('../src/components/VisualMediaPreview.tsx', import.meta.url), 'utf8');
+const camera = readFileSync(new URL('../src/model/camera.ts', import.meta.url), 'utf8');
 const dialogs = readFileSync(new URL('../src/components/Dialogs.tsx', import.meta.url), 'utf8');
 const zip = readFileSync(new URL('../src/io/zip.ts', import.meta.url), 'utf8');
 const boundary = readFileSync(new URL('../src/components/AppErrorBoundary.tsx', import.meta.url), 'utf8');
@@ -227,6 +228,10 @@ const checks = [
   ['new projects receive a neutral camera and legacy scenes are normalized', factory.includes('camera: normalizeSceneCamera(doc.camera ?? doc.scenes?.find((scene) => scene.id === id)?.camera ?? DEFAULT_SCENE_CAMERA)') && factory.includes('camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA)')],
   ['camera framing is restored when switching scenes and defaults on new scenes', scenes.includes('camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA)') && scenes.includes('camera: { ...DEFAULT_SCENE_CAMERA, keyframes: [] }')],
   ['camera normalization clamps unsafe framing and sorts valid keyframes without mutating input', normalizedCamera.x === 0 && normalizedCamera.y === -100_000 && normalizedCamera.zoom === 8 && normalizedCamera.keyframes[0].id === 'earlier' && JSON.stringify(rawCamera) === rawCameraSnapshot],
+  ['scene camera data is a separate model from object transforms', types.includes('interface SceneCamera') && types.includes('interface CameraKeyframe')],
+  ['camera settings are normalized and persisted in legacy project migration', factory.includes('normalizeSceneCamera(d.camera') && factory.includes('camera: normalizeSceneCamera(scene.camera')],
+  ['scene switching restores camera framing and preserves media timeline tracks', scenes.includes('timelineTracks: scene.timelineTracks ?? []') && scenes.includes('camera: normalizeSceneCamera(scene.camera ?? DEFAULT_SCENE_CAMERA)')],
+  ['camera keyframes are bounded, sorted, and invalid timestamps are excluded', camera.includes('MAX_CAMERA_KEYFRAMES') && camera.includes('Number.isFinite(Number(raw.time))') && normalizedCamera.keyframes.map((frame) => frame.id).join(',') === 'earlier,later'],
 ];
 
 for (const [name, ok] of checks) {
