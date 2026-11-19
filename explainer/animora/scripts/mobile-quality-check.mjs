@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
-import { buildAudioSchedule } from '../src/io/audioSchedule.ts';
+import { buildAudioSchedule } from '../src/io/audioSchedule.ts';\nimport { migrateDoc, newDoc } from '../src/model/factory.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -35,7 +35,17 @@ const zipFixture = createZipArchive([{ name: 'manifest.json', data: new TextEnco
 const zipRoundTrip = await readZipArchive(zipFixture);
 assert.equal(new TextDecoder().decode(zipRoundTrip.get('manifest.json')), 'animora bundle test', 'ZIP writer/reader round-trip must preserve entry bytes');
 
-const audioClip = (id, start, duration, sourceStart = 0, sourceDuration = 20, volume = 1, muted = false) => ({
+
+const cameraProject = newDoc();
+assert.deepEqual(cameraProject.camera, { x: 0, y: 0, zoom: 1, keyframes: [] }, 'new projects must start with neutral independent camera framing');
+const legacyCameraProject = migrateDoc({ version: 1, elements: [], width: 800, height: 500, duration: 3 });
+assert.deepEqual(legacyCameraProject.camera, { x: 0, y: 0, zoom: 1, keyframes: [] }, 'legacy projects receive a neutral scene camera');
+const migratedCameraProject = migrateDoc({ ...cameraProject, camera: { x: 120, y: -45, zoom: 2.5, keyframes: [{ id: 'kf-1', time: 1.5, x: 20, y: 30, zoom: 3, easing: 'easeOut' }] } });
+assert.equal(migratedCameraProject.camera?.zoom, 2.5, 'camera framing must survive project migration');
+assert.equal(migratedCameraProject.camera?.keyframes[0]?.time, 1.5, 'camera keyframes must survive project migration');
+const boundedCameraProject = migrateDoc({ ...cameraProject, camera: { x: Infinity, y: 0, zoom: 99, keyframes: [{ id: 'bad', time: -1, x: 0, y: 0, zoom: 1, easing: 'linear' }] } });
+assert.deepEqual(boundedCameraProject.camera, { x: 0, y: 0, zoom: 8, keyframes: [] }, 'camera migration must clamp invalid framing and discard invalid keyframes');
+\nconst audioClip = (id, start, duration, sourceStart = 0, sourceDuration = 20, volume = 1, muted = false) => ({
   id, name: id, kind: 'audio', source: `asset:${id}`, start, duration, sourceStart, sourceDuration, volume, muted,
 });
 const audioTracks = [
