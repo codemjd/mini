@@ -3,6 +3,7 @@ import { formatDash, frameAt, hasShadow, interp, parseDash, trackValues, type Fr
 import { getEasing } from './easing';
 import { fmt as n } from './path';
 import { pointAtPercent } from './motion';
+import { evaluateSceneCamera, sceneCameraTransform } from '../model/camera';
 
 export const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -439,14 +440,17 @@ export function exportSvg(doc: Doc, opts: ExportOptions): string {
     out.push(`<rect width="${doc.width}" height="${doc.height}" fill="${esc(doc.background)}"/>`);
   }
   const root = { id: '__root', type: 'group', children: doc.elements } as SvgEl;
-  out.push(
-    composeKids(
-      root,
-      (el) => (!el.visible ? '' : opts.animated ? animatedElementMarkup(el, doc, tm) : staticElementMarkup(el, opts.time ?? 0)),
-      (el) => (opts.animated ? animatedElementMarkup(el, doc, tm) : staticElementMarkup(el, opts.time ?? 0)),
-      false,
-    ),
+  const layers = composeKids(
+    root,
+    (el) => (!el.visible ? '' : opts.animated ? animatedElementMarkup(el, doc, tm) : staticElementMarkup(el, opts.time ?? 0)),
+    (el) => (opts.animated ? animatedElementMarkup(el, doc, tm) : staticElementMarkup(el, opts.time ?? 0)),
+    false,
   );
+  // Static frame exports (including WebM frame rendering) use the same camera transform as live preview.
+  const camera = !opts.animated
+    ? sceneCameraTransform(evaluateSceneCamera(doc.camera, opts.time ?? 0), doc.width, doc.height)
+    : undefined;
+  out.push(camera ? `<g transform="${camera}">${layers}</g>` : layers);
   out.push('</svg>');
   return out.join('\n');
 }
