@@ -1,7 +1,7 @@
 {
   "name": "animora",
   "version": "0.1.0",
-  "description": "Open-source, browser-based SVG animation editor. No sign-up, no account — draw, animate with keyframes, export animated SVG.",
+  "description": "Mobile-first, explainer-focused video editor for animated scenes, camera zooms, motion, and simple storytelling.",
   "license": "MIT",
   "type": "module",
   "scripts": {
