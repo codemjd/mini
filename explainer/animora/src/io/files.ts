@@ -349,7 +349,7 @@ export async function exportWebmScenes(doc: Doc, onProgress: (p: number) => void
   if (storedScenes.length <= 1) return exportWebm(doc, onProgress, fps);
   const scenes = storedScenes.map((scene) =>
     scene.id === doc.activeSceneId
-      ? { ...scene, width: doc.width, height: doc.height, background: doc.background, duration: doc.duration, loop: doc.loop, iterations: doc.iterations, direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed, elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments }
+      ? { ...scene, width: doc.width, height: doc.height, background: doc.background, duration: doc.duration, loop: doc.loop, iterations: doc.iterations, direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed, elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments, camera: doc.camera }
       : scene,
   );
   const sceneDocs = scenes.map((scene) => sceneDocument(doc, scene));
