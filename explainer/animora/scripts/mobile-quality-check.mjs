@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zip as createZipArchive, unzipStored as readZipArchive } from '../src/io/zip.ts';
 import { buildAudioSchedule } from '../src/io/audioSchedule.ts';\nimport { migrateDoc, normalizeSceneCamera } from '../src/model/factory.ts';
-import { normalizeSceneCamera } from '../src/model/camera.ts';
+import { DEFAULT_SCENE_CAMERA, normalizeSceneCamera } from '../src/model/camera.ts';\nimport { migrateDoc } from '../src/model/factory.ts';
 
 const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
