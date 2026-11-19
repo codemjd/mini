@@ -66,7 +66,7 @@ export function addScene() {
     fillMode: 'freeze', speed: 100, elements: [], defs: '', guides: { x: [], y: [] }, comments: [],
     transitionIn: { ...DEFAULT_SCENE_TRANSITION },
     timelineTracks: createDefaultTimelineTracks(),
-    camera: { ...DEFAULT_SCENE_CAMERA, keyframes: [] },
+    camera: DEFAULT_SCENE_CAMERA,
   };
   const doc = { ...current, scenes: [...(current.scenes ?? []), scene] };
   setState({
