@@ -146,6 +146,25 @@ export interface SceneTransition {
 
 export const DEFAULT_SCENE_TRANSITION: SceneTransition = { type: 'none', duration: 0.6 };
 
+/** Scene-level camera framing, independent from every element transform. */
+export interface SceneCameraKeyframe {
+  id: string;
+  time: number;
+  x: number;
+  y: number;
+  zoom: number;
+  easing: string;
+}
+
+export interface SceneCamera {
+  x: number;
+  y: number;
+  zoom: number;
+  keyframes: SceneCameraKeyframe[];
+}
+
+export const DEFAULT_SCENE_CAMERA: SceneCamera = { x: 0, y: 0, zoom: 1, keyframes: [] };
+
 /** A self-contained scene inside a multi-scene explainer project. */
 export interface Scene {
   id: string;
@@ -166,7 +185,7 @@ export interface Scene {
   guides: Guides;
   comments: Comment[];
   /** How this scene enters from the previous scene. Missing values mean a hard cut. */
-  transitionIn?: SceneTransition;
+  transitionIn?: SceneTransition;\n  /** Optional for legacy projects; migration supplies a neutral scene camera. */\n  camera?: SceneCamera;
   /** Independent audio/video/overlay lanes; optional for legacy projects. */
   timelineTracks?: TimelineTrack[];
 }
@@ -198,7 +217,7 @@ export interface Doc {
   timelineTracks?: TimelineTrack[];
   /** Optional for backwards compatibility with single-scene files. */
   scenes?: Scene[];
-  activeSceneId?: string;
+  activeSceneId?: string;\n  /** Active scene camera framing, separate from element transforms. */\n  camera?: SceneCamera;
 }
 
 export type Tool =
