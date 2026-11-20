@@ -50,3 +50,7 @@
 - تم التحقق من وجود وثيقة اتجاه المنتج وحزمة `explainer/animora/package.json` على الفرع أعلاه.
 - لم يمكن تأكيد ملفات المصدر أو وثيقة الحالة القديمة عبر المسارات التي جرى فحصها؛ لذلك لا تُسجل هنا نتيجة build أو اختبار أو تغيير برمجي.
 - لا يُجرى أي دمج إلى `main` ضمن هذه الدفعة.
+## بحث الأنظمة المفتوحة المصدر (2026-11-20)
+- أُضيفت `OPEN-SOURCE-SYSTEMS-RESEARCH-AR.md`: دراسة أولية لعدة مشاريع ومكتبات، مع قرارات LEARN/ADOPT/AVOID مبدئية، واستراتيجية استفادة دون نسخ محررات كاملة.
+- المرشحون الأهم للتفكيك: Excalimate (storyboard/sequence/camera)، Motion Canvas (explainer + narration)، brainCUT (audio clock/compositor)، Cutaway (captions/audio/export)، elah (resolver/export architecture)، SVG Animora (timeline/motion path/easing).
+- البحث في README والمصادر المنشورة لا يساوي تدقيقًا للكود أو الترخيص؛ مراجعة الترخيص والتوافق ضرورية قبل دمج أي كود.
