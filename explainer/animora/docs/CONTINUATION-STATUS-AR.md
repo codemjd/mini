@@ -54,3 +54,9 @@
 - أُضيفت `OPEN-SOURCE-SYSTEMS-RESEARCH-AR.md`: دراسة أولية لعدة مشاريع ومكتبات، مع قرارات LEARN/ADOPT/AVOID مبدئية، واستراتيجية استفادة دون نسخ محررات كاملة.
 - المرشحون الأهم للتفكيك: Excalimate (storyboard/sequence/camera)، Motion Canvas (explainer + narration)، brainCUT (audio clock/compositor)، Cutaway (captions/audio/export)، elah (resolver/export architecture)، SVG Animora (timeline/motion path/easing).
 - البحث في README والمصادر المنشورة لا يساوي تدقيقًا للكود أو الترخيص؛ مراجعة الترخيص والتوافق ضرورية قبل دمج أي كود.
+
+## تدقيق المصدر (2026-11-20)
+- أُضيفت `SOURCE-AUDIT-AR.md` بعد استرجاع وفحص ملفات types/factory/store/scenes/Canvas/Timeline/render/audioSchedule/quality-check.
+- تأكد وجود نموذج كاميرا مستقل في بيانات المشهد، وتنظيف/ترحيل واختبارات، مع إدارة المشاهد والمسارات وجدولة الصوت.
+- **التكامل غير محسوم:** لم يُثبت بعد تطبيق Camera على المعاينة والتصدير، كما أن جدول الصوت لا يثبت وجود mixer أو تصدير صوت فعلي متزامن. لا تُسجل هذه الأنظمة مكتملة قبل تتبعها واختبارها.
+- تعذر clone وتشغيل build بسبب عدم توفر اتصال GitHub من بيئة التنفيذ؛ لم تتغير ملفات المصدر ولم تُدّعَ اختبارات جديدة.
