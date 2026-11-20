@@ -1,7 +1,7 @@
 {
   "name": "animora",
   "version": "0.1.0",
-  "description": "Mobile-first, explainer-focused video editor for animated scenes, camera zooms, motion, and simple storytelling.",
+  "description": "Mobile-first professional explainer studio with editable scenes, advanced camera and motion, templates, smart-assisted storytelling, audio, and export workflows.",
   "license": "MIT",
   "type": "module",
   "scripts": {
