@@ -154,6 +154,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           {format === 'video' && (
             <>
               <p>Records a <b>WebM</b> video in your browser, in real time. You can export the active scene or combine every scene in project order. Transparent backgrounds become white.</p>
+              <p className="muted small" role="note">Audio tracks can be previewed in the editor, but the current WebM export records video only. Audio is not embedded in the downloaded file yet.</p>
               {settings}
               {doc.scenes && doc.scenes.length > 1 && <label className="check-row"><input type="checkbox" checked={includeAllScenes} onChange={(e) => setIncludeAllScenes(e.target.checked)} disabled={busy} /> Include all scenes in order ({doc.scenes.length})</label>}
               <label className="field-row"><span>Frame rate</span>
