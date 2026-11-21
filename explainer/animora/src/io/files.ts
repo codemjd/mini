@@ -2,6 +2,7 @@ import type { Doc, Scene, SceneTransitionType, TimelineTrack } from '../model/ty
 import { exportSvg } from '../engine/render';
 import { zip, unzipStored } from './zip';
 import { deleteMediaAsset, readMediaAsset, storeMediaAssetBlob } from './mediaLibrary';
+import { prepareAudioExport } from './audioExport';
 
 export function download(data: Blob | string, filename: string, type = 'application/octet-stream') {
   const blob = typeof data === 'string' ? new Blob([data], { type }) : data;
@@ -166,6 +167,8 @@ export async function exportWebm(doc: Doc, onProgress: (p: number) => void, fps 
   canvas.height = Math.round((doc.height * scale) / 2) * 2;
   const ctx = canvas.getContext('2d')!;
   const stream = canvas.captureStream(fps);
+  const audioExport = await prepareAudioExport([{ tracks: doc.timelineTracks, offset: 0, playbackRate: Math.max(1, doc.speed || 100) / 100 }]);
+  audioExport?.stream.getAudioTracks().forEach((track) => stream.addTrack(track));
   const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
   const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 8_000_000 });
   const chunks: Blob[] = [];
@@ -176,10 +179,11 @@ export async function exportWebm(doc: Doc, onProgress: (p: number) => void, fps 
   try {
     await drawFrame(ctx, doc, 0, scale, true);
     stopped = new Promise<void>((resolve) => { rec.onstop = () => resolve(); });
+    const start = performance.now() + 100;
     rec.start();
     started = true;
+    audioExport?.startAt(start);
     const times = cycleTimes(doc, fps);
-    const start = performance.now();
     for (let i = 0; i < times.length; i++) {
       await drawFrame(ctx, doc, times[i], scale, true);
       onProgress((i + 1) / times.length);
@@ -195,6 +199,7 @@ export async function exportWebm(doc: Doc, onProgress: (p: number) => void, fps 
     throw error;
   } finally {
     stream.getTracks().forEach((track) => track.stop());
+    await audioExport?.close();
   }
 }
 
@@ -349,7 +354,7 @@ export async function exportWebmScenes(doc: Doc, onProgress: (p: number) => void
   if (storedScenes.length <= 1) return exportWebm(doc, onProgress, fps);
   const scenes = storedScenes.map((scene) =>
     scene.id === doc.activeSceneId
-      ? { ...scene, width: doc.width, height: doc.height, background: doc.background, duration: doc.duration, loop: doc.loop, iterations: doc.iterations, direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed, elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments }
+      ? { ...scene, width: doc.width, height: doc.height, background: doc.background, duration: doc.duration, loop: doc.loop, iterations: doc.iterations, direction: doc.direction, trigger: doc.trigger, fillMode: doc.fillMode, speed: doc.speed, elements: doc.elements, defs: doc.defs, guides: doc.guides, comments: doc.comments, timelineTracks: doc.timelineTracks }
       : scene,
   );
   const sceneDocs = scenes.map((scene) => sceneDocument(doc, scene));
@@ -364,6 +369,14 @@ export async function exportWebmScenes(doc: Doc, onProgress: (p: number) => void
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not create a video canvas.');
   const stream = canvas.captureStream(fps);
+  let sceneOffset = 0;
+  const audioScenes = sceneDocs.map((sceneDoc, index) => {
+    const input = { tracks: sceneDoc.timelineTracks, offset: sceneOffset, playbackRate: Math.max(1, sceneDoc.speed || 100) / 100 };
+    sceneOffset += frameLists[index].length / fps;
+    return input;
+  });
+  const audioExport = await prepareAudioExport(audioScenes);
+  audioExport?.stream.getAudioTracks().forEach((track) => stream.addTrack(track));
   const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((type) => MediaRecorder.isTypeSupported(type));
   const recorder = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 8_000_000 });
   const chunks: Blob[] = [];
@@ -373,9 +386,10 @@ export async function exportWebmScenes(doc: Doc, onProgress: (p: number) => void
   let started = false;
   try {
     await drawSceneFrame(ctx, sceneDocs[0], frameLists[0][0] ?? 0, width, height);
+    const start = performance.now() + 100;
     recorder.start();
     started = true;
-    const start = performance.now();
+    audioExport?.startAt(start);
     let previousSceneStill: HTMLImageElement | null = null;
     for (let sceneIndex = 0; sceneIndex < sceneDocs.length; sceneIndex++) {
       const sceneDoc = sceneDocs[sceneIndex];
@@ -416,6 +430,7 @@ export async function exportWebmScenes(doc: Doc, onProgress: (p: number) => void
     throw error;
   } finally {
     stream.getTracks().forEach((track) => track.stop());
+    await audioExport?.close();
   }
 }
 
