@@ -20,6 +20,7 @@ const actions = readFileSync(new URL('../src/state/actions.ts', import.meta.url)
 const types = readFileSync(new URL('../src/model/types.ts', import.meta.url), 'utf8');
 const scenes = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
 const files = readFileSync(new URL('../src/io/files.ts', import.meta.url), 'utf8');
+const audioExport = readFileSync(new URL('../src/io/audioExport.ts', import.meta.url), 'utf8');
 const assets = readFileSync(new URL('../src/model/assets.ts', import.meta.url), 'utf8');
 const sceneState = readFileSync(new URL('../src/state/scenes.ts', import.meta.url), 'utf8');
 const mediaImport = readFileSync(new URL('../src/components/MediaImportButton.tsx', import.meta.url), 'utf8');
@@ -185,7 +186,10 @@ const checks = [
   ['scene duplication gives the scene and its content fresh identities', scenes.includes('export function duplicateScene(id: string)') && scenes.includes('elements: source.elements.map(cloneElement)') && scenes.includes('comments: source.comments.map((comment) => ({ ...comment, id: uid() }))')],
   ['scene ordering moves a scene without changing its identity', scenes.includes('export function moveScene(id: string, direction: -1 | 1)') && scenes.includes('[reordered[index], reordered[target]] = [reordered[target], reordered[index]]')],
   ['video export can render all scenes in project order', files.includes('export async function exportWebmScenes') && files.includes('const sceneDocs = scenes.map((scene) => sceneDocument(doc, scene))') && files.includes('for (let sceneIndex = 0; sceneIndex < sceneDocs.length; sceneIndex++)')],
-  ['video export clearly discloses that WebM currently omits audio tracks', dialogs.includes('Audio tracks can be previewed in the editor, but the current WebM export records video only.')],
+  ['single and multi-scene WebM exports attach a mixed audio stream to the video recorder', files.includes('prepareAudioExport') && files.includes('audioExport?.stream.getAudioTracks()') && files.includes('audioExport?.startAt(start)')],
+  ['WebM audio export decodes stored assets, applies trim, gain and playback rate, and schedules on a shared clock', audioExport.includes('context.decodeAudioData') && audioExport.includes('source.start(audioStart + item.start, sourceStart, sourceDuration)') && audioExport.includes('source.playbackRate.value = item.playbackRate') && audioExport.includes('gain.gain.value = item.volume')],
+  ['multi-scene audio offsets follow rendered scene frame durations', files.includes('sceneOffset += frameLists[index].length / fps') && files.includes('tracks: sceneDoc.timelineTracks')],
+  ['WebM export explains synchronized audio and local media requirements', dialogs.includes('Audio lanes are mixed into the WebM export and scheduled against the video timeline.')],
   ['export dialog offers an explicit all-scenes option', dialogs.includes('Include all scenes in order') && dialogs.includes('exportWebmScenes(getState().doc, setProgress, fps)')],
   ['portable project export enforces a safe total media size before ZIP allocation', files.includes('const maxBundleBytes = 550 * 1024 * 1024') && files.includes('totalBytes + asset.blob.size > maxBundleBytes')],
   ['portable project export reports media collection progress', files.includes('onProgress(references.size ? completed / references.size : 1)') && dialogs.includes('exportProjectBundle(getState().doc, setProgress)')],
