@@ -66,3 +66,9 @@
 - أُضيف `DEVELOPMENT-PLAYBOOK-ARTICLE-LESSONS-AR.md` ليحول هذه المبادئ إلى أولويات P0/P1/P2، checklist لكل دفعة، ومؤشرات قياس لا تُملأ بأرقام مختلقة.
 - قاعدة القرار الجديدة: ثبات وجودة النظام الحالي > وضوحه وقابلية التحكم > تحسين workflow > توسيع المكتبة > أنظمة جديدة.
 - هذه منهجية وثائقية مستفادة، وليست ادعاءً بتنفيذ أو اختبار كود جديد.
+
+## تدقيق الفيديو الكامل (21 نوفمبر 2026)
+- فحص إضافي لمسارات export وCanvas/audio preview كشف فجوتين حرجتين: Camera موجودة في model لكن لا تظهر لها مراجع في Canvas أو renderer، وتصدير WebM يسجل Canvas stream فقط ولا يربط Audio track من AudioPreview.
+- يدعم المصدر exportWebm وexportWebmScenes وGIF وPNG sequence وSVG؛ لم يُثبت MP4.
+- أُضيف `VIDEO-EXPORT-RELEASE-AUDIT-AR.md` يحدد MVP فيديو كامل، الإصلاحات P0، وخطة اختبار end-to-end.
+- هذه نتائج قراءة المصدر؛ لم يتم تشغيل build أو إنتاج/فحص ملف فيديو في بيئة محلية.
