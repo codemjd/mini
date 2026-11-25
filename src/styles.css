@@ -413,3 +413,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .consent-list { margin: 4px 0; padding: 12px 30px 12px 12px; border: 1px solid rgba(126,227,211,.14); border-radius: 10px; background: rgba(126,227,211,.045); color: #c1d0e2; font-size: 11px; line-height: 2; }
 .consent-actions { display: flex; gap: 9px; margin-top: 20px; }
 .consent-actions button { flex: 1; }
+
+.scene-palette { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 4px 0 18px; }
+.scene-swatch, .scene-custom-color { width: 29px; height: 29px; border-radius: 50%; border: 2px solid rgba(255,255,255,.18); cursor: pointer; position: relative; display: grid; place-items: center; padding: 0; }
+.scene-swatch.active { outline: 2px solid var(--mint); outline-offset: 3px; border-color: rgba(255,255,255,.65); }
+.scene-custom-color { overflow: hidden; background: rgba(255,255,255,.07); color: #dce7f6; font-size: 18px; }
+.scene-custom-color input { position: absolute; inset: -8px; width: 46px; height: 46px; opacity: 0; cursor: pointer; }
+.scene-custom-color span { pointer-events: none; }
