@@ -73,7 +73,7 @@ export function validateStudioProject(input: unknown): ProjectValidationResult {
       if (!isText(scene.title, 160) || !scene.title.trim()) issue(`${path}.title`, "عنوان المشهد مطلوب.");
       if (!isText(scene.narration, 12000)) issue(`${path}.narration`, "نص التعليق طويل أو غير صالح.");
       if (!Number.isFinite(scene.durationSeconds) || Number(scene.durationSeconds) < 1 || Number(scene.durationSeconds) > 600) issue(`${path}.durationSeconds`, "مدة المشهد يجب أن تكون بين 1 و600 ثانية.");
-      if (!["title", "split", "diagram"].includes(String(scene.layout))) issue(`${path}.layout`, "تخطيط المشهد غير معروف.");
+      if (!["title", "split", "diagram", "timeline", "stats"].includes(String(scene.layout))) issue(`${path}.layout`, "تخطيط المشهد غير معروف.");
       if (!isHexColor(scene.background)) issue(`${path}.background`, "لون الخلفية يجب أن يكون HEX صالحًا.");
       if (!Array.isArray(scene.blocks) || scene.blocks.length > 30) {
         issue(`${path}.blocks`, "قائمة العناصر البصرية غير صالحة أو تتجاوز 30 عنصرًا.");
@@ -88,7 +88,7 @@ export function validateStudioProject(input: unknown): ProjectValidationResult {
           if (!isText(rawBlock.id, 160) || !rawBlock.id.trim()) issue(`${blockPath}.id`, "معرّف العنصر مطلوب.");
           else if (blockIds.has(rawBlock.id)) issue(`${blockPath}.id`, "معرّف العنصر مكرر داخل المشهد.");
           else blockIds.add(rawBlock.id);
-          if (!["heading", "body", "metric", "shape"].includes(String(rawBlock.kind))) issue(`${blockPath}.kind`, "نوع العنصر غير مدعوم.");
+          if (!["heading", "body", "metric", "shape", "step"].includes(String(rawBlock.kind))) issue(`${blockPath}.kind`, "نوع العنصر غير مدعوم.");
           if (!isText(rawBlock.content)) issue(`${blockPath}.content`, "نص العنصر طويل أو غير صالح.");
           if (rawBlock.accent !== undefined && !isHexColor(rawBlock.accent)) issue(`${blockPath}.accent`, "لون التمييز غير صالح.");
         });
