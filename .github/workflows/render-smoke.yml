@@ -1,0 +1,72 @@
+name: Render a real Explainer Studio MP4
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/video/**"
+      - "src/types/project.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/render-smoke.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    name: Render and inspect a 12-second Arabic demo
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Type-check and build the app
+        run: npm run build
+
+      - name: Render MP4 with Remotion
+        run: |
+          mkdir -p out
+          npm run render:demo
+
+      - name: Inspect the rendered MP4
+        run: |
+          test -s out/explainer-demo.mp4
+          ffprobe -v error \
+            -show_entries stream=codec_type,codec_name,width,height,r_frame_rate \
+            -show_entries format=duration,size \
+            -of json out/explainer-demo.mp4 | tee out/metadata.json
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const metadata = JSON.parse(fs.readFileSync("out/metadata.json", "utf8"));
+            const video = metadata.streams?.find((stream) => stream.codec_type === "video");
+            const duration = Number(metadata.format?.duration);
+            if (!video) throw new Error("No video stream found");
+            if (video.width !== 1920 || video.height !== 1080) throw new Error("Unexpected video dimensions");
+            if (!(duration >= 11 && duration <= 13)) throw new Error("Unexpected video duration: " + duration);
+            console.log("Verified MP4:", { codec: video.codec_name, width: video.width, height: video.height, fps: video.r_frame_rate, duration });
+          '
+
+      - name: Upload verified demo MP4
+        uses: actions/upload-artifact@v4
+        with:
+          name: explainer-studio-demo-mp4
+          path: |
+            out/explainer-demo.mp4
+            out/metadata.json
+          retention-days: 2
