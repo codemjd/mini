@@ -132,10 +132,12 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
                 extrapolateRight: "clamp"
               });
               const accent = index === 1 ? "#b2a9ff" : index === 2 ? "#ffc58a" : "#81e5d5";
+              const label = scene.blocks.filter((block) => block.kind === "shape")[index]?.content;
               return (
                 <div key={item.id} style={{ flex: 1, borderRadius: 20, border: `1px solid ${accent}55`, background: `linear-gradient(155deg, ${accent}20, rgba(255,255,255,.025))`, padding: "9% 5%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 22, opacity: reveal, transform: `translateY(${(1 - reveal) * 30}px)` }}>
                   <span style={{ color: accent, fontSize: 19, letterSpacing: 3 }}>0{index + 1} / DATA</span>
                   <strong style={{ fontSize: 54, lineHeight: 1.2, textAlign: "center", overflowWrap: "anywhere" }}>{item.content}</strong>
+                  {label && <span style={{ color: "rgba(235,243,255,.72)", fontSize: 20, textAlign: "center" }}>{label}</span>}
                   <div style={{ width: "64%", height: 7, borderRadius: 8, background: `${accent}66` }} />
                 </div>
               );
