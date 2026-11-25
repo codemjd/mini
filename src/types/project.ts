@@ -1,6 +1,6 @@
-export type SceneLayout = "title" | "split" | "diagram";
+export type SceneLayout = "title" | "split" | "diagram" | "timeline" | "stats";
 
-export type VisualBlockKind = "heading" | "body" | "metric" | "shape";
+export type VisualBlockKind = "heading" | "body" | "metric" | "shape" | "step";
 
 export interface VisualBlock {
   id: string;
