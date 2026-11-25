@@ -420,3 +420,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .scene-custom-color { overflow: hidden; background: rgba(255,255,255,.07); color: #dce7f6; font-size: 18px; }
 .scene-custom-color input { position: absolute; inset: -8px; width: 46px; height: 46px; opacity: 0; cursor: pointer; }
 .scene-custom-color span { pointer-events: none; }
+
+.visual-list-editor { display: grid; gap: 8px; margin: 10px 0 14px; }
+.visual-list-editor .field-label { margin-bottom: 0; }
+.visual-list-editor .text-field { min-height: 42px; }
