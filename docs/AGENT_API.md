@@ -24,6 +24,27 @@ window.explainerStudio.execute(command)
 { "ok": false, "error": "رسالة مفهومة", "details": [] }
 ```
 
+## أنواع المشاهد البصرية
+
+تدعم صيغة المشهد الآن التخطيطات `title` و`split` و`diagram` و`timeline` و`stats`. يمكن بناء الخط الزمني بإضافة عناصر `step` إلى `blocks`، وبناء لوحة الإحصاءات بإضافة حتى ثلاثة عناصر `metric`. جميع العناصر نصية ومتجهة؛ لا يوجد دعم لاستيراد صور لشخصيات حية أو إضافة مسار موسيقي.
+
+مثال مشهد خط زمني:
+```json
+{
+  "id": "scene-timeline",
+  "title": "مراحل العملية",
+  "narration": "تمر العملية بثلاث مراحل مترابطة.",
+  "durationSeconds": 8,
+  "layout": "timeline",
+  "background": "#182236",
+  "blocks": [
+    { "id": "step-1", "kind": "step", "content": "البداية" },
+    { "id": "step-2", "kind": "step", "content": "التحول" },
+    { "id": "step-3", "kind": "step", "content": "النتيجة" }
+  ]
+}
+```
+
 ## الأوامر الحالية
 
 | الأمر | المدخلات | النتيجة |
