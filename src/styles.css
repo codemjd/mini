@@ -402,3 +402,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .preview-frame .remotion-preview { display: block; width: 100% !important; overflow: hidden; border-radius: 7px; background: #151b2a; }
 .preview-frame .remotion-preview > div { border-radius: 7px; }
 .preview-resolution { position: absolute; z-index: 3; top: 17px; left: 17px; padding: 5px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: rgba(10,14,22,.66); color: rgba(235,241,250,.72); font: 9px Inter, sans-serif; pointer-events: none; direction: ltr; }
+
+.render-progress-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 7px 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid rgba(126,227,211,.18); border-radius: 9px; background: rgba(126,227,211,.045); color: #aebdd0; font-size: 10px; }
+.render-progress-row strong { color: var(--mint); font: 600 10px Inter,sans-serif; direction: ltr; }
+.render-progress-track { grid-column: 1 / -1; height: 5px; overflow: hidden; border-radius: 8px; background: rgba(255,255,255,.09); }
+.render-progress-track i { display: block; height: 100%; border-radius: inherit; background: var(--mint); transition: width .16s linear; }
