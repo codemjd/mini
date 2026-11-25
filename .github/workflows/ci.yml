@@ -1,4 +1,4 @@
-name: Verify Explainer Studio
+name: Verify and publish Explainer Studio
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: build-${{ github.ref }}
@@ -32,3 +34,21 @@ jobs:
 
       - name: Type-check and build
         run: npm run build
+
+      - name: Upload static application
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    name: Publish web preview
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
