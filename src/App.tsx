@@ -537,8 +537,8 @@ export default function App() {
         <button className="nav-link active"><Icon name="grid" /> نظرة عامة</button>
         <button className="nav-link" onClick={() => setToast("أنت بالفعل في قائمة المشاريع")}><Icon name="folder" /> مشاريعي <span>{projects.length}</span></button>
         <div className="sidebar-bottom">
-          <div className="engine-status"><span className="status-halo"><Icon name="spark" size={16} /></span><div><strong>استوديو تجريبي</strong><small>محرك الفيديو قيد البناء</small></div><i /></div>
-          <div className="sidebar-legal">ملفاتك محفوظة على جهازك<br />نسخة تطويرية أولى · 0.1</div>
+          <div className="engine-status"><span className="status-halo"><Icon name="spark" size={16} /></span><div><strong>استوديو تجريبي</strong><small>معاينة وتصدير تجريبي</small></div><i /></div>
+          <div className="sidebar-legal">ملفاتك محفوظة على جهازك<br />نسخة تطويرية · 0.2</div>
         </div>
       </aside>
 
@@ -601,7 +601,7 @@ export default function App() {
             <div className="workflow-steps"><div className="workflow-step done"><span>01</span><strong>الفكرة والبحث</strong><small>تجهيز المحتوى</small></div><i /><div className="workflow-step current"><span>02</span><strong>المشاهد والتصميم</strong><small>قيد التأسيس</small></div><i /><div className="workflow-step"><span>03</span><strong>التعليق والتحريك</strong><small>لاحقًا</small></div><i /><div className="workflow-step"><span>04</span><strong>التصدير والجودة</strong><small>لاحقًا</small></div></div>
           </section>
         </div>
-        <footer className="dashboard-footer"><span>EXPLAINER STUDIO <b>0.1</b></span><span>نسخة تأسيسية · الحفظ محلي · لا يوجد رفع تلقائي للملفات</span></footer>
+        <footer className="dashboard-footer"><span>EXPLAINER STUDIO <b>0.2</b></span><span>نسخة تأسيسية · الحفظ محلي · لا يوجد رفع تلقائي للملفات</span></footer>
       </section>
 
       {showNewProject && (
