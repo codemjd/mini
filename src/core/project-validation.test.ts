@@ -118,4 +118,26 @@ describe("validateStudioProject", () => {
     }
   });
 
+  it("accepts timeline and statistics scenes with step blocks", () => {
+    const project = createStarterProject();
+    const timeline = {
+      ...project.scenes[0],
+      layout: "timeline",
+      blocks: [
+        { id: "step-1", kind: "step", content: "البداية" },
+        { id: "step-2", kind: "step", content: "النتيجة" }
+      ]
+    };
+    const stats = {
+      ...project.scenes[1],
+      layout: "stats",
+      blocks: [
+        { id: "metric-1", kind: "metric", content: "42%" },
+        { id: "metric-2", kind: "metric", content: "3.5x" }
+      ]
+    };
+    const result = validateStudioProject({ ...project, scenes: [timeline, stats] });
+    expect(result.valid).toBe(true);
+  });
+
 });
