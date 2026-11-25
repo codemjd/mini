@@ -56,7 +56,8 @@ export async function renderProjectToMp4(
       durationInFrames,
       fps,
       width,
-      height
+      height,
+      defaultProps: { project }
     },
     inputProps: { project },
     container: "mp4",
