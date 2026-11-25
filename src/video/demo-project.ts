@@ -4,7 +4,7 @@ export const demoProject: StudioProject = {
   schemaVersion: 1,
   id: "explainer-studio-render-smoke",
   title: "كيف تنتقل البيانات عبر الإنترنت؟",
-  description: "مشروع تجريبي ثابت لاختبار تصيير الفيديو.",
+  description: "اختبار مرئي لأنماط المشاهد الخمسة وسياسة المحتوى الآمنة.",
   createdAt: "2026-11-25T00:00:00.000Z",
   updatedAt: "2026-11-25T00:00:00.000Z",
   settings: { width: 1920, height: 1080, fps: 30, language: "ar" },
@@ -14,7 +14,7 @@ export const demoProject: StudioProject = {
       id: "demo-scene-01",
       title: "الفكرة ببساطة",
       narration: "تتحول المعلومات إلى حزم رقمية صغيرة قبل أن تبدأ رحلتها عبر الشبكة.",
-      durationSeconds: 4,
+      durationSeconds: 2,
       layout: "title",
       background: "#151b2a",
       blocks: [
@@ -27,7 +27,7 @@ export const demoProject: StudioProject = {
       id: "demo-scene-02",
       title: "الحزم الرقمية",
       narration: "تقسم البيانات إلى وحدات صغيرة، وتحمل كل وحدة معلومات تساعد على توجيهها.",
-      durationSeconds: 4,
+      durationSeconds: 2,
       layout: "diagram",
       background: "#182236",
       blocks: [
@@ -40,13 +40,46 @@ export const demoProject: StudioProject = {
       id: "demo-scene-03",
       title: "إعادة التجميع",
       narration: "عند الوصول، يعاد ترتيب الحزم وتجميعها لتظهر المعلومات كاملة.",
-      durationSeconds: 4,
+      durationSeconds: 2,
       layout: "split",
       background: "#201d35",
       blocks: [
         { id: "demo-03-heading", kind: "heading", content: "تعود المعلومات متكاملة" },
         { id: "demo-03-body", kind: "body", content: "تصل الحزم ثم يعاد ترتيبها وتجميعها في الوجهة" },
         { id: "demo-03-metric", kind: "metric", content: "03" }
+      ]
+    },
+    {
+      id: "demo-scene-04",
+      title: "مراحل الرحلة",
+      narration: "تمر الحزمة بمراحل متتابعة حتى تصل إلى الجهاز المقصود.",
+      durationSeconds: 3,
+      layout: "timeline",
+      background: "#172338",
+      blocks: [
+        { id: "demo-04-heading", kind: "heading", content: "من الإرسال إلى الوصول" },
+        { id: "demo-04-body", kind: "body", content: "مراحل قصيرة مترابطة تنقل البيانات" },
+        { id: "demo-04-step-1", kind: "step", content: "الإرسال" },
+        { id: "demo-04-step-2", kind: "step", content: "التوجيه" },
+        { id: "demo-04-step-3", kind: "step", content: "الاستقبال" }
+      ]
+    },
+    {
+      id: "demo-scene-05",
+      title: "ملخص بصري",
+      narration: "تساعد الحزم على نقل البيانات بكفاءة، ثم يعاد تجميعها عند الوصول.",
+      durationSeconds: 3,
+      layout: "stats",
+      background: "#211f38",
+      blocks: [
+        { id: "demo-05-heading", kind: "heading", content: "ثلاث أفكار أساسية" },
+        { id: "demo-05-body", kind: "body", content: "هذه هي الصورة المبسطة لرحلة البيانات" },
+        { id: "demo-05-metric-1", kind: "metric", content: "01" },
+        { id: "demo-05-metric-2", kind: "metric", content: "02" },
+        { id: "demo-05-metric-3", kind: "metric", content: "03" },
+        { id: "demo-05-label-1", kind: "shape", content: "تقسيم البيانات" },
+        { id: "demo-05-label-2", kind: "shape", content: "توجيه الحزم" },
+        { id: "demo-05-label-3", kind: "shape", content: "إعادة التجميع" }
       ]
     }
   ]
