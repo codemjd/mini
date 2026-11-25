@@ -174,6 +174,21 @@ export default function App() {
     }));
   }
 
+  function updateIndexedVisualBlock(kind: "step" | "metric", index: number, content: string) {
+    updateScene((scene) => {
+      const matchingIndexes = scene.blocks
+        .map((block, blockIndex) => block.kind === kind ? blockIndex : -1)
+        .filter((blockIndex) => blockIndex >= 0);
+      const existingIndex = matchingIndexes[index];
+      if (existingIndex === undefined) {
+        return { ...scene, blocks: [...scene.blocks, { id: createId(), kind, content }] };
+      }
+      const blocks = [...scene.blocks];
+      blocks[existingIndex] = { ...blocks[existingIndex], content };
+      return { ...scene, blocks };
+    });
+  }
+
   async function openProject(project: StudioProject) {
     const result = await executeStudioCommand({ type: "project.open", projectId: project.id });
     if (!result.ok) {
@@ -515,6 +530,24 @@ export default function App() {
                 <textarea className="text-field text-area compact-area" rows={2} value={firstHeading?.content ?? ""} onChange={(event) => updateScene((scene) => ({ ...scene, blocks: scene.blocks.map((block) => block.kind === "heading" ? { ...block, content: event.target.value } : block) }))} />
                 <label className="field-label">النص التوضيحي</label>
                 <textarea className="text-field text-area" rows={3} value={firstBody?.content ?? ""} onChange={(event) => updateScene((scene) => ({ ...scene, blocks: scene.blocks.map((block) => block.kind === "body" ? { ...block, content: event.target.value } : block) }))} />
+                {selectedScene.layout === "timeline" && (
+                  <div className="visual-list-editor">
+                    <label className="field-label">مراحل الخط الزمني</label>
+                    {[0, 1, 2, 3].map((index) => {
+                      const step = selectedScene.blocks.filter((block) => block.kind === "step")[index];
+                      return <input key={index} className="text-field" placeholder={`المرحلة ${index + 1}`} value={step?.content ?? ""} onChange={(event) => updateIndexedVisualBlock("step", index, event.target.value)} />;
+                    })}
+                  </div>
+                )}
+                {selectedScene.layout === "stats" && (
+                  <div className="visual-list-editor">
+                    <label className="field-label">القيم الإحصائية (حتى 3)</label>
+                    {[0, 1, 2].map((index) => {
+                      const metricBlock = selectedScene.blocks.filter((block) => block.kind === "metric")[index];
+                      return <input key={index} className="text-field" placeholder={`القيمة ${index + 1} مثال: 42%`} value={metricBlock?.content ?? ""} onChange={(event) => updateIndexedVisualBlock("metric", index, event.target.value)} />;
+                    })}
+                  </div>
+                )}
                 <label className="field-label">التعليق الصوتي</label>
                 <textarea className="text-field text-area narration-area" rows={5} value={selectedScene.narration} onChange={(event) => updateScene((scene) => ({ ...scene, narration: event.target.value }))} />
                 <div className="field-actions">
