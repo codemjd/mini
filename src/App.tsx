@@ -112,6 +112,7 @@ export default function App() {
   const [newProjectTitle, setNewProjectTitle] = useState("مشروع جديد");
   const [toast, setToast] = useState("");
   const importInput = useRef<HTMLInputElement>(null);
+  const renderAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -318,14 +319,21 @@ export default function App() {
     }
   }
 
+  function cancelVideoRender() {
+    renderAbortRef.current?.abort();
+  }
+
   async function handleExportVideo() {
     if (!activeProject || rendering) return;
+    const controller = new AbortController();
+    renderAbortRef.current = controller;
     setRendering(true);
     setRenderProgress(0);
     setToast("بدأ تصيير الفيديو على هذا الجهاز");
     try {
       const blob = await renderProjectToMp4(activeProject, {
-        onProgress: (progress) => setRenderProgress(progress)
+        onProgress: (progress) => setRenderProgress(progress),
+        signal: controller.signal
       });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -335,8 +343,9 @@ export default function App() {
       window.setTimeout(() => URL.revokeObjectURL(url), 15000);
       setToast("اكتمل تصيير MP4 وتم تجهيز الملف");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "تعذر تصيير الفيديو في هذا المتصفح");
+      setToast(error instanceof DOMException && error.name === "AbortError" ? "تم إلغاء تصيير الفيديو" : error instanceof Error ? error.message : "تعذر تصيير الفيديو في هذا المتصفح");
     } finally {
+      renderAbortRef.current = null;
       setRendering(false);
       setRenderProgress(0);
     }
@@ -368,7 +377,7 @@ export default function App() {
           </div>
           <div className="editor-top-actions">
             <button className="subtle-button" onClick={exportProject}><Icon name="download" size={16} /><span>تصدير المشروع</span></button>
-            <button className="primary-button small" onClick={handleExportVideo} disabled={rendering}><Icon name="film" size={16} /><span>{rendering ? `جارٍ التصيير ${Math.round(renderProgress * 100)}%` : "إنتاج MP4"}</span></button>
+            <button className="primary-button small" onClick={handleExportVideo} disabled={rendering}><Icon name="film" size={16} /><span>{rendering ? `جارٍ التصيير ${Math.round(renderProgress * 100)}%` : "إنتاج MP4"}</span></button>{rendering && <button className="subtle-button small" onClick={cancelVideoRender}>إلغاء</button>}
           </div>
         </header>
 
@@ -422,6 +431,13 @@ export default function App() {
               )}
               <div className="preview-resolution">{activeProject.settings.width} × {activeProject.settings.height} · {activeProject.settings.fps} FPS</div>
             </div>
+            {rendering && (
+              <div className="render-progress-row" role="status" aria-live="polite">
+                <span>تصيير الفيديو على هذا الجهاز</span>
+                <strong>{Math.round(renderProgress * 100)}%</strong>
+                <div className="render-progress-track"><i style={{ width: `${Math.round(renderProgress * 100)}%` }} /></div>
+              </div>
+            )}
             <div className="timeline-panel panel">
               <div className="timeline-header"><div><Icon name="layers" size={16} /><strong>الخط الزمني</strong></div><span>{formatDuration(projectDuration)} إجمالي المدة</span></div>
               <div className="timeline-ruler"><span>00:00</span><span>00:15</span><span>00:30</span><span>00:45</span><span>01:00</span></div>
