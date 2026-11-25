@@ -14,6 +14,7 @@ export type StudioCommand =
   | { type: "project.list" }
   | { type: "project.create"; title: string }
   | { type: "project.open"; projectId: string }
+  | { type: "project.export"; projectId: string }
   | { type: "project.save"; project: unknown }
   | { type: "project.update"; projectId: string; patch: ProjectPatch }
   | { type: "project.replaceScenes"; projectId: string; scenes: Scene[] }
@@ -54,7 +55,7 @@ async function persistValidated(project: StudioProject): Promise<StudioCommandRe
  * Typed local command boundary shared by UI workflows and future AI automation.
  * It intentionally performs no network requests and never sends project data to a server.
  */
-export async function executeStudioCommand(command: StudioCommand): Promise<StudioCommandResult> {
+async function executeStudioCommandInternal(command: StudioCommand): Promise<StudioCommandResult> {
   try {
     switch (command.type) {
       case "project.list":
@@ -63,6 +64,21 @@ export async function executeStudioCommand(command: StudioCommand): Promise<Stud
       case "project.create": {
         const project = createStarterProject(command.title.trim() || "مشروع جديد");
         return persistValidated(project);
+      }
+
+      case "project.export": {
+        const project = await loadProject(command.projectId);
+        if (!project) return { ok: false, error: "المشروع غير موجود." };
+        const validation = validateStudioProject(project);
+        if (!validation.valid) return { ok: false, error: "تعذر تصدير مشروع غير صالح.", details: validation.issues };
+        return {
+          ok: true,
+          data: {
+            fileName: `${project.title.replace(/[^\\p{L}\\p{N} _-]/gu, "").trim() || "explainer-project"}.json`,
+            mimeType: "application/json",
+            json: JSON.stringify(validation.project, null, 2)
+          }
+        };
       }
 
       case "project.open": {
@@ -163,4 +179,20 @@ export async function executeStudioCommand(command: StudioCommand): Promise<Stud
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "حدث خطأ غير متوقع أثناء تنفيذ الأمر." };
   }
+}
+
+
+/**
+ * Serialize mutations so two agent/UI commands cannot overwrite one another
+ * after reading the same stale project snapshot.
+ */
+let commandQueue: Promise<void> = Promise.resolve();
+
+export function executeStudioCommand(command: StudioCommand): Promise<StudioCommandResult> {
+  const task = commandQueue.then(
+    () => executeStudioCommandInternal(command),
+    () => executeStudioCommandInternal(command)
+  );
+  commandQueue = task.then(() => undefined, () => undefined);
+  return task;
 }
