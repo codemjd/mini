@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   render:
-    name: Render and inspect a 12-second Arabic demo
+    name: Render and inspect a 24-second Arabic demo
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -68,7 +68,7 @@ jobs:
             const duration = Number(metadata.format?.duration);
             if (!video) throw new Error("No video stream found");
             if (video.width !== 1920 || video.height !== 1080) throw new Error("Unexpected video dimensions");
-            if (!(duration >= 11 && duration <= 13)) throw new Error("Unexpected video duration: " + duration);
+            if (!(duration >= 23 && duration <= 25)) throw new Error("Unexpected video duration: " + duration);
             console.log("Verified MP4:", { codec: video.codec_name, width: video.width, height: video.height, fps: video.r_frame_rate, duration });
           '
 
