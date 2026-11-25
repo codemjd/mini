@@ -1,6 +1,33 @@
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import type { FC } from "react";
+import type { FC, CSSProperties } from "react";
 import type { Scene } from "../types/project";
+
+const panel: CSSProperties = {
+  position: "absolute",
+  left: "13%",
+  top: "19%",
+  width: "37%",
+  height: "62%",
+  border: "1px solid rgba(163,151,255,.3)",
+  borderRadius: 28,
+  background: "linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,255,255,.012))",
+  boxShadow: "0 32px 90px rgba(0,0,0,.18)",
+  overflow: "hidden"
+};
+
+const nodeStyle: CSSProperties = {
+  width: "27%",
+  height: "48%",
+  padding: "22px 18px",
+  boxSizing: "border-box",
+  border: "1px solid rgba(156,233,220,.32)",
+  borderRadius: 18,
+  background: "linear-gradient(155deg, rgba(156,233,220,.13), rgba(255,255,255,.025))",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
+  direction: "rtl"
+};
 
 export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
   const frame = useCurrentFrame();
@@ -41,25 +68,70 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
         boxShadow: "0 0 0 65px rgba(126,227,211,.025), 0 0 0 130px rgba(126,227,211,.018)",
         transform: `translateY(${-drift}px) rotate(18deg)`
       }} />
-      <div style={{
-        position: "absolute", left: "13%", top: "19%", width: "37%", height: "62%",
-        border: "1px solid rgba(163,151,255,.3)", borderRadius: "28px",
-        background: "linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,255,255,.012))",
-        boxShadow: "0 32px 90px rgba(0,0,0,.18)",
-        opacity: progress,
-        transform: `translateY(${(1 - progress) * 38}px) rotate(-4deg)`
-      }}>
-        <div style={{ position: "absolute", top: "13%", right: "12%", color: "#9ce9dc", fontSize: 22, letterSpacing: 5 }}>EXPLAINER / {String(scene.id.slice(-2)).toUpperCase()}</div>
-        <div style={{ position: "absolute", right: "12%", top: "30%", width: "56%", height: 10, borderRadius: 8, background: "rgba(235,243,255,.62)" }} />
-        <div style={{ position: "absolute", right: "12%", top: "40%", width: "43%", height: 10, borderRadius: 8, background: "rgba(235,243,255,.3)" }} />
-        <div style={{ position: "absolute", right: "12%", top: "50%", width: "49%", height: 10, borderRadius: 8, background: "rgba(235,243,255,.18)" }} />
-        <div style={{
-          position: "absolute", left: "12%", bottom: "12%", width: "30%", aspectRatio: "1",
-          border: "4px solid rgba(126,227,211,.8)", borderRadius: "50%",
-          boxShadow: "0 0 50px rgba(126,227,211,.14)"
-        }} />
-        {metric && <div style={{ position: "absolute", left: "17%", top: "17%", fontSize: 76, fontWeight: 700, color: "#b2a9ff" }}>{metric}</div>}
+
+      <div style={{ ...panel, opacity: progress, transform: `translateY(${(1 - progress) * 38}px) rotate(-4deg)` }}>
+        {scene.layout === "diagram" ? (
+          <div style={{ position: "absolute", inset: "12%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "ltr" }}>
+            <div style={nodeStyle}>
+              <span style={{ color: "#9ce9dc", fontSize: 18, letterSpacing: 3 }}>01 / INPUT</span>
+              <strong style={{ fontSize: 28, direction: "rtl" }}>المعلومة</strong>
+              <span style={{ width: "72%", height: 7, borderRadius: 8, background: "rgba(235,243,255,.35)" }} />
+            </div>
+            <svg width="8%" height="46" viewBox="0 0 100 46" fill="none">
+              <path d="M4 23H88M76 9L90 23L76 37" stroke="#9ce9dc" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div style={{ ...nodeStyle, borderColor: "rgba(178,169,255,.38)", background: "linear-gradient(155deg, rgba(178,169,255,.14), rgba(255,255,255,.025))" }}>
+              <span style={{ color: "#b2a9ff", fontSize: 18, letterSpacing: 3 }}>02 / PACKET</span>
+              <strong style={{ fontSize: 28, direction: "rtl" }}>حزم رقمية</strong>
+              <span style={{ display: "flex", gap: 6 }}>
+                <i style={{ width: 22, height: 22, borderRadius: 5, background: "#b2a9ff" }} />
+                <i style={{ width: 22, height: 22, borderRadius: 5, background: "rgba(178,169,255,.45)" }} />
+                <i style={{ width: 22, height: 22, borderRadius: 5, background: "rgba(178,169,255,.22)" }} />
+              </span>
+            </div>
+            <svg width="8%" height="46" viewBox="0 0 100 46" fill="none">
+              <path d="M4 23H88M76 9L90 23L76 37" stroke="#9ce9dc" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div style={{ ...nodeStyle, borderColor: "rgba(255,190,120,.34)", background: "linear-gradient(155deg, rgba(255,190,120,.12), rgba(255,255,255,.025))" }}>
+              <span style={{ color: "#ffc58a", fontSize: 18, letterSpacing: 3 }}>03 / OUTPUT</span>
+              <strong style={{ fontSize: 28, direction: "rtl" }}>الوجهة</strong>
+              <span style={{ width: "82%", height: 7, borderRadius: 8, background: "rgba(235,243,255,.35)" }} />
+            </div>
+          </div>
+        ) : scene.layout === "split" ? (
+          <div style={{ position: "absolute", inset: "10%", display: "flex", gap: "6%", direction: "ltr" }}>
+            <div style={{ flex: 1, borderRadius: 16, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.025)", padding: 22, direction: "rtl" }}>
+              <span style={{ color: "rgba(235,243,255,.48)", fontSize: 20 }}>قبل الوصول</span>
+              <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 16 }}>
+                {[92, 65, 82, 48, 74].map((width, index) => (
+                  <div key={index} style={{ height: 13, width: `${width}%`, borderRadius: 8, background: "rgba(235,243,255,.24)" }} />
+                ))}
+              </div>
+              <div style={{ marginTop: 36, display: "flex", gap: 8 }}>
+                {[0, 1, 2, 3].map((item) => <i key={item} style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(178,169,255,.48)" }} />)}
+              </div>
+            </div>
+            <div style={{ flex: 1, borderRadius: 16, border: "1px solid rgba(126,227,211,.28)", background: "rgba(126,227,211,.055)", padding: 22, direction: "rtl" }}>
+              <span style={{ color: "#9ce9dc", fontSize: 20 }}>بعد التجميع</span>
+              <div style={{ marginTop: 28, height: 150, borderRadius: 12, border: "1px solid rgba(126,227,211,.2)", background: "linear-gradient(145deg, rgba(126,227,211,.12), transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 90, height: 90, borderRadius: "50%", border: "5px solid #81e5d5", boxShadow: "0 0 35px rgba(126,227,211,.18)" }} />
+              </div>
+              <div style={{ marginTop: 24, height: 9, width: "80%", borderRadius: 8, background: "rgba(235,243,255,.38)" }} />
+              <div style={{ marginTop: 12, height: 9, width: "58%", borderRadius: 8, background: "rgba(235,243,255,.2)" }} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ position: "absolute", top: "13%", right: "12%", color: "#9ce9dc", fontSize: 22, letterSpacing: 5 }}>EXPLAINER / 01</div>
+            <div style={{ position: "absolute", right: "12%", top: "30%", width: "56%", height: 10, borderRadius: 8, background: "rgba(235,243,255,.62)" }} />
+            <div style={{ position: "absolute", right: "12%", top: "40%", width: "43%", height: 10, borderRadius: 8, background: "rgba(235,243,255,.3)" }} />
+            <div style={{ position: "absolute", right: "12%", top: "50%", width: "49%", height: 10, borderRadius: 8, background: "rgba(235,243,255,.18)" }} />
+            <div style={{ position: "absolute", left: "12%", bottom: "12%", width: "30%", aspectRatio: "1", border: "4px solid rgba(126,227,211,.8)", borderRadius: "50%", boxShadow: "0 0 50px rgba(126,227,211,.14)" }} />
+            {metric && <div style={{ position: "absolute", left: "17%", top: "17%", fontSize: 76, fontWeight: 700, color: "#b2a9ff" }}>{metric}</div>}
+          </>
+        )}
       </div>
+
       <div style={{
         position: "absolute", right: "10%", top: "24%", width: "39%",
         opacity: progress, transform: `translateY(${(1 - progress) * 28}px)`
