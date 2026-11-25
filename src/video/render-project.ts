@@ -69,6 +69,7 @@ export async function renderProjectToMp4(
     hardwareAcceleration: "no-preference",
     signal: options.signal,
     onProgress: ({ progress }) => options.onProgress?.(Math.max(0, Math.min(1, progress))),
+    licenseKey: "free-license",
     metadata: {
       title: project.title,
       comment: "Explainer Studio local draft render. Silent video; no music or narration track."
