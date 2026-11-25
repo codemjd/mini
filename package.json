@@ -27,6 +27,6 @@
     "typescript": "5.9.3",
     "vite": "8.3.8",
     "@remotion/cli": "4.0.547",
-    "vitest": "4.0.15"
+    "vitest": "4.1.0"
   }
 }
