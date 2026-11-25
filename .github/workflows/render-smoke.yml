@@ -55,13 +55,20 @@ jobs:
       - name: Inspect the rendered MP4
         run: |
           test -s out/explainer-demo.mp4
-          ffprobe -v error \
-            -show_entries stream=codec_type,codec_name,width,height,r_frame_rate \
-            -show_entries format=duration,size \
-            -of json out/explainer-demo.mp4 | tee out/metadata.json
           node --input-type=module -e '
             import fs from "node:fs";
-            const metadata = JSON.parse(fs.readFileSync("out/metadata.json", "utf8"));
+            import { createRequire } from "node:module";
+            import { execFileSync } from "node:child_process";
+            const require = createRequire(import.meta.url);
+            const ffprobe = require("ffprobe-static").path;
+            const raw = execFileSync(ffprobe, [
+              "-v", "error",
+              "-show_entries", "stream=codec_type,codec_name,width,height,r_frame_rate",
+              "-show_entries", "format=duration,size",
+              "-of", "json", "out/explainer-demo.mp4"
+            ], { encoding: "utf8" });
+            fs.writeFileSync("out/metadata.json", raw);
+            const metadata = JSON.parse(raw);
             const video = metadata.streams?.find((stream) => stream.codec_type === "video");
             const duration = Number(metadata.format?.duration);
             if (!video) throw new Error("No video stream found");
