@@ -396,3 +396,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Remotion's real frame-driven preview */
+.preview-frame { position: relative; }
+.preview-frame .remotion-preview { display: block; width: 100% !important; overflow: hidden; border-radius: 7px; background: #151b2a; }
+.preview-frame .remotion-preview > div { border-radius: 7px; }
+.preview-resolution { position: absolute; z-index: 3; top: 17px; left: 17px; padding: 5px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: rgba(10,14,22,.66); color: rgba(235,241,250,.72); font: 9px Inter, sans-serif; pointer-events: none; direction: ltr; }
