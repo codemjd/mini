@@ -1,21 +1,22 @@
 # نتائج الاختبارات الفعلية
 
-## اختبار تصيير Remotion الأول — 25 نوفمبر 2026
+## اختبار تصيير Remotion المؤكد — 25 نوفمبر 2026
 
-- Workflow: [Render a real Explainer Studio MP4](https://github.com/codemjd/mini/actions/runs/45628159583)
-- Commit tested: `bd1eb770cbcc092ca536087f3a3c346767f474b9`
-- Artifact: [explainer-studio-demo-mp4](https://github.com/codemjd/mini/actions/runs/45627075033/artifacts/15028847231)
+- Workflow: [Render a real Explainer Studio MP4](https://github.com/codemjd/mini/actions/runs/45628850062)
+- Commit tested: `dd841df9eb2ce0d309a62b996384b2c978d05e51`
+- Artifact: [explainer-studio-demo-mp4](https://github.com/codemjd/mini/actions/runs/45628850062)
 - Composition: `ExplainerDemo`
 - Duration: 12.000 seconds
 - Resolution: 1920 × 1080
 - Frame rate: 30 FPS (30/1)
 - Video codec: H.264
-- File size: 1,270,070 bytes (about 1.2 MB)
+- File size: 1,270,070 bytes (about 1.21 MB)
 - Audio stream: none, by design for this smoke test
 
 ### ما تحقق
 
 1. Remotion CLI أنشأ 360 إطارًا.
+2. أكد سجل FFprobe: H.264، و1920×1080، و30/1 FPS، ومدة 12.000 ثانية، وحجم 1,270,070 بايت.
 2. تم ترميز الملف إلى MP4 بنجاح.
 3. FFprobe قرأ الملف وتأكد من codec والأبعاد ومعدل الإطارات والمدة.
 4. فُكّت إطارات من الثانية 1 و5 و9 وفُحصت بصريًا بعد تنزيل artifact وفكّه خارج GitHub Actions.
