@@ -4,7 +4,7 @@ export const demoProject: StudioProject = {
   schemaVersion: 1,
   id: "explainer-studio-render-smoke",
   title: "كيف تنتقل البيانات عبر الإنترنت؟",
-  description: "اختبار مرئي لأنماط المشاهد الخمسة وسياسة المحتوى الآمنة.",
+  description: "عرض تجريبي أطول يختبر خمسة أنماط بصرية وحركة المشاهد وسياسة المحتوى الآمنة.",
   createdAt: "2026-11-25T00:00:00.000Z",
   updatedAt: "2026-11-25T00:00:00.000Z",
   settings: { width: 1920, height: 1080, fps: 30, language: "ar" },
@@ -13,8 +13,8 @@ export const demoProject: StudioProject = {
     {
       id: "demo-scene-01",
       title: "الفكرة ببساطة",
-      narration: "تتحول المعلومات إلى حزم رقمية صغيرة قبل أن تبدأ رحلتها عبر الشبكة.",
-      durationSeconds: 2,
+      narration: "عندما ترسل صورة أو رسالة، لا تنتقل البيانات عادة كقطعة واحدة؛ بل تُجهّز للإرسال عبر الشبكة.",
+      durationSeconds: 4,
       layout: "title",
       background: "#151b2a",
       blocks: [
@@ -26,8 +26,8 @@ export const demoProject: StudioProject = {
     {
       id: "demo-scene-02",
       title: "الحزم الرقمية",
-      narration: "تقسم البيانات إلى وحدات صغيرة، وتحمل كل وحدة معلومات تساعد على توجيهها.",
-      durationSeconds: 2,
+      narration: "تُقسّم البيانات إلى وحدات أصغر تسمى حزمًا. تحمل كل حزمة جزءًا من المحتوى ومعلومات تساعد الشبكة على توجيهها.",
+      durationSeconds: 5,
       layout: "diagram",
       background: "#182236",
       blocks: [
@@ -39,8 +39,8 @@ export const demoProject: StudioProject = {
     {
       id: "demo-scene-03",
       title: "إعادة التجميع",
-      narration: "عند الوصول، يعاد ترتيب الحزم وتجميعها لتظهر المعلومات كاملة.",
-      durationSeconds: 2,
+      narration: "قد تسلك الحزم مسارات مختلفة، لكن الجهاز المستقبِل يجمع الأجزاء ويرتبها لتعود الصورة أو الرسالة إلى شكلها الأصلي.",
+      durationSeconds: 5,
       layout: "split",
       background: "#201d35",
       blocks: [
@@ -52,8 +52,8 @@ export const demoProject: StudioProject = {
     {
       id: "demo-scene-04",
       title: "مراحل الرحلة",
-      narration: "تمر الحزمة بمراحل متتابعة حتى تصل إلى الجهاز المقصود.",
-      durationSeconds: 3,
+      narration: "يمكن تبسيط الرحلة في ثلاث مراحل: إرسال البيانات، توجيه الحزم عبر الشبكة، ثم استقبالها في الجهاز المقصود.",
+      durationSeconds: 5,
       layout: "timeline",
       background: "#172338",
       blocks: [
@@ -67,8 +67,8 @@ export const demoProject: StudioProject = {
     {
       id: "demo-scene-05",
       title: "ملخص بصري",
-      narration: "تساعد الحزم على نقل البيانات بكفاءة، ثم يعاد تجميعها عند الوصول.",
-      durationSeconds: 3,
+      narration: "الخلاصة: تقسيم البيانات إلى حزم، توجيهها عبر الشبكة، ثم إعادة تجميعها عند الوصول.",
+      durationSeconds: 5,
       layout: "stats",
       background: "#211f38",
       blocks: [
