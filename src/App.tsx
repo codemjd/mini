@@ -5,7 +5,6 @@ import { renderProjectToMp4 } from "./video/render-project";
 import type { ChangeEvent, ReactNode } from "react";
 import {
   createId,
-  createStarterProject,
   summarizeProject,
   type Scene,
   type SceneLayout,
