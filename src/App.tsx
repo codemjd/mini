@@ -108,6 +108,8 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [renderProgress, setRenderProgress] = useState(0);
+  const [showRenderConsent, setShowRenderConsent] = useState(false);
+  const [renderConsentAccepted, setRenderConsentAccepted] = useState(false);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState("مشروع جديد");
   const [toast, setToast] = useState("");
@@ -323,7 +325,22 @@ export default function App() {
     renderAbortRef.current?.abort();
   }
 
-  async function handleExportVideo() {
+  function handleExportVideo() {
+    if (!activeProject || rendering) return;
+    if (!renderConsentAccepted) {
+      setShowRenderConsent(true);
+      return;
+    }
+    void performVideoRender();
+  }
+
+  function acceptRenderTelemetry() {
+    setRenderConsentAccepted(true);
+    setShowRenderConsent(false);
+    void performVideoRender();
+  }
+
+  async function performVideoRender() {
     if (!activeProject || rendering) return;
     const controller = new AbortController();
     renderAbortRef.current = controller;
@@ -482,11 +499,31 @@ export default function App() {
                 <button className="danger-button" onClick={removeScene}><Icon name="trash" size={15} /> حذف المشهد</button>
               </>
             )}
-            <div className="panel-note"><Icon name="spark" size={16} /><p>كل تغييراتك تُحفظ محليًا تلقائيًا. محرك التصدير والتعليق الصوتي لم يُدمجا بعد.</p></div>
+            <div className="panel-note"><Icon name="spark" size={16} /><p>التصدير المحلي التجريبي متاح للمقاطع القصيرة. التعليق الصوتي لم يُدمج بعد.</p></div>
           </aside>
         </div>
 
-        <footer className="editor-footer"><span><i className="status-dot" /> {saving ? "جارٍ الحفظ" : "تم الحفظ"}</span><span>مشروع محلي · لا تتم مزامنة بياناتك إلى خادم</span><span>{activeProject.settings.width} × {activeProject.settings.height} · {activeProject.settings.fps} FPS</span></footer>
+        <footer className="editor-footer"><span><i className="status-dot" /> {saving ? "جارٍ الحفظ" : "تم الحفظ"}</span><span>ملف المشروع محلي · تصيير المتصفح يرسل بيانات تشغيل محدودة بعد الموافقة</span><span>{activeProject.settings.width} × {activeProject.settings.height} · {activeProject.settings.fps} FPS</span></footer>
+        {showRenderConsent && (
+          <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowRenderConsent(false); }}>
+            <section className="new-project-modal render-consent-modal" role="dialog" aria-modal="true" aria-labelledby="render-consent-title">
+              <button type="button" className="modal-close" onClick={() => setShowRenderConsent(false)} aria-label="إغلاق"><Icon name="close" /></button>
+              <div className="modal-symbol"><Icon name="settings" size={23} /></div>
+              <span className="eyebrow">PRIVACY NOTICE</span>
+              <h2 id="render-consent-title">بيانات تشغيل التصدير</h2>
+              <p>يعتمد التصدير المحلي على Remotion Web Renderer. قبل المتابعة، نوضح أن Remotion يرسل بيانات تشغيل محدودة في كل محاولة تصيير.</p>
+              <ul className="consent-list">
+                <li>عنوان IP ونطاق الموقع الذي يجري منه التصيير.</li>
+                <li>نوع العملية، وهل نجحت أم فشلت.</li>
+              </ul>
+              <p>لا يرسل Remotion محتوى الفيديو أو ملف المشروع أو نصوص المشاهد ضمن هذه البيانات. لا يمكن تعطيل هذا القياس في محرك التصيير المحلي المستخدم هنا.</p>
+              <div className="consent-actions">
+                <button type="button" className="outline-button" onClick={() => setShowRenderConsent(false)}>ليس الآن</button>
+                <button type="button" className="primary-button" onClick={acceptRenderTelemetry}>أوافق وأتابع</button>
+              </div>
+            </section>
+          </div>
+        )}
         {toast && <div className="toast-message" role="status">{toast}</div>}
       </main>
     );
