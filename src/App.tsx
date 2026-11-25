@@ -11,7 +11,8 @@ import {
   type SceneLayout,
   type StudioProject
 } from "./types/project";
-import { deleteProject, listProjects, saveProject } from "./core/project-store";
+import { listProjects } from "./core/project-store";
+import { executeStudioCommand } from "./core/studio-commands";
 import { validateStudioProject } from "./core/project-validation";
 
 type AppView = "dashboard" | "editor";
@@ -125,8 +126,12 @@ export default function App() {
     if (!activeProject) return;
     setSaving(true);
     const timer = window.setTimeout(() => {
-      saveProject(activeProject)
-        .then(() => {
+      executeStudioCommand({ type: "project.save", project: activeProject })
+        .then((result) => {
+          if (!result.ok) {
+            setToast(result.error);
+            return;
+          }
           setProjects((current) => {
             const next = current.filter((item) => item.id !== activeProject.id);
             return [activeProject, ...next].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -168,15 +173,25 @@ export default function App() {
   }
 
   async function openProject(project: StudioProject) {
-    setActiveProject(project);
-    setSelectedSceneId(project.scenes[0]?.id ?? null);
+    const result = await executeStudioCommand({ type: "project.open", projectId: project.id });
+    if (!result.ok) {
+      setToast(result.error);
+      return;
+    }
+    const opened = result.data as StudioProject;
+    setActiveProject(opened);
+    setSelectedSceneId(opened.scenes[0]?.id ?? null);
     setView("editor");
   }
 
   async function createProject() {
     const title = newProjectTitle.trim() || "مشروع جديد";
-    const project = createStarterProject(title);
-    await saveProject(project);
+    const result = await executeStudioCommand({ type: "project.create", title });
+    if (!result.ok) {
+      setToast(result.error);
+      return;
+    }
+    const project = result.data as StudioProject;
     setProjects((current) => [project, ...current]);
     setActiveProject(project);
     setSelectedSceneId(project.scenes[0]?.id ?? null);
@@ -188,7 +203,11 @@ export default function App() {
   async function removeProject(project: StudioProject) {
     const confirmed = window.confirm(`هل تريد حذف مشروع «${project.title}» من هذا الجهاز؟`);
     if (!confirmed) return;
-    await deleteProject(project.id);
+    const result = await executeStudioCommand({ type: "project.delete", projectId: project.id });
+    if (!result.ok) {
+      setToast(result.error);
+      return;
+    }
     setProjects((current) => current.filter((item) => item.id !== project.id));
     if (activeProject?.id === project.id) {
       setActiveProject(null);
@@ -197,43 +216,70 @@ export default function App() {
     setToast("تم حذف المشروع من هذا الجهاز");
   }
 
-  function addScene() {
+  async function addScene() {
     if (!activeProject) return;
-    const scene: Scene = {
-      id: createId(),
-      title: `مشهد ${activeProject.scenes.length + 1}`,
-      narration: "اكتب هنا نص التعليق الصوتي لهذا المشهد.",
-      durationSeconds: 8,
-      layout: "diagram",
-      background: "#182236",
-      blocks: [
-        { id: createId(), kind: "heading", content: "عنوان المشهد الجديد" },
-        { id: createId(), kind: "body", content: "أضف شرحًا بصريًا موجزًا" }
-      ]
-    };
-    updateProject((project) => ({ ...project, scenes: [...project.scenes, scene] }));
-    setSelectedSceneId(scene.id);
+    const saved = await executeStudioCommand({ type: "project.save", project: activeProject });
+    if (!saved.ok) {
+      setToast(saved.error);
+      return;
+    }
+    const result = await executeStudioCommand({ type: "scene.add", projectId: activeProject.id });
+    if (!result.ok) {
+      setToast(result.error);
+      return;
+    }
+    const data = result.data as { project: StudioProject; scene: Scene };
+    setActiveProject(data.project);
+    setSelectedSceneId(data.scene.id);
     setToast("أُضيف مشهد جديد");
   }
 
-  function moveScene(direction: -1 | 1) {
+  async function moveScene(direction: -1 | 1) {
     if (!activeProject || !selectedScene) return;
     const index = activeProject.scenes.findIndex((scene) => scene.id === selectedScene.id);
     const target = index + direction;
     if (index < 0 || target < 0 || target >= activeProject.scenes.length) return;
-    const scenes = [...activeProject.scenes];
-    [scenes[index], scenes[target]] = [scenes[target], scenes[index]];
-    updateProject((project) => ({ ...project, scenes }));
+    const saved = await executeStudioCommand({ type: "project.save", project: activeProject });
+    if (!saved.ok) {
+      setToast(saved.error);
+      return;
+    }
+    const result = await executeStudioCommand({
+      type: "scene.reorder",
+      projectId: activeProject.id,
+      sceneId: selectedScene.id,
+      toIndex: target
+    });
+    if (!result.ok) {
+      setToast(result.error);
+      return;
+    }
+    setActiveProject(result.data as StudioProject);
   }
 
-  function removeScene() {
-    if (!activeProject || !selectedScene || activeProject.scenes.length <= 1) {
+  async function removeScene() {
+    if (!activeProject || !selectedScene) return;
+    if (activeProject.scenes.length <= 1) {
       setToast("يجب أن يحتوي المشروع على مشهد واحد على الأقل");
       return;
     }
-    const remaining = activeProject.scenes.filter((scene) => scene.id !== selectedScene.id);
-    updateProject((project) => ({ ...project, scenes: remaining }));
-    setSelectedSceneId(remaining[0]?.id ?? null);
+    const saved = await executeStudioCommand({ type: "project.save", project: activeProject });
+    if (!saved.ok) {
+      setToast(saved.error);
+      return;
+    }
+    const result = await executeStudioCommand({
+      type: "scene.remove",
+      projectId: activeProject.id,
+      sceneId: selectedScene.id
+    });
+    if (!result.ok) {
+      setToast(result.error);
+      return;
+    }
+    const updated = result.data as StudioProject;
+    setActiveProject(updated);
+    setSelectedSceneId(updated.scenes[0]?.id ?? null);
     setToast("تم حذف المشهد");
   }
 
@@ -261,7 +307,8 @@ export default function App() {
       }
       const project = validation.project;
       project.updatedAt = new Date().toISOString();
-      await saveProject(project);
+      const saved = await executeStudioCommand({ type: "project.save", project });
+      if (!saved.ok) throw new Error(saved.error);
       setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)]);
       await openProject(project);
       setToast("تم استيراد المشروع");
@@ -297,7 +344,7 @@ export default function App() {
   }
 
   function goHome() {
-    if (activeProject) void saveProject(activeProject);
+    if (activeProject) void executeStudioCommand({ type: "project.save", project: activeProject });
     setView("dashboard");
     setActiveProject(null);
     setSelectedSceneId(null);
