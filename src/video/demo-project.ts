@@ -8,6 +8,7 @@ export const demoProject: StudioProject = {
   createdAt: "2026-11-25T00:00:00.000Z",
   updatedAt: "2026-11-25T00:00:00.000Z",
   settings: { width: 1920, height: 1080, fps: 30, language: "ar" },
+  contentPolicy: { livingCharacters: false, music: false },
   scenes: [
     {
       id: "demo-scene-01",
