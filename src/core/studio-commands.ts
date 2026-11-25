@@ -74,7 +74,7 @@ async function executeStudioCommandInternal(command: StudioCommand): Promise<Stu
         return {
           ok: true,
           data: {
-            fileName: `${project.title.replace(/[^\\p{L}\\p{N} _-]/gu, "").trim() || "explainer-project"}.json`,
+            fileName: `${project.title.replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "explainer-project"}.json`,
             mimeType: "application/json",
             json: JSON.stringify(validation.project, null, 2)
           }
