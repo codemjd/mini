@@ -11,6 +11,7 @@ import {
   type StudioProject
 } from "./types/project";
 import { deleteProject, listProjects, saveProject } from "./core/project-store";
+import { validateStudioProject } from "./core/project-validation";
 
 type AppView = "dashboard" | "editor";
 type IconName = "grid" | "folder" | "plus" | "play" | "chevron" | "clock" | "layers" | "settings" | "trash" | "download" | "upload" | "arrow" | "spark" | "film" | "check" | "more" | "close" | "add" | "back";
@@ -250,16 +251,12 @@ export default function App() {
     if (!file) return;
     try {
       const parsed: unknown = JSON.parse(await file.text());
-      if (
-        typeof parsed !== "object" || parsed === null ||
-        !("schemaVersion" in parsed) || parsed.schemaVersion !== 1 ||
-        !("id" in parsed) || typeof parsed.id !== "string" ||
-        !("scenes" in parsed) || !Array.isArray(parsed.scenes) || parsed.scenes.length === 0 ||
-        !("title" in parsed) || typeof parsed.title !== "string"
-      ) {
-        throw new Error("ملف المشروع لا يطابق الصيغة المدعومة.");
+      const validation = validateStudioProject(parsed);
+      if (!validation.valid) {
+        const firstIssues = validation.issues.slice(0, 3).map((item) => item.message).join(" ");
+        throw new Error(firstIssues || "ملف المشروع لا يطابق الصيغة المدعومة.");
       }
-      const project = parsed as StudioProject;
+      const project = validation.project;
       project.updatedAt = new Date().toISOString();
       await saveProject(project);
       setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)]);
