@@ -98,6 +98,49 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
               <span style={{ width: "82%", height: 7, borderRadius: 8, background: "rgba(235,243,255,.35)" }} />
             </div>
           </div>
+        ) : scene.layout === "timeline" ? (
+          <div style={{ position: "absolute", inset: "16% 8%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "rtl" }}>
+            <div style={{ position: "absolute", right: "8%", left: "8%", top: "39%", height: 4, borderRadius: 8, background: "linear-gradient(90deg, rgba(129,229,213,.2), rgba(178,169,255,.8), rgba(129,229,213,.2))" }} />
+            {(scene.blocks.filter((block) => block.kind === "step").length
+              ? scene.blocks.filter((block) => block.kind === "step").slice(0, 4)
+              : [
+                  { id: "timeline-1", content: "البداية" },
+                  { id: "timeline-2", content: "التحول" },
+                  { id: "timeline-3", content: "النتيجة" }
+                ]
+            ).map((step, index, allSteps) => {
+              const reveal = interpolate(frame, [index * 7, index * 7 + 12], [0, 1], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp"
+              });
+              return (
+                <div key={step.id} style={{ position: "relative", zIndex: 1, width: `${Math.min(76, 100 / allSteps.length)}%`, display: "flex", flexDirection: "column", alignItems: "center", gap: 22, opacity: reveal, transform: `translateY(${(1 - reveal) * 24}px)` }}>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", border: "3px solid ${index === 1 ? "#b2a9ff" : "#81e5d5"}", background: "#192338", display: "grid", placeItems: "center", color: "#f4f6ff", fontSize: 27, fontWeight: 700, boxShadow: "0 0 30px rgba(129,229,213,.12)" }}>{String(index + 1).padStart(2, "0")}</div>
+                  <strong style={{ maxWidth: "100%", textAlign: "center", fontSize: 25, lineHeight: 1.5, color: "#eaf0fb" }}>{step.content}</strong>
+                </div>
+              );
+            })}
+          </div>
+        ) : scene.layout === "stats" ? (
+          <div style={{ position: "absolute", inset: "17% 9%", display: "flex", alignItems: "stretch", gap: "4%", direction: "rtl" }}>
+            {(scene.blocks.filter((block) => block.kind === "metric").length
+              ? scene.blocks.filter((block) => block.kind === "metric").slice(0, 3)
+              : [{ id: "metric-default", content: metric ?? "—" }]
+            ).map((item, index) => {
+              const reveal = interpolate(frame, [index * 8, index * 8 + 14], [0, 1], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp"
+              });
+              const accent = index === 1 ? "#b2a9ff" : index === 2 ? "#ffc58a" : "#81e5d5";
+              return (
+                <div key={item.id} style={{ flex: 1, borderRadius: 20, border: `1px solid ${accent}55`, background: `linear-gradient(155deg, ${accent}20, rgba(255,255,255,.025))`, padding: "9% 5%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 22, opacity: reveal, transform: `translateY(${(1 - reveal) * 30}px)` }}>
+                  <span style={{ color: accent, fontSize: 19, letterSpacing: 3 }}>0{index + 1} / DATA</span>
+                  <strong style={{ fontSize: 54, lineHeight: 1.2, textAlign: "center", overflowWrap: "anywhere" }}>{item.content}</strong>
+                  <div style={{ width: "64%", height: 7, borderRadius: 8, background: `${accent}66` }} />
+                </div>
+              );
+            })}
+          </div>
         ) : scene.layout === "split" ? (
           <div style={{ position: "absolute", inset: "10%", display: "flex", gap: "6%", direction: "ltr" }}>
             <div style={{ flex: 1, borderRadius: 16, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.025)", padding: 22, direction: "rtl" }}>
