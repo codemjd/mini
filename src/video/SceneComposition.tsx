@@ -115,7 +115,7 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
               });
               return (
                 <div key={step.id} style={{ position: "relative", zIndex: 1, width: `${Math.min(76, 100 / allSteps.length)}%`, display: "flex", flexDirection: "column", alignItems: "center", gap: 22, opacity: reveal, transform: `translateY(${(1 - reveal) * 24}px)` }}>
-                  <div style={{ width: 72, height: 72, borderRadius: "50%", border: "3px solid ${index === 1 ? "#b2a9ff" : "#81e5d5"}", background: "#192338", display: "grid", placeItems: "center", color: "#f4f6ff", fontSize: 27, fontWeight: 700, boxShadow: "0 0 30px rgba(129,229,213,.12)" }}>{String(index + 1).padStart(2, "0")}</div>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", border: `3px solid ${index === 1 ? "#b2a9ff" : "#81e5d5"}`, background: "#192338", display: "grid", placeItems: "center", color: "#f4f6ff", fontSize: 27, fontWeight: 700, boxShadow: "0 0 30px rgba(129,229,213,.12)" }}>{String(index + 1).padStart(2, "0")}</div>
                   <strong style={{ maxWidth: "100%", textAlign: "center", fontSize: 25, lineHeight: 1.5, color: "#eaf0fb" }}>{step.content}</strong>
                 </div>
               );
