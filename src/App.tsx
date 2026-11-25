@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Player } from "@remotion/player";
 import { SceneComposition } from "./video/SceneComposition";
+import { renderProjectToMp4 } from "./video/render-project";
 import type { ChangeEvent, ReactNode } from "react";
 import {
   createId,
@@ -105,6 +106,8 @@ export default function App() {
   const [view, setView] = useState<AppView>("dashboard");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [rendering, setRendering] = useState(false);
+  const [renderProgress, setRenderProgress] = useState(0);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState("مشروع جديد");
   const [toast, setToast] = useState("");
@@ -269,6 +272,30 @@ export default function App() {
     }
   }
 
+  async function handleExportVideo() {
+    if (!activeProject || rendering) return;
+    setRendering(true);
+    setRenderProgress(0);
+    setToast("بدأ تصيير الفيديو على هذا الجهاز");
+    try {
+      const blob = await renderProjectToMp4(activeProject, {
+        onProgress: (progress) => setRenderProgress(progress)
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${activeProject.title.replace(/[^\\p{L}\\p{N}-]+/gu, "-") || "explainer"}.mp4`;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 15000);
+      setToast("اكتمل تصيير MP4 وتم تجهيز الملف");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "تعذر تصيير الفيديو في هذا المتصفح");
+    } finally {
+      setRendering(false);
+      setRenderProgress(0);
+    }
+  }
+
   function goHome() {
     if (activeProject) void saveProject(activeProject);
     setView("dashboard");
@@ -295,7 +322,7 @@ export default function App() {
           </div>
           <div className="editor-top-actions">
             <button className="subtle-button" onClick={exportProject}><Icon name="download" size={16} /><span>تصدير المشروع</span></button>
-            <button className="primary-button small" onClick={() => setToast("محرك تصدير الفيديو لم يُدمج بعد")}><Icon name="film" size={16} /><span>إنتاج الفيديو</span></button>
+            <button className="primary-button small" onClick={handleExportVideo} disabled={rendering}><Icon name="film" size={16} /><span>{rendering ? `جارٍ التصيير ${Math.round(renderProgress * 100)}%` : "إنتاج MP4"}</span></button>
           </div>
         </header>
 
