@@ -227,3 +227,18 @@
 - https://www.remotion.dev/docs/license/faq
 - https://www.remotion.dev/docs/telemetry
 - https://www.remotion.dev/docs/options/license-key
+
+
+## 10. نتيجة اختبار تصيير MP4 على CI — 25 نوفمبر 2026
+
+تم تشغيل Remotion CLI على GitHub Actions وإنشاء ملف MP4 تجريبي حقيقي، ثم تثبيت FFmpeg/FFprobe وفحص الملف:
+- المدة: 12.000 ثانية.
+- الدقة: 1920×1080.
+- الترميز: H.264.
+- معدل الإطارات: 30 FPS.
+- الحجم: 1,233,180 بايت.
+- عدد الإطارات التي رُسمت: 360.
+- artifact: https://github.com/codemjd/mini/actions/runs/45627075033/artifacts/15028763917
+- سجل الاختبار: https://github.com/codemjd/mini/actions/runs/45627075033
+
+تم فحص لقطات من الثانية 2 و6 و10. ظهرت العربية مقروءة وباتجاه صحيح في هذه اللقطات. هذا لا يثبت أن كل الإطارات مثالية، ولا يثبت عمل التصدير المحلي على Android؛ إنه يثبت أن composition الحالي ينتج MP4 صحيحًا على خادم CI. راجع `docs/TEST_RESULTS.md`.
