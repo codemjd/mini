@@ -44,6 +44,11 @@ jobs:
           mkdir -p out
           npm run render:demo
 
+      - name: Install FFmpeg inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
       - name: Inspect the rendered MP4
         run: |
           test -s out/explainer-demo.mp4
