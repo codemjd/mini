@@ -486,6 +486,31 @@ export default function App() {
                   <div className="field-grow"><label className="field-label">المدة (ثانية)</label><input className="text-field" type="number" min="1" max="300" value={selectedScene.durationSeconds} onChange={(event) => updateScene((scene) => ({ ...scene, durationSeconds: Math.max(1, Math.min(300, Number(event.target.value) || 1)) }))} /></div>
                   <div className="field-grow"><label className="field-label">نوع التخطيط</label><select className="text-field" value={selectedScene.layout} onChange={(event) => updateScene((scene) => ({ ...scene, layout: event.target.value as SceneLayout }))}><option value="title">عنوان</option><option value="split">مقسّم</option><option value="diagram">مخطط</option></select></div>
                 </div>
+                <label className="field-label">لون خلفية المشهد</label>
+                <div className="scene-palette" role="group" aria-label="ألوان خلفية المشهد">
+                  {[
+                    { color: "#151b2a", label: "كحلي" },
+                    { color: "#182236", label: "أزرق داكن" },
+                    { color: "#201d35", label: "بنفسجي" },
+                    { color: "#17302f", label: "أخضر داكن" },
+                    { color: "#292235", label: "عنابي" }
+                  ].map((swatch) => (
+                    <button
+                      key={swatch.color}
+                      type="button"
+                      className={`scene-swatch ${selectedScene.background === swatch.color ? "active" : ""}`}
+                      style={{ backgroundColor: swatch.color }}
+                      aria-label={swatch.label}
+                      aria-pressed={selectedScene.background === swatch.color}
+                      title={swatch.label}
+                      onClick={() => updateScene((scene) => ({ ...scene, background: swatch.color }))}
+                    />
+                  ))}
+                  <label className="scene-custom-color" title="لون مخصص">
+                    <input type="color" value={selectedScene.background} aria-label="اختيار لون مخصص" onChange={(event) => updateScene((scene) => ({ ...scene, background: event.target.value }))} />
+                    <span>+</span>
+                  </label>
+                </div>
                 <label className="field-label">عنوان العرض</label>
                 <textarea className="text-field text-area compact-area" rows={2} value={firstHeading?.content ?? ""} onChange={(event) => updateScene((scene) => ({ ...scene, blocks: scene.blocks.map((block) => block.kind === "heading" ? { ...block, content: event.target.value } : block) }))} />
                 <label className="field-label">النص التوضيحي</label>
@@ -499,7 +524,7 @@ export default function App() {
                 <button className="danger-button" onClick={removeScene}><Icon name="trash" size={15} /> حذف المشهد</button>
               </>
             )}
-            <div className="panel-note"><Icon name="spark" size={16} /><p>التصدير المحلي التجريبي متاح للمقاطع القصيرة. التعليق الصوتي لم يُدمج بعد.</p></div>
+            <div className="panel-note"><Icon name="spark" size={16} /><p>التصدير المحلي التجريبي حتى 720p. التعليق الصوتي لم يُدمج بعد.</p></div>
           </aside>
         </div>
 
