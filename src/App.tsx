@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Player } from "@remotion/player";
+import { SceneComposition } from "./video/SceneComposition";
 import type { ChangeEvent, ReactNode } from "react";
 import {
   createId,
@@ -329,16 +331,26 @@ export default function App() {
           <section className="workspace">
             <div className="workspace-heading">
               <div><span className="eyebrow">CANVAS / PREVIEW</span><h1>مساحة العمل</h1></div>
-              <div className="preview-meta"><span className="live-dot" /> معاينة تصميمية <span className="meta-divider" /> 16:9</div>
+              <div className="preview-meta"><span className="live-dot" /> معاينة متحركة <span className="meta-divider" /> 16:9</div>
             </div>
             <div className="preview-frame">
-              {selectedScene && <PreviewCanvas scene={selectedScene} />}
-              <div className="preview-controls">
-                <button className="play-button" onClick={() => setToast("سيتم تفعيل التشغيل عند دمج Remotion Player")} aria-label="تشغيل المعاينة"><Icon name="play" size={17} /></button>
-                <div className="preview-time"><strong>00:00</strong><span> / {formatDuration(projectDuration)}</span></div>
-                <div className="preview-control-spacer" />
-                <span className="resolution-label">1920 × 1080</span>
-              </div>
+              {selectedScene && (
+                <Player
+                  key={selectedScene.id}
+                  component={SceneComposition}
+                  inputProps={{ scene: selectedScene }}
+                  durationInFrames={Math.max(1, Math.round(selectedScene.durationSeconds * activeProject.settings.fps))}
+                  compositionWidth={activeProject.settings.width}
+                  compositionHeight={activeProject.settings.height}
+                  fps={activeProject.settings.fps}
+                  controls
+                  loop
+                  clickToPlay
+                  style={{ width: "100%", aspectRatio: `${activeProject.settings.width} / ${activeProject.settings.height}` }}
+                  className="remotion-preview"
+                />
+              )}
+              <div className="preview-resolution">{activeProject.settings.width} × {activeProject.settings.height} · {activeProject.settings.fps} FPS</div>
             </div>
             <div className="timeline-panel panel">
               <div className="timeline-header"><div><Icon name="layers" size={16} /><strong>الخط الزمني</strong></div><span>{formatDuration(projectDuration)} إجمالي المدة</span></div>
