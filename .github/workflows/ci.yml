@@ -35,6 +35,9 @@ jobs:
       - name: Run regression tests
         run: npm test
 
+      - name: Run project validation tests
+        run: npm test
+
       - name: Type-check and build
         run: npm run build
 
