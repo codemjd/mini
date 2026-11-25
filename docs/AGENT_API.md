@@ -32,6 +32,8 @@ window.explainerStudio.execute(command)
 | `project.create` | `title` | مشروع جديد محفوظ |
 | `project.open` | `projectId` | مشروع محفوظ |
 | `project.save` | `project` | التحقق والحفظ |
+| `project.update` | `projectId`, `patch` | تحديث العنوان والوصف والإعدادات |
+| `project.replaceScenes` | `projectId`, `scenes` | استبدال مخطط المشاهد دفعة واحدة بعد التحقق |
 | `project.delete` | `projectId` | حذف محلي |
 | `project.validate` | `project` | نتيجة التحقق |
 | `scene.add` | `projectId`, `title?` | إضافة مشهد |
@@ -67,6 +69,31 @@ await window.explainerStudio.execute({
   patch: { title: "كيف يحافظ القمر على مداره؟" }
 });
 ```
+
+
+
+تحديث وصف المشروع:
+```js
+await window.explainerStudio.execute({
+  type: "project.update",
+  projectId: "PROJECT_ID",
+  patch: {
+    title: "كيف تعمل الأقمار الصناعية؟",
+    description: "شرح بصري مبسط للمدارات والاتصال."
+  }
+});
+```
+
+استبدال Storyboard كاملًا:
+```js
+await window.explainerStudio.execute({
+  type: "project.replaceScenes",
+  projectId: "PROJECT_ID",
+  scenes: [/* مصفوفة مشاهد وفق صيغة Scene */]
+});
+```
+
+هذا الأمر مخصص للوكيل الذي يبني Storyboard كاملًا من موجز إنتاجي. تُفحص كل المشاهد والعناصر والألوان والمدد قبل حفظ أي تغيير.
 
 ## حدود الأمان
 
