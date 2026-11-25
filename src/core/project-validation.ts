@@ -43,6 +43,19 @@ export function validateStudioProject(input: unknown): ProjectValidationResult {
     if (language !== "ar" && language !== "en") issue("settings.language", "لغة المشروع غير مدعومة.");
   }
 
+  if (input.contentPolicy !== undefined) {
+    if (!isRecord(input.contentPolicy)) {
+      issue("contentPolicy", "سياسة المحتوى غير صالحة.");
+    } else {
+      if (input.contentPolicy.livingCharacters !== false) {
+        issue("contentPolicy.livingCharacters", "هذا المشروع يمنع ظهور البشر والحيوانات والشخصيات الحية.");
+      }
+      if (input.contentPolicy.music !== false) {
+        issue("contentPolicy.music", "هذا المشروع يمنع إضافة الموسيقى.");
+      }
+    }
+  }
+
   if (!Array.isArray(input.scenes) || input.scenes.length < 1 || input.scenes.length > 200) {
     issue("scenes", "يجب أن يحتوي المشروع على 1 إلى 200 مشهد.");
   } else {
@@ -84,5 +97,9 @@ export function validateStudioProject(input: unknown): ProjectValidationResult {
   }
 
   if (issues.length > 0) return { valid: false, issues };
-  return { valid: true, project: input as unknown as StudioProject, issues: [] };
+  const normalizedProject = {
+    ...input,
+    contentPolicy: input.contentPolicy ?? { livingCharacters: false, music: false }
+  } as unknown as StudioProject;
+  return { valid: true, project: normalizedProject, issues: [] };
 }
