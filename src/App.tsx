@@ -484,7 +484,7 @@ export default function App() {
                 <input className="text-field" value={selectedScene.title} onChange={(event) => updateScene((scene) => ({ ...scene, title: event.target.value }))} />
                 <div className="field-row">
                   <div className="field-grow"><label className="field-label">المدة (ثانية)</label><input className="text-field" type="number" min="1" max="300" value={selectedScene.durationSeconds} onChange={(event) => updateScene((scene) => ({ ...scene, durationSeconds: Math.max(1, Math.min(300, Number(event.target.value) || 1)) }))} /></div>
-                  <div className="field-grow"><label className="field-label">نوع التخطيط</label><select className="text-field" value={selectedScene.layout} onChange={(event) => updateScene((scene) => ({ ...scene, layout: event.target.value as SceneLayout }))}><option value="title">عنوان</option><option value="split">مقسّم</option><option value="diagram">مخطط</option></select></div>
+                  <div className="field-grow"><label className="field-label">نوع التخطيط</label><select className="text-field" value={selectedScene.layout} onChange={(event) => updateScene((scene) => ({ ...scene, layout: event.target.value as SceneLayout }))}><option value="title">عنوان</option><option value="split">مقسّم</option><option value="diagram">مخطط</option><option value="timeline">خط زمني</option><option value="stats">إحصاءات</option></select></div>
                 </div>
                 <label className="field-label">لون خلفية المشهد</label>
                 <div className="scene-palette" role="group" aria-label="ألوان خلفية المشهد">
