@@ -76,4 +76,46 @@ describe("validateStudioProject", () => {
     expect(result.valid).toBe(false);
     if (!result.valid) expect(result.issues.some((issue) => issue.path === "scenes")).toBe(true);
   });
+  it("records the no-living-characters and no-music defaults", () => {
+    const result = validateStudioProject(createStarterProject());
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.project.contentPolicy).toEqual({ livingCharacters: false, music: false });
+    }
+  });
+
+  it("rejects projects that enable living characters", () => {
+    const project = createStarterProject();
+    const result = validateStudioProject({
+      ...project,
+      contentPolicy: { livingCharacters: true, music: false }
+    });
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.issues.some((issue) => issue.path === "contentPolicy.livingCharacters")).toBe(true);
+    }
+  });
+
+  it("rejects projects that enable music", () => {
+    const project = createStarterProject();
+    const result = validateStudioProject({
+      ...project,
+      contentPolicy: { livingCharacters: false, music: true }
+    });
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.issues.some((issue) => issue.path === "contentPolicy.music")).toBe(true);
+    }
+  });
+
+  it("migrates legacy schema-v1 projects to safe defaults", () => {
+    const project = createStarterProject();
+    const { contentPolicy: _contentPolicy, ...legacyProject } = project;
+    const result = validateStudioProject(legacyProject);
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.project.contentPolicy).toEqual({ livingCharacters: false, music: false });
+    }
+  });
+
 });
