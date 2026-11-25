@@ -8,12 +8,15 @@ import { deleteProject, listProjects, loadProject, saveProject } from "./project
 import { validateStudioProject } from "./project-validation";
 
 type ScenePatch = Partial<Pick<Scene, "title" | "narration" | "durationSeconds" | "layout" | "background" | "blocks">>;
+type ProjectPatch = Partial<Pick<StudioProject, "title" | "description">> & { settings?: Partial<StudioProject["settings"]> };
 
 export type StudioCommand =
   | { type: "project.list" }
   | { type: "project.create"; title: string }
   | { type: "project.open"; projectId: string }
   | { type: "project.save"; project: unknown }
+  | { type: "project.update"; projectId: string; patch: ProjectPatch }
+  | { type: "project.replaceScenes"; projectId: string; scenes: Scene[] }
   | { type: "project.delete"; projectId: string }
   | { type: "project.validate"; project: unknown }
   | { type: "scene.add"; projectId: string; title?: string }
@@ -72,6 +75,28 @@ export async function executeStudioCommand(command: StudioCommand): Promise<Stud
           return { ok: false, error: "بيانات المشروع غير صالحة." };
         }
         return persistValidated(command.project as StudioProject);
+
+      case "project.update": {
+        const project = await loadProject(command.projectId);
+        if (!project) return { ok: false, error: "المشروع غير موجود." };
+        const next = {
+          ...project,
+          ...command.patch,
+          settings: { ...project.settings, ...command.patch.settings },
+          updatedAt: new Date().toISOString()
+        };
+        return persistValidated(next);
+      }
+
+      case "project.replaceScenes": {
+        const project = await loadProject(command.projectId);
+        if (!project) return { ok: false, error: "المشروع غير موجود." };
+        if (!Array.isArray(command.scenes) || command.scenes.length < 1 || command.scenes.length > 200) {
+          return { ok: false, error: "قائمة المشاهد يجب أن تحتوي على 1 إلى 200 مشهد." };
+        }
+        const next = { ...project, scenes: command.scenes, updatedAt: new Date().toISOString() };
+        return persistValidated(next);
+      }
 
       case "project.validate": {
         const result = validateStudioProject(command.project);
