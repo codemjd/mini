@@ -10,7 +10,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "render:demo": "remotion render src/video/remotion-entry.tsx ExplainerDemo out/explainer-demo.mp4 --codec=h264 --gl=swangle --concurrency=2"
+    "render:demo": "remotion render src/video/remotion-entry.tsx ExplainerDemo out/explainer-demo.mp4 --codec=h264 --gl=swangle --concurrency=2",
+    "test": "vitest run"
   },
   "dependencies": {
     "@remotion/player": "4.0.547",
@@ -25,6 +26,7 @@
     "@vitejs/plugin-react": "6.3.0",
     "typescript": "5.9.3",
     "vite": "8.3.8",
-    "@remotion/cli": "4.0.547"
+    "@remotion/cli": "4.0.547",
+    "vitest": "4.0.15"
   }
 }
