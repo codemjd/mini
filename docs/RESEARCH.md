@@ -206,3 +206,24 @@
 - renderMediaOnWeb: https://www.remotion.dev/docs/web-renderer/render-media-on-web
 - canRenderMediaOnWeb: https://www.remotion.dev/docs/web-renderer/can-render-media-on-web
 - Remotion license and pricing: https://www.remotion.dev/docs/license/pricing
+
+
+## 9. خصوصية قياس التصيير المحلي
+
+توضح وثائق Remotion أن `@remotion/web-renderer` يرسل حدث قياس لكل محاولة تصيير في المتصفح، حتى إذا لم يُمرر مفتاح ترخيص. يشمل الحدث:
+- عنوان IP.
+- نطاق الموقع (`window.location.origin`).
+- نوع الحدث/الوسيط، وحالة نجاح التصيير أو فشله.
+- تصنيف بيئة التصيير (تجريبي أو إنتاجي).
+
+لا يتضمن الحدث محتوى الفيديو أو metadata الفيديو أو ملف المشروع. القياس لا يمنع التصيير عند فشل إرسال الحدث، لكنه يظل مشاركة بيانات تشغيل مع Remotion.
+
+**قرار الخصوصية في التطبيق:** لا يبدأ زر التصدير المحلي قبل عرض إشعار وموافقة واضحة. إذا رفض المستخدم، يظل بإمكانه تحرير المشروع واستيراده وتصديره JSON دون تشغيل محرك التصيير المحلي. يمرر التطبيق `licenseKey: "free-license"` لإعلان أهلية الترخيص المجاني للفرد، ولا يستخدم مفتاحًا مدفوعًا.
+
+**ملاحظة:** هذا القياس مرتبط بالتصيير داخل المتصفح فقط. التصيير التجريبي في GitHub Actions يستخدم واجهة CLI/الخادم دون تمرير مفتاح ترخيص، ولا يرسل قياس web-renderer الخاص بالمتصفح.
+
+مصادر:
+- https://www.remotion.dev/docs/client-side-rendering/
+- https://www.remotion.dev/docs/license/faq
+- https://www.remotion.dev/docs/telemetry
+- https://www.remotion.dev/docs/options/license-key
