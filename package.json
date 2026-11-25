@@ -27,6 +27,7 @@
     "typescript": "5.9.3",
     "vite": "8.3.8",
     "@remotion/cli": "4.0.547",
-    "vitest": "4.1.0"
+    "vitest": "4.1.0",
+    "ffprobe-static": "3.1.0"
   }
 }
