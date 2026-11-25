@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import {
   createId,
   createStarterProject,
@@ -13,7 +14,7 @@ type AppView = "dashboard" | "editor";
 type IconName = "grid" | "folder" | "plus" | "play" | "chevron" | "clock" | "layers" | "settings" | "trash" | "download" | "upload" | "arrow" | "spark" | "film" | "check" | "more" | "close" | "add" | "back";
 
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
-  const paths: Record<IconName, React.ReactNode> = {
+  const paths: Record<IconName, ReactNode> = {
     grid: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>,
     folder: <><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z" /><path d="M3.5 10h17" /></>,
     plus: <><path d="M12 5v14M5 12h14" /></>,
@@ -242,7 +243,7 @@ export default function App() {
     setToast("تم تجهيز ملف المشروع");
   }
 
-  async function importProject(event: React.ChangeEvent<HTMLInputElement>) {
+  async function importProject(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -270,6 +271,7 @@ export default function App() {
   }
 
   function goHome() {
+    if (activeProject) void saveProject(activeProject);
     setView("dashboard");
     setActiveProject(null);
     setSelectedSceneId(null);
