@@ -26,6 +26,11 @@ export interface VideoSettings {
   language: "ar" | "en";
 }
 
+export interface ContentPolicy {
+  livingCharacters: false;
+  music: false;
+}
+
 export interface StudioProject {
   schemaVersion: 1;
   id: string;
@@ -34,6 +39,7 @@ export interface StudioProject {
   createdAt: string;
   updatedAt: string;
   settings: VideoSettings;
+  contentPolicy?: ContentPolicy;
   scenes: Scene[];
 }
 
@@ -66,6 +72,7 @@ export function createStarterProject(title = "مشروع جديد"): StudioProje
       fps: 30,
       language: "ar"
     },
+    contentPolicy: { livingCharacters: false, music: false },
     scenes: [
       {
         id: createId(),
