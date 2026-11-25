@@ -407,3 +407,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .render-progress-row strong { color: var(--mint); font: 600 10px Inter,sans-serif; direction: ltr; }
 .render-progress-track { grid-column: 1 / -1; height: 5px; overflow: hidden; border-radius: 8px; background: rgba(255,255,255,.09); }
 .render-progress-track i { display: block; height: 100%; border-radius: inherit; background: var(--mint); transition: width .16s linear; }
+
+.render-consent-modal { max-width: 470px; }
+.render-consent-modal > p { color: #9daac0; font-size: 12px; line-height: 1.9; }
+.consent-list { margin: 4px 0; padding: 12px 30px 12px 12px; border: 1px solid rgba(126,227,211,.14); border-radius: 10px; background: rgba(126,227,211,.045); color: #c1d0e2; font-size: 11px; line-height: 2; }
+.consent-actions { display: flex; gap: 9px; margin-top: 20px; }
+.consent-actions button { flex: 1; }
