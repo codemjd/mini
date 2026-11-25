@@ -83,7 +83,14 @@ async function executeStudioCommandInternal(command: StudioCommand): Promise<Stu
 
       case "project.open": {
         const project = await loadProject(command.projectId);
-        return project ? { ok: true, data: project } : { ok: false, error: "لم يتم العثور على المشروع على هذا الجهاز." };
+        if (!project) return { ok: false, error: "لم يتم العثور على المشروع على هذا الجهاز." };
+        const validation = validateStudioProject(project);
+        if (!validation.valid) {
+          return { ok: false, error: "تعذر فتح مشروع لا يجتاز التحقق.", details: validation.issues };
+        }
+        // Normalize older schema-v1 projects to the enforced safe content policy.
+        if (!project.contentPolicy) await saveProject(validation.project);
+        return { ok: true, data: validation.project };
       }
 
       case "project.save":
