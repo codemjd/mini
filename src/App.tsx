@@ -13,7 +13,7 @@ import {
 import { listProjects } from "./core/project-store";
 import { executeStudioCommand } from "./core/studio-commands";
 import { validateStudioProject } from "./core/project-validation";
-import { generateArabicNarration, type ArabicTtsProgress } from "./core/arabic-tts";
+import { disposeArabicNarrationEngine, generateArabicNarration, type ArabicTtsProgress } from "./core/arabic-tts";
 import {
   decodeBase64Audio,
   deleteAudioAsset,
@@ -113,6 +113,7 @@ export default function App() {
   const [projects, setProjects] = useState<StudioProject[]>([]);
   const [activeProject, setActiveProject] = useState<StudioProject | null>(null);
   const activeProjectRef = useRef<StudioProject | null>(null);
+  activeProjectRef.current = activeProject;
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [view, setView] = useState<AppView>("dashboard");
   const [loading, setLoading] = useState(true);
@@ -131,6 +132,12 @@ export default function App() {
   const [ttsProgress, setTtsProgress] = useState(0);
   const [ttsMessage, setTtsMessage] = useState("");
   const renderAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const disposeOnPageHide = () => { void disposeArabicNarrationEngine(); };
+    window.addEventListener("pagehide", disposeOnPageHide);
+    return () => window.removeEventListener("pagehide", disposeOnPageHide);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
