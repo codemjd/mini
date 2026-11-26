@@ -16,7 +16,7 @@ export function getSceneStartFrame(project: StudioProject, sceneIndex: number): 
   return Math.max(0, framesBefore - index * SCENE_CROSSFADE_FRAMES);
 }
 
-export const ProjectComposition: FC<{ project: StudioProject }> = ({ project }) => {
+export const ProjectComposition: FC<{ project: StudioProject; audioSources?: Record<string, string> }> = ({ project, audioSources = {} }) => {
   const fps = project.settings.fps;
 
   return (
@@ -29,7 +29,7 @@ export const ProjectComposition: FC<{ project: StudioProject }> = ({ project }) 
             from={getSceneStartFrame(project, index)}
             durationInFrames={durationInFrames}
           >
-            <SceneComposition scene={scene} sceneIndex={index} />
+            <SceneComposition scene={scene} sceneIndex={index} audioSource={audioSources[scene.id]} />
           </Sequence>
         );
       })}
