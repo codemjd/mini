@@ -345,10 +345,15 @@ export default function App() {
         .map((scene) => scene.narrationAudioAssetId)
         .filter((id): id is string => Boolean(id)))];
 
+      let totalAudioBytes = 0;
       const audioAssets = await Promise.all(referencedIds.map(async (id) => {
         const asset = await getAudioAsset(id);
         if (!asset || asset.projectId !== activeProject.id) {
           throw new Error("تعذر العثور على أحد ملفات الصوت. أعد إرفاقه قبل تصدير الحزمة.");
+        }
+        totalAudioBytes += asset.blob.size;
+        if (totalAudioBytes > 50 * 1024 * 1024) {
+          throw new Error("إجمالي ملفات الصوت يتجاوز الحد المدعوم للحزمة وهو 50 ميغابايت.");
         }
         return {
           id: asset.id,
@@ -372,7 +377,13 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = (activeProject.title.replace(/[^\\p{L}\\p{N}-]+/gu, "-") || "explainer-project") + "-bundle.json";
+      const unsafeFileNameCharacters = new Set(["/", "\\", ":", "*", "?", '"' , "<", ">", "|"]);
+      const safeFileName = Array.from(activeProject.title.trim())
+        .map((character) => unsafeFileNameCharacters.has(character) ? "-" : character)
+        .join("")
+        .replaceAll(" ", "-")
+        .slice(0, 64) || "explainer-project";
+      anchor.download = safeFileName + "-bundle.json";
       anchor.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 10000);
       setToast("تم تصدير المشروع مع ملفات التعليق الصوتي");
@@ -496,7 +507,8 @@ export default function App() {
         ogg: "audio/ogg",
         webm: "audio/webm"
       };
-      const mimeType = file.type || fallbackMime[extension] || "audio/mpeg";
+      const mimeType = file.type.startsWith("audio/") ? file.type : fallbackMime[extension];
+      if (!mimeType) throw new Error("صيغة الصوت غير معروفة لهذا المتصفح. جرّب ملف WAV أو MP3.");
       const assetId = createId();
       await saveAudioAsset({
         id: assetId,
