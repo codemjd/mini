@@ -1,4 +1,4 @@
-export type SceneLayout = "title" | "split" | "diagram" | "timeline" | "stats";
+export type SceneLayout = "title" | "split" | "diagram" | "timeline" | "stats" | "quote" | "comparison";
 
 export type VisualBlockKind = "heading" | "body" | "metric" | "shape" | "step";
 
