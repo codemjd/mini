@@ -7,7 +7,7 @@
 بعد تحميل التطبيق في المتصفح، تتوفر الواجهة:
 
 ```ts
-window.explainerStudio.execute(command) و`window.explainerStudio.render(project)`
+window.explainerStudio.execute(command)، و`window.explainerStudio.generateNarration(projectId, sceneId)`، و`window.explainerStudio.render(project)`
 ```
 
 الواجهة لا تقبل JavaScript حرًا ولا تنفذ طلبات شبكة. كل الأوامر تعمل على قاعدة المشاريع المحلية في نفس المتصفح.
@@ -59,7 +59,8 @@ window.explainerStudio.execute(command) و`window.explainerStudio.render(project
 | `project.delete` | `projectId` | حذف محلي |
 | `project.validate` | `project` | نتيجة التحقق |
 | `scene.add` | `projectId`, `title?` | إضافة مشهد |
-| `scene.update` | `projectId`, `sceneId`, `patch` | تعديل مشهد |
+| `scene.update` | `projectId`, `sceneId`, `patch` | تعديل مشهد، بما في ذلك مرجع ملف التعليق الصوتي |
+| `generateNarration` (جسر مباشر) | `projectId`, `sceneId`, `options?` | توليد صوت عربي محليًا وربطه بالمشهد، مع تقدم اختياري وإشارة إلغاء |
 | `scene.remove` | `projectId`, `sceneId` | حذف مشهد |
 | `scene.reorder` | `projectId`, `sceneId`, `toIndex` | تغيير الترتيب |
 
@@ -117,6 +118,25 @@ await window.explainerStudio.execute({
 
 هذا الأمر مخصص للوكيل الذي يبني Storyboard كاملًا من موجز إنتاجي. تُفحص كل المشاهد والعناصر والألوان والمدد قبل حفظ أي تغيير.
 
+## توليد التعليق الصوتي من الوكيل
+
+بعد حفظ نص التعليق في المشهد، يستطيع الوكيل استدعاء:
+
+```js
+const narration = await window.explainerStudio.generateNarration(
+  "PROJECT_ID",
+  "SCENE_ID",
+  {
+    onProgress: ({ phase, progress, detail }) => {
+      console.log(phase, progress, detail);
+    }
+  }
+);
+```
+
+تعيد العملية `assetId` و`size` و`sampleRate` و`durationSeconds` ووسيلة التنفيذ (`webgpu` أو `wasm`). تحفظ WAV في IndexedDB وتربطه بالمشهد عبر `scene.update`. يمكن تمرير `signal: AbortSignal` لإيقاف العملية بين المقاطع؛ لا يمكن إيقاف استدلال ONNX الجاري فورًا.
+
+القيود: Nabra تجريبي، صوت واحد بالفصحى، لا يضيف التشكيل تلقائيًا، وحد النص 2400 محرف في المشهد الواحد. يجب اختبار وضوح النطق وزمن التوليد على الجهاز الفعلي قبل الاعتماد عليه.
 ## تصيير الفيديو من الوكيل
 
 بعد موافقة المستخدم على إشعار خصوصية التصيير داخل واجهة التطبيق، تتوفر:
@@ -135,7 +155,7 @@ await window.explainerStudio.execute({
 - يحتوي المشروع على `contentPolicy` بقيم ثابتة: `livingCharacters: false` و`music: false`. لا يمكن للأوامر تفعيل الشخصيات الحية أو الموسيقى؛ يرفض فاحص schema أي قيمة مخالفة.
 - تُسلسل الأوامر داخل الصفحة لمنع تصادم عمليتي تعديل متزامنتين على نسخة قديمة من المشروع.
 - `project.export` يعيد JSON بعد إعادة التحقق من سلامة المشروع.
-- لا تتضمن الواجهة بعد أوامر لتوليد السيناريو تلقائيًا أو البحث والتحقق من المصادر أو توليد الصوت أو فحص ملف MP4. التصيير المحلي متاح عبر الجسر بعد موافقة المستخدم، لكنه ما زال محدودًا بقدرات المتصفح.
+- لا تتضمن الواجهة بعد أوامر للبحث والتحقق من المصادر أو توليد السيناريو تلقائيًا أو فحص ملف MP4. توليد التعليق الصوتي متاح عبر الجسر، لكنه تجريبي ويحتاج اختبارًا على Android. التصيير المحلي متاح بعد موافقة المستخدم، لكنه ما زال محدودًا بقدرات المتصفح.
 
 ## مبدأ التنفيذ
 
