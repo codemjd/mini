@@ -1,6 +1,7 @@
 import { canRenderMediaOnWeb, renderMediaOnWeb } from "@remotion/web-renderer";
 import type { StudioProject } from "../types/project";
 import { validateStudioProject } from "../core/project-validation";
+import { isNarrationAudioCurrent } from "../core/narration-audio-state";
 import { loadAudioAsset } from "../core/project-store";
 import { getProjectDurationInFrames, ProjectComposition } from "./ProjectComposition";
 
@@ -42,9 +43,16 @@ export async function renderProjectToMp4(
       const assetId = scene.narrationAudioAssetId;
       if (!assetId) continue;
 
+      if (!isNarrationAudioCurrent(scene)) {
+        throw new Error(`نص التعليق في المشهد «${scene.title}» تغيّر بعد إرفاق الصوت. أعد توليد الصوت أو أرفق ملفًا جديدًا قبل التصدير.`);
+      }
+
       const asset = await loadAudioAsset(assetId);
       if (!asset) {
         throw new Error(`ملف التعليق الصوتي للمشهد «${scene.title}» غير موجود على هذا الجهاز. أعد إرفاقه أو أزل مرجعه قبل التصدير.`);
+      }
+      if (asset.projectId !== project.id || asset.sceneId !== scene.id) {
+        throw new Error(`ملف الصوت المرتبط بالمشهد «${scene.title}» يعود إلى مشروع أو مشهد آخر.`);
       }
       const url = URL.createObjectURL(asset.blob);
       audioObjectUrls.push(url);
