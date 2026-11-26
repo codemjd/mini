@@ -1,6 +1,6 @@
 # Arabic Voice Pipeline — Implementation Specification
 
-Status: scene-audio asset import, persistence, preview wiring, project bundling, and AAC render wiring are implemented in application code. CI validation of the AAC output is pending. Arabic TTS generation is not integrated.
+Status: scene-audio import, durable persistence, preview, project bundling, AAC render wiring, and an opt-in Nabra-based Arabic TTS prototype are implemented in application code. A silent-WAV CI fixture checks the AAC muxing path; spoken output quality and Android performance remain unverified.
 
 ## Product decision
 
@@ -39,6 +39,25 @@ Licensing:
 - SceneComposition uses Audio from @remotion/media, nested under the scene Sequence, so the clip begins at that scene timeline start.
 - The local MP4 renderer loads durable Blobs, creates temporary URLs, requests AAC capability when audio exists, and releases the URLs after rendering.
 - The CI render fixture contains a one-second silent WAV. The updated FFprobe check is intended to verify that the output has an AAC stream. It is a muxing test, not a speech-quality or sync test.
+
+## Implemented local TTS prototype
+
+The editor now exposes **توليد صوت عربي محليًا** for the selected scene:
+- The app dynamically imports Nabra TTS only after the user presses the generate button.
+- It requests the FP16 model and lets the runtime choose WebGPU or WASM.
+- Each scene is limited to 2,400 Unicode characters and is segmented into chunks of at most 160 characters before synthesis to reduce model context truncation.
+- The tool concatenates synthesized segments with short silent pauses and writes a WAV Blob.
+- The generated WAV is stored through the same IndexedDB asset API as uploaded narration, attached to the exact scene through the typed command boundary, and therefore participates in project bundle export/import and Remotion audio rendering.
+- Cancel requests are checked between generated segments; an in-progress model inference call itself is not forcibly interrupted.
+- No narration is automatically generated at app startup, and no narration text is sent to a remote TTS inference API.
+
+**Limitations and release gates:**
+- One Modern Standard Arabic voice only; no Syrian or other dialect selection.
+- No automatic tashkeel/diacritization provider is connected. Pronunciation of unvowelled Arabic may be inconsistent; a manually diacritized script can help.
+- The upstream performance table was measured on Apple M-series hardware, not Android. The Xiaomi Mi A3 target has not been tested.
+- The 16 MB FP16 figure describes the model weight file, not the total first-run download; ONNX Runtime Web and its WASM runtime add size.
+- Nabra's repository identifies its code/model as Apache-2.0 but bundles eSpeak NG under GPL-3.0-or-later. The app repository currently has no top-level LICENSE. Resolve the app's distribution license before treating this integration as a production release.
+- The current CI WAV is silent. It checks that an AAC stream is muxed into MP4; it does not prove speech is audible, intelligible, or synchronized against the script.
 
 ## Proposed architecture
 
