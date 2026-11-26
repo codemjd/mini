@@ -17,6 +17,7 @@ import { disposeArabicNarrationEngine, generateArabicNarration, type ArabicTtsPr
 import {
   decodeBase64Audio,
   deleteAudioAsset,
+  deleteUnreferencedAudioAssets,
   encodeBlobToBase64,
   getAudioAsset,
   getAudioDurationSeconds,
