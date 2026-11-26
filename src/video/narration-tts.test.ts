@@ -22,7 +22,7 @@ describe("splitArabicSpeechText", () => {
     expect(combined).toContain(".");
     expect(combined).toContain("؟");
     expect(combined).toContain("؛");
-    expect(chunks).toHaveLength(3);
+    expect(chunks).toHaveLength(4);
   });
 
   it("splits oversized words by Unicode code point without dropping characters", () => {
