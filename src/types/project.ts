@@ -17,6 +17,8 @@ export interface Scene {
   layout: SceneLayout;
   background: string;
   blocks: VisualBlock[];
+  /** Reference to a locally stored narration clip; the audio bytes live in IndexedDB. */
+  narrationAudioAssetId?: string;
 }
 
 export interface VideoSettings {
