@@ -283,6 +283,7 @@ export default function App() {
       setToast(result.error);
       return;
     }
+    await deleteUnreferencedAudioAssets(project.id, []).catch(() => undefined);
     setProjects((current) => current.filter((item) => item.id !== project.id));
     if (activeProject?.id === project.id) {
       setActiveProject(null);
@@ -693,11 +694,7 @@ export default function App() {
 
   function removeNarrationAudio() {
     if (!selectedScene?.narrationAudioAssetId) return;
-    const assetId = selectedScene.narrationAudioAssetId;
     updateScene((scene) => ({ ...scene, narrationAudioAssetId: undefined, narrationAudioText: undefined }));
-    void deleteAudioAsset(assetId).catch((error: unknown) => {
-      setToast(error instanceof Error ? error.message : "تعذر حذف ملف الصوت المحلي");
-    });
     setToast("تمت إزالة التعليق الصوتي من المشهد");
   }
 
