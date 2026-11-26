@@ -128,3 +128,25 @@ Do not claim Android support until tested on representative mid-range Android ha
 - https://www.remotion.dev/docs/media/audio
 - https://www.remotion.dev/docs/web-renderer/can-render-media-on-web
 - https://www.remotion.dev/docs/web-renderer/render-media-on-web
+
+
+## Newer model candidate reviewed on 2026-11-26: Nabra-82M / sherpa-onnx
+
+A second candidate appeared in the Arabic TTS ecosystem review:
+https://huggingface.co/marwanelamami/nabra-82m-sherpa-onnx
+
+Grounded model-card facts:
+- Arabic MSA, one voice (`af_msa`, speaker ID 0), 24 kHz output.
+- Apache-2.0 model card.
+- INT4 model is 57 MB; INT8 is 83 MB; FP16 is 163 MB.
+- The model card documents sherpa-onnx support across Android/iOS and WebAssembly-capable targets.
+- INT4 has a faint noise floor; INT8 is recommended by the card when cleaner audio is required.
+- The model has a 510-token sequence cap and uses espeak-ng Arabic G2P data.
+
+Decision:
+- Keep Nabra-7M Distill as the first browser prototype because it has a directly documented browser package and much smaller download.
+- Keep Nabra-82M INT4/INT8 as a quality candidate for a future native Android render worker or a WASM experiment, not as a drop-in browser dependency.
+- Do not claim it is faster, more natural, or compatible with this app until we benchmark it on Android and compare the same Arabic test script by human listening.
+- The model card is a community packaging of Nabra-82M; independently verify upstream model provenance and license notices before distribution.
+
+This gives the product a quality path without forcing a 57–163 MB download on every browser user.
