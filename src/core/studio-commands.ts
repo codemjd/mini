@@ -4,7 +4,7 @@ import {
   type Scene,
   type StudioProject
 } from "../types/project";
-import { deleteProject, listProjects, loadProject, saveProject } from "./project-store";
+import { deleteAudioAsset, deleteProject, listProjects, loadProject, saveProject } from "./project-store";
 import { validateStudioProject } from "./project-validation";
 
 type ScenePatch = Partial<Pick<Scene, "title" | "narration" | "durationSeconds" | "layout" | "background" | "blocks">>;
@@ -159,8 +159,13 @@ async function executeStudioCommandInternal(command: StudioCommand): Promise<Stu
         if (!project) return { ok: false, error: "المشروع غير موجود." };
         if (project.scenes.length <= 1) return { ok: false, error: "يجب أن يحتوي المشروع على مشهد واحد على الأقل." };
         if (!project.scenes.some((scene) => scene.id === command.sceneId)) return { ok: false, error: "المشهد غير موجود." };
+        const removedScene = project.scenes.find((scene) => scene.id === command.sceneId);
         const next = { ...project, scenes: project.scenes.filter((scene) => scene.id !== command.sceneId), updatedAt: new Date().toISOString() };
-        return persistValidated(next);
+        const saved = await persistValidated(next);
+        if (saved.ok && removedScene?.narrationAudioAssetId) {
+          try { await deleteAudioAsset(removedScene.narrationAudioAssetId); } catch { /* keep the project edit even if stale media cleanup fails */ }
+        }
+        return saved;
       }
 
       case "scene.reorder": {
