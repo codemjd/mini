@@ -362,7 +362,7 @@ export default function App() {
       const assetIds = Array.from(new Set(activeProject.scenes
         .map((scene) => scene.narrationAudioAssetId)
         .filter((id): id is string => Boolean(id))));
-      const assets = [];
+      const assets: Array<{ id: string; sceneId: string; name: string; mimeType: string; createdAt: string; dataUrl: string }> = [];
       let totalBytes = 0;
 
       for (const id of assetIds) {
