@@ -23,7 +23,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "@remotion/web-renderer": "4.0.547",
-    "nabra-tts": "git+https://github.com/Oddadmix/nabra-tts.git#16b5281ce61993df3526740990cf845a3f3036f4"
+    "nabra-tts": "https://github.com/Oddadmix/nabra-tts/archive/16b5281ce61993df3526740990cf845a3f3036f4.tar.gz"
   },
   "devDependencies": {
     "@types/react": "19.3.1",
