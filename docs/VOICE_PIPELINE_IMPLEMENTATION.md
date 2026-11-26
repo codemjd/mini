@@ -203,3 +203,15 @@ This gives the product a quality path without forcing a 57–163 MB download on 
 - Sequence durations, scene start frames, and total project duration all use the same index-aware frame calculation.
 - The upload path, local TTS path, and agent automation bridge persist the same duration metadata.
 - Regression coverage checks that moving a narration-bearing scene from first to second position extends it and leaves a gap before the next clip.
+
+
+## Confirmed end-to-end speech smoke test — 26 November 2026
+
+A CI run generated non-silent Arabic speech with Nabra FP16/WASM, then a separate Remotion CLI run rendered real Nabra narration into MP4.
+
+- Nabra WAV: mono PCM, 24 kHz, 4.9 seconds, peak 0.4661, RMS 0.09668.
+- MP4: 24.619 seconds, H.264 1920×1080 at 30fps, AAC-LC 48 kHz stereo.
+- FFmpeg measured max_volume near -6.6 dB after AAC muxing.
+- The MP4 was downloaded and representative visual frames were reviewed.
+- This is evidence of speech synthesis and audio muxing in CI, not a human listening assessment or Android-device acceptance test.
+- A later smoke run exposed a regular-expression escaping bug in the max_volume parser. The underlying diagnostic file already contained a valid measurement; the matcher was fixed in commit `fc4243080b6f92f17d76af5e0610566885224e82`, and the follow-up run remained in progress at the time of this documentation update.
