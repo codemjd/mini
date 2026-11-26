@@ -557,6 +557,12 @@ export default function App() {
   async function handleNarrationAudioUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file || !activeProject || !selectedScene) return;
+
+    const targetProject = activeProject;
+    const targetScene = selectedScene;
+    const narrationSnapshot = targetScene.narration.trim();
+    let createdAssetId: string | null = null;
+
     try {
       if (file.size < 1 || file.size > MAX_AUDIO_ASSET_BYTES) {
         throw new Error("حجم ملف التعليق يجب أن يكون أقل من 30 ميغابايت.");
@@ -573,32 +579,62 @@ export default function App() {
       }
 
       const audioDurationSeconds = await readAudioDurationSeconds(file);
-      const previousId = selectedScene.narrationAudioAssetId;
+      const latestResult = await executeStudioCommand({ type: "project.open", projectId: targetProject.id });
+      if (!latestResult.ok) throw new Error(latestResult.error);
+      const latestProject = latestResult.data as StudioProject;
+      const latestScene = latestProject.scenes.find((scene) => scene.id === targetScene.id);
+      if (!latestScene || latestScene.narration.trim() !== narrationSnapshot) {
+        throw new Error("تغيّر نص المشهد أثناء تجهيز الملف الصوتي. أعد إرفاق الصوت بعد تثبيت النص.");
+      }
+
       const assetId = createId();
+      createdAssetId = assetId;
       await saveAudioAsset({
         id: assetId,
-        projectId: activeProject.id,
-        sceneId: selectedScene.id,
+        projectId: targetProject.id,
+        sceneId: targetScene.id,
         name: file.name.slice(0, 255),
         mimeType,
         size: file.size,
         blob: file,
         createdAt: new Date().toISOString()
       });
-      const narrationSnapshot = selectedScene.narration.trim();
-      updateScene((scene) => ({
-        ...scene,
-        narrationAudioAssetId: assetId,
-        narrationAudioText: narrationSnapshot,
-        durationSeconds: audioDurationSeconds
-          ? Math.max(scene.durationSeconds, Math.ceil(audioDurationSeconds))
-          : scene.durationSeconds
-      }));
-      if (previousId && previousId !== assetId) {
-        try { await deleteAudioAsset(previousId); } catch { /* project remains linked to the new asset */ }
+
+      const result = await executeStudioCommand({
+        type: "scene.update",
+        projectId: targetProject.id,
+        sceneId: targetScene.id,
+        patch: {
+          narrationAudioAssetId: assetId,
+          narrationAudioText: narrationSnapshot,
+          durationSeconds: audioDurationSeconds
+            ? Math.max(latestScene.durationSeconds, Math.ceil(audioDurationSeconds))
+            : latestScene.durationSeconds
+        }
+      });
+      if (!result.ok) throw new Error(result.error);
+
+      const updatedProject = result.data as StudioProject;
+      setProjects((current) => [
+        updatedProject,
+        ...current.filter((item) => item.id !== updatedProject.id)
+      ]);
+      setActiveProject((current) => current?.id === updatedProject.id ? updatedProject : current);
+      createdAssetId = null;
+
+      const previousId = latestScene.narrationAudioAssetId;
+      const previousStillUsed = previousId && updatedProject.scenes.some((scene) =>
+        scene.id !== targetScene.id && scene.narrationAudioAssetId === previousId
+      );
+      if (previousId && previousId !== assetId && !previousStillUsed) {
+        try { await deleteAudioAsset(previousId); } catch { /* keep the new audio linked */ }
       }
-      setToast("تم إرفاق التعليق الصوتي بالمشهد");
+
+      setToast("تم إرفاق التعليق الصوتي وربطه بنص المشهد الحالي");
     } catch (error) {
+      if (createdAssetId) {
+        try { await deleteAudioAsset(createdAssetId); } catch { /* preserve the original upload error */ }
+      }
       setToast(error instanceof Error ? error.message : "تعذر إرفاق ملف الصوت.");
     } finally {
       event.target.value = "";
