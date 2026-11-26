@@ -92,6 +92,19 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
                   </div>;
                 })}
               </div>
+            ) : scene.layout === "flow" ? (
+              <div style={{ width: "100%", position: "relative", display: "flex", alignItems: "center", justifyContent: "space-around", direction: "rtl", gap: 12 }}>
+                <div style={{ position: "absolute", right: "10%", left: "10%", top: 56, height: 3, borderRadius: 4, background: "linear-gradient(90deg," + mint + "," + violet + "," + amber + ")", opacity: .55 }} />
+                {(steps.length ? steps : [{ id: "f1", content: "المدخل" }, { id: "f2", content: "المعالجة" }, { id: "f3", content: "التحويل" }, { id: "f4", content: "النتيجة" }]).map((step, i, all) => {
+                  const color = [mint, violet, amber, mint][i];
+                  const reveal = interpolate(frame, [i * 10, i * 10 + 18], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+                  return <div key={step.id} style={{ zIndex: 1, width: (78 / all.length) + "%", display: "flex", flexDirection: "column", alignItems: "center", gap: 22, opacity: reveal, transform: "translateY(" + ((1 - reveal) * 22) + "px)" }}>
+                    <div style={{ width: 108, height: 108, borderRadius: 30, border: "2px solid " + color, background: "linear-gradient(145deg," + color + "2a,rgba(13,20,34,.95))", display: "grid", placeItems: "center", color, fontSize: 34, fontWeight: 800, boxShadow: "0 16px 42px " + color + "20" }}>0{i + 1}</div>
+                    <strong style={{ color: "#f4f7ff", fontSize: 22, textAlign: "center", lineHeight: 1.5 }}>{step.content}</strong>
+                    <span style={{ color: "rgba(225,233,248,.48)", fontSize: 13 }}>خطوة {i + 1}</span>
+                  </div>;
+                })}
+              </div>
             ) : scene.layout === "diagram" ? (
               <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "ltr", position: "relative" }}>
                 {visualCard("المصدر", "بيانات أصلية", mint, 0)}
