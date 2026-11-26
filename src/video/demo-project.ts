@@ -33,7 +33,10 @@ export const demoProject: StudioProject = {
       blocks: [
         { id: "demo-02-heading", kind: "heading", content: "البيانات تسافر كحزم" },
         { id: "demo-02-body", kind: "body", content: "كل حزمة تحمل جزءًا من المعلومات وبيانات التوجيه" },
-        { id: "demo-02-metric", kind: "metric", content: "02" }
+        { id: "demo-02-metric", kind: "metric", content: "02" },
+        { id: "demo-02-step-1", kind: "step", content: "تقسيم البيانات" },
+        { id: "demo-02-step-2", kind: "step", content: "إضافة معلومات التوجيه" },
+        { id: "demo-02-step-3", kind: "step", content: "إرسال الحزم" }
       ]
     },
     {

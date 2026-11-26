@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createStarterProject } from "../types/project";
+import { demoProject } from "./demo-project";
 import { getDiagramCards, getSceneNumberLabel } from "./scene-visuals";
 
 describe("scene visual data", () => {
