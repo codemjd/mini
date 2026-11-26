@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - "src/video/**"
+      - "src/core/**"
+      - "src/App.tsx"
       - "src/types/project.ts"
       - "package.json"
       - "package-lock.json"
