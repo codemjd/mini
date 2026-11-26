@@ -28,7 +28,7 @@
 - مسار تصيير MP4 تجريبي محلي باستخدام WebCodecs، مع فحص توافق المتصفح.
 - PWA manifest وService Worker لهيكل العمل دون اتصال.
 - اختبارات تحقق آلية لهيكل المشروع، وفحص TypeScript وبناء إنتاجي، ونشر معاينة عبر GitHub Pages.
-- اختبار تصيير حقيقي على GitHub Actions: فيديو عربي تجريبي 12 ثانية، 1920×1080، H.264، 30 FPS، تم فحصه بـ FFprobe.
+- اختبار تصيير حقيقي سابق على GitHub Actions: فيديو عربي تجريبي 12 ثانية، 1920×1080، H.264، 30 FPS، تم فحصه بـ FFprobe. أضيف الآن اختبار أطول مدته 24 ثانية، وما زال التصيير والتحقق منه قيد التنفيذ.
 - نتائج الاختبار التفصيلية: `docs/TEST_RESULTS.md`.
 
 ## حدود تصيير MP4 الحالية
@@ -58,7 +58,7 @@
 - Remotion و@remotion/player و@remotion/web-renderer 4.0.547
 - IndexedDB وPWA Service Worker
 
-تُثبت حزم Remotion على الإصدار نفسه لتجنب تعارض الإصدارات. راجع `docs/RESEARCH.md` للترخيص والقيود ومصادر البحث، و`docs/ARCHITECTURE.md` لتصميم النظام، و`docs/AGENT_API.md` لأوامر الوكيل، و`docs/TEST_RESULTS.md` لنتائج التحقق الفعلية.
+تُثبت حزم Remotion على الإصدار نفسه لتجنب تعارض الإصدارات. راجع `docs/ARABIC_VOICE_AND_RENDERING.md` لبحث التعليق الصوتي العربي وقرار دمجه، و`docs/RESEARCH.md` للترخيص والقيود ومصادر البحث، و`docs/ARCHITECTURE.md` لتصميم النظام، و`docs/AGENT_API.md` لأوامر الوكيل، و`docs/TEST_RESULTS.md` لنتائج التحقق الفعلية.
 
 ## بوابة جودة التصدير
 
