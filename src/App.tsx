@@ -503,8 +503,8 @@ export default function App() {
   async function generateSceneNarration() {
     if (!activeProject || !selectedScene || ttsGenerating) return;
     const projectId = activeProject.id;
-    const scene = selectedScene;
-    const narrationText = scene.narration.trim();
+    const sceneId = selectedScene.id;
+    const narrationText = selectedScene.narration.trim();
     if (!narrationText) {
       setToast("اكتب نص التعليق أولًا قبل توليد الصوت.");
       return;
@@ -517,7 +517,7 @@ export default function App() {
       const result = await generateArabicNarration(narrationText, (progress: ArabicTtsProgress) => {
         if (progress.phase === "downloading") {
           const fraction = progress.totalBytes && progress.totalBytes > 0
-            ? Math.min(1, progress.loadedBytes! / progress.totalBytes)
+            ? Math.min(1, (progress.loadedBytes ?? 0) / progress.totalBytes)
             : 0;
           setTtsProgress(Math.round(fraction * 65));
           setTtsMessage(progress.totalBytes
@@ -535,11 +535,20 @@ export default function App() {
       if (result.audio.size > MAX_NARRATION_AUDIO_BYTES) {
         throw new Error("الصوت الناتج تجاوز 25 ميغابايت. قسّم نص التعليق إلى مقاطع أقصر.");
       }
+
+      const latestProject = activeProjectRef.current;
+      const latestScene = latestProject?.id === projectId
+        ? latestProject.scenes.find((item) => item.id === sceneId)
+        : undefined;
+      if (!latestScene || latestScene.narration.trim() !== narrationText) {
+        throw new Error("تغيّر المشروع أو نص المشهد أثناء التوليد؛ لم نربط الصوت بمحتوى مختلف.");
+      }
+
       const assetId = createId();
       await saveAudioAsset({
         id: assetId,
         projectId,
-        sceneId: scene.id,
+        sceneId,
         fileName: "nabra-arabic-narration.wav",
         mimeType: "audio/wav",
         size: result.audio.size,
@@ -547,16 +556,29 @@ export default function App() {
         blob: result.audio
       });
 
-      const fittedDuration = Math.max(scene.durationSeconds, Math.ceil(result.durationSeconds + 0.25));
+      const latestAtCommit = activeProjectRef.current;
+      const sceneAtCommit = latestAtCommit?.id === projectId
+        ? latestAtCommit.scenes.find((item) => item.id === sceneId)
+        : undefined;
+      if (!sceneAtCommit || sceneAtCommit.narration.trim() !== narrationText) {
+        await deleteAudioAsset(assetId);
+        throw new Error("تغيّر المشهد أثناء حفظ الصوت؛ أعد التوليد بعد تثبيت النص.");
+      }
+
+      const previousAssetId = sceneAtCommit.narrationAudioAssetId;
+      const fittedDuration = Math.max(sceneAtCommit.durationSeconds, Math.ceil(result.durationSeconds + 0.25));
       setActiveProject((current) => {
-        if (!current || current.id !== projectId || !current.scenes.some((item) => item.id === scene.id)) {
+        const currentScene = current?.id === projectId
+          ? current.scenes.find((item) => item.id === sceneId)
+          : undefined;
+        if (!current || !currentScene || currentScene.narration.trim() !== narrationText) {
           void deleteAudioAsset(assetId).catch(() => undefined);
           return current;
         }
         return {
           ...current,
           updatedAt: new Date().toISOString(),
-          scenes: current.scenes.map((item) => item.id === scene.id
+          scenes: current.scenes.map((item) => item.id === sceneId
             ? {
                 ...item,
                 narrationAudioAssetId: assetId,
@@ -566,12 +588,11 @@ export default function App() {
             : item)
         };
       });
-      if (scene.narrationAudioAssetId) {
-        void deleteAudioAsset(scene.narrationAudioAssetId).catch(() => undefined);
-      }
+
+      if (previousAssetId) void deleteAudioAsset(previousAssetId).catch(() => undefined);
       setTtsProgress(100);
       setTtsMessage("اكتمل توليد الصوت");
-      setToast("تم توليد التعليق العربي محليًا عبر " + (result.device === "webgpu" ? "WebGPU" : "WASM") + "، وحفظه للمشهد");
+      setToast("تم توليد التعليق العربي محليًا عبر " + (result.device === "webgpu" ? "WebGPU" : "WASM") + " وحفظه للمشهد");
     } catch (error) {
       setToast(error instanceof Error ? error.message : "تعذر توليد التعليق الصوتي.");
       setTtsMessage("");
