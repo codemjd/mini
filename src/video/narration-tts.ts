@@ -1,4 +1,4 @@
-import type { ProgressInfo } from "nabra-tts";
+import type { ProgressInfo } from "../../vendor/nabra-tts/dist/index.js";
 
 export interface ArabicTtsProgress {
   phase: "download" | "synthesis";
@@ -69,7 +69,7 @@ export function splitArabicSpeechText(text: string): string[] {
 async function loadEngine(onProgress?: (progress: ArabicTtsProgress) => void): Promise<NabraEngine> {
   if (!enginePromise) {
     enginePromise = (async () => {
-      const { NabraTTS } = await import("nabra-tts");
+      const { NabraTTS } = await import("../../vendor/nabra-tts/dist/index.js");
       return NabraTTS.load({
         dtype: "fp16",
         device: "auto",

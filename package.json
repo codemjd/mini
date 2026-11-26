@@ -7,14 +7,12 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
+    "dev": "npm run build:nabra && vite --host 0.0.0.0",
+    "build": "npm run build:nabra && tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "render:demo": "node scripts/create-audio-fixture.mjs && remotion render src/video/remotion-entry.tsx ExplainerDemo out/explainer-demo.mp4 --codec=h264 --gl=swangle --concurrency=2",
-    "test": "vitest run",
-    "build:nabra": "npm --prefix node_modules/nabra-tts run build",
-    "pretest": "npm run build:nabra",
-    "prebuild": "npm run build:nabra"
+    "build:nabra": "tsup --config vendor/nabra-tts/tsup.config.ts",
+    "render:demo": "npm run build:nabra && node scripts/create-audio-fixture.mjs && remotion render src/video/remotion-entry.tsx ExplainerDemo out/explainer-demo.mp4 --codec=h264 --gl=swangle --concurrency=2",
+    "test": "npm run build:nabra && vitest run"
   },
   "dependencies": {
     "@remotion/player": "4.0.547",
@@ -23,7 +21,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "@remotion/web-renderer": "4.0.547",
-    "nabra-tts": "https://github.com/Oddadmix/nabra-tts/archive/16b5281ce61993df3526740990cf845a3f3036f4.tar.gz"
+    "onnxruntime-web": "1.30.0"
   },
   "devDependencies": {
     "@types/react": "19.3.1",
