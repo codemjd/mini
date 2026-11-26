@@ -10,7 +10,7 @@ import {
   type SceneLayout,
   type StudioProject
 } from "./types/project";
-import { listProjects } from "./core/project-store";
+import { deleteAudioAsset, listProjects, loadAudioAsset, saveAudioAsset } from "./core/project-store";
 import { executeStudioCommand } from "./core/studio-commands";
 import { validateStudioProject } from "./core/project-validation";
 
@@ -57,6 +57,32 @@ function formatRelativeDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("ar", { day: "numeric", month: "short" }).format(date);
+}
+
+const MAX_AUDIO_ASSET_BYTES = 30 * 1024 * 1024;
+const MAX_AUDIO_BUNDLE_BYTES = 80 * 1024 * 1024;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("تعذر تجهيز ملف الصوت للتصدير."));
+    reader.onerror = () => reject(reader.error ?? new Error("تعذرت قراءة ملف الصوت."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function dataUrlToAudioBlob(value: unknown): Promise<Blob> {
+  if (typeof value !== "string" || !value.startsWith("data:audio/")) {
+    throw new Error("صيغة ملف الصوت داخل الحزمة غير مدعومة.");
+  }
+  const response = await fetch(value);
+  const blob = await response.blob();
+  if (!blob.type.startsWith("audio/")) throw new Error("نوع ملف الصوت داخل الحزمة غير صالح.");
+  return blob;
 }
 
 function PreviewCanvas({ scene }: { scene: Scene }) {
@@ -113,7 +139,9 @@ export default function App() {
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState("مشروع جديد");
   const [toast, setToast] = useState("");
+  const [previewAudio, setPreviewAudio] = useState<{ id: string; name: string; url: string } | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
+  const audioInput = useRef<HTMLInputElement>(null);
   const renderAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -154,6 +182,34 @@ export default function App() {
     () => activeProject?.scenes.find((scene) => scene.id === selectedSceneId) ?? activeProject?.scenes[0] ?? null,
     [activeProject, selectedSceneId]
   );
+
+  useEffect(() => {
+    let disposed = false;
+    let objectUrl: string | null = null;
+    const assetId = selectedScene?.narrationAudioAssetId;
+    setPreviewAudio(null);
+    if (!assetId) return () => { disposed = true; };
+
+    void loadAudioAsset(assetId).then((asset) => {
+      if (!asset) {
+        if (!disposed) setToast("ملف التعليق الصوتي غير موجود في التخزين المحلي.");
+        return;
+      }
+      objectUrl = URL.createObjectURL(asset.blob);
+      if (disposed) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+      setPreviewAudio({ id: asset.id, name: asset.name, url: objectUrl });
+    }).catch((error) => {
+      if (!disposed) setToast(error instanceof Error ? error.message : "تعذر تحميل ملف التعليق الصوتي.");
+    });
+
+    return () => {
+      disposed = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedScene?.id, selectedScene?.narrationAudioAssetId]);
 
   const projectDuration = activeProject?.scenes.reduce((sum, scene) => sum + scene.durationSeconds, 0) ?? 0;
   const totalDuration = projects.reduce((sum, project) => sum + project.scenes.reduce((duration, scene) => duration + scene.durationSeconds, 0), 0);
@@ -450,7 +506,7 @@ export default function App() {
                 <Player
                   key={selectedScene.id}
                   component={SceneComposition}
-                  inputProps={{ scene: selectedScene, sceneIndex: Math.max(0, activeProject.scenes.findIndex((scene) => scene.id === selectedScene.id)) }}
+                  inputProps={{ scene: selectedScene, sceneIndex: Math.max(0, activeProject.scenes.findIndex((scene) => scene.id === selectedScene.id)), audioSource: previewAudio?.url }}
                   durationInFrames={Math.max(1, Math.round(selectedScene.durationSeconds * activeProject.settings.fps))}
                   compositionWidth={activeProject.settings.width}
                   compositionHeight={activeProject.settings.height}
@@ -569,6 +625,18 @@ export default function App() {
                 )}
                 <label className="field-label">التعليق الصوتي</label>
                 <textarea className="text-field text-area narration-area" rows={5} value={selectedScene.narration} onChange={(event) => updateScene((scene) => ({ ...scene, narration: event.target.value }))} />
+                <div className="audio-asset-editor">
+                  <input ref={audioInput} type="file" accept="audio/*" hidden onChange={handleNarrationAudioUpload} />
+                  <div className="audio-asset-status">
+                    {previewAudio?.id === selectedScene.narrationAudioAssetId
+                      ? <><strong>{previewAudio.name}</strong><span>سيعمل هذا الصوت مع تشغيل المعاينة وسيُدرج في تصدير MP4.</span></>
+                      : <span>لم يُرفق ملف صوتي لهذا المشهد بعد.</span>}
+                  </div>
+                  <div className="field-actions">
+                    <button className="subtle-button" type="button" onClick={() => audioInput.current?.click()}>إرفاق صوت (WAV / MP3)</button>
+                    {selectedScene.narrationAudioAssetId && <button className="subtle-button" type="button" onClick={() => void removeNarrationAudio()}>إزالة الصوت</button>}
+                  </div>
+                </div>
                 <div className="field-actions">
                   <button className="subtle-button" onClick={() => moveScene(-1)} disabled={activeProject.scenes[0]?.id === selectedScene.id}>تحريك للأعلى</button>
                   <button className="subtle-button" onClick={() => moveScene(1)} disabled={activeProject.scenes.at(-1)?.id === selectedScene.id}>للأسفل</button>
@@ -576,7 +644,7 @@ export default function App() {
                 <button className="danger-button" onClick={removeScene}><Icon name="trash" size={15} /> حذف المشهد</button>
               </>
             )}
-            <div className="panel-note"><Icon name="spark" size={16} /><p>التصدير المحلي التجريبي حتى 720p. التعليق الصوتي لم يُدمج بعد.</p></div>
+            <div className="panel-note"><Icon name="spark" size={16} /><p>التصدير المحلي التجريبي حتى 720p. أرفق ملف تعليق لكل مشهد لإضافته إلى المعاينة وMP4. لا تُضاف موسيقى.</p></div>
           </aside>
         </div>
 
