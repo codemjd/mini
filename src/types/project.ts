@@ -19,6 +19,8 @@ export interface Scene {
   blocks: VisualBlock[];
   /** Reference to a locally stored narration clip; the audio bytes live in IndexedDB. */
   narrationAudioAssetId?: string;
+  /** Exact narration text used to create or attach this audio; mismatch means stale audio. */
+  narrationAudioText?: string;
 }
 
 export interface VideoSettings {
