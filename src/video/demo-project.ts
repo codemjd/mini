@@ -26,8 +26,8 @@ export const demoProject: StudioProject = {
     {
       id: "demo-scene-02",
       title: "الحزم الرقمية",
-      narration: "تُقسّم البيانات إلى وحدات أصغر تسمى حزمًا. تحمل كل حزمة جزءًا من المحتوى ومعلومات تساعد الشبكة على توجيهها.",
-      durationSeconds: 5,
+      narration: "تُقسَّمُ البياناتُ إلى حزمٍ صغيرةٍ. تحملُ كلُّ حزمةٍ جزءًا من المحتوى ومعلوماتِ التوجيه.",
+      durationSeconds: 8,
       layout: "diagram",
       background: "#182236",
       blocks: [
