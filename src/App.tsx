@@ -13,11 +13,13 @@ import {
 import { listProjects } from "./core/project-store";
 import { executeStudioCommand } from "./core/studio-commands";
 import { validateStudioProject } from "./core/project-validation";
+import { generateArabicNarration, type ArabicTtsProgress } from "./core/arabic-tts";
 import {
   decodeBase64Audio,
   deleteAudioAsset,
   encodeBlobToBase64,
   getAudioAsset,
+  getAudioDurationSeconds,
   MAX_NARRATION_AUDIO_BYTES,
   saveAudioAsset
 } from "./core/audio-asset-store";
@@ -124,6 +126,9 @@ export default function App() {
   const importInput = useRef<HTMLInputElement>(null);
   const narrationAudioInput = useRef<HTMLInputElement>(null);
   const [narrationAudioSrc, setNarrationAudioSrc] = useState<string | undefined>(undefined);
+  const [ttsGenerating, setTtsGenerating] = useState(false);
+  const [ttsProgress, setTtsProgress] = useState(0);
+  const [ttsMessage, setTtsMessage] = useState("");
   const renderAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -171,7 +176,7 @@ export default function App() {
     let objectUrl: string | undefined;
     setNarrationAudioSrc(undefined);
 
-    if (!assetId) return undefined;
+    if (!assetId || selectedScene?.narrationAudioText !== selectedScene?.narration) return undefined;
 
     void getAudioAsset(assetId)
       .then((asset) => {
@@ -487,13 +492,93 @@ export default function App() {
     }
   }
 
+  async function generateSceneNarration() {
+    if (!activeProject || !selectedScene || ttsGenerating) return;
+    const projectId = activeProject.id;
+    const scene = selectedScene;
+    const narrationText = scene.narration.trim();
+    if (!narrationText) {
+      setToast("اكتب نص التعليق أولًا قبل توليد الصوت.");
+      return;
+    }
+
+    setTtsGenerating(true);
+    setTtsProgress(0);
+    setTtsMessage("تهيئة محرك الصوت العربي...");
+    try {
+      const result = await generateArabicNarration(narrationText, (progress: ArabicTtsProgress) => {
+        if (progress.phase === "downloading") {
+          const fraction = progress.totalBytes && progress.totalBytes > 0
+            ? Math.min(1, progress.loadedBytes! / progress.totalBytes)
+            : 0;
+          setTtsProgress(Math.round(fraction * 65));
+          setTtsMessage(progress.totalBytes
+            ? "تحميل نموذج الصوت العربي " + Math.round(fraction * 100) + "%"
+            : "تحميل نموذج الصوت العربي...");
+        } else {
+          const fraction = progress.totalChunks
+            ? Math.min(1, (progress.completedChunks ?? 0) / progress.totalChunks)
+            : 0;
+          setTtsProgress(65 + Math.round(fraction * 35));
+          setTtsMessage("توليد الجمل " + (progress.completedChunks ?? 0) + " من " + (progress.totalChunks ?? 0));
+        }
+      });
+
+      if (result.audio.size > MAX_NARRATION_AUDIO_BYTES) {
+        throw new Error("الصوت الناتج تجاوز 25 ميغابايت. قسّم نص التعليق إلى مقاطع أقصر.");
+      }
+      const assetId = createId();
+      await saveAudioAsset({
+        id: assetId,
+        projectId,
+        sceneId: scene.id,
+        fileName: "nabra-arabic-narration.wav",
+        mimeType: "audio/wav",
+        size: result.audio.size,
+        createdAt: new Date().toISOString(),
+        blob: result.audio
+      });
+
+      const fittedDuration = Math.max(scene.durationSeconds, Math.ceil(result.durationSeconds + 0.25));
+      setActiveProject((current) => {
+        if (!current || current.id !== projectId || !current.scenes.some((item) => item.id === scene.id)) {
+          void deleteAudioAsset(assetId).catch(() => undefined);
+          return current;
+        }
+        return {
+          ...current,
+          updatedAt: new Date().toISOString(),
+          scenes: current.scenes.map((item) => item.id === scene.id
+            ? {
+                ...item,
+                narrationAudioAssetId: assetId,
+                narrationAudioText: narrationText,
+                durationSeconds: fittedDuration
+              }
+            : item)
+        };
+      });
+      if (scene.narrationAudioAssetId) {
+        void deleteAudioAsset(scene.narrationAudioAssetId).catch(() => undefined);
+      }
+      setTtsProgress(100);
+      setTtsMessage("اكتمل توليد الصوت");
+      setToast("تم توليد التعليق العربي محليًا عبر " + (result.device === "webgpu" ? "WebGPU" : "WASM") + "، وحفظه للمشهد");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "تعذر توليد التعليق الصوتي.");
+      setTtsMessage("");
+    } finally {
+      setTtsGenerating(false);
+    }
+  }
+
   async function attachNarrationAudio(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file || !activeProject || !selectedScene) return;
     try {
       const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
       const extensionSupported = ["mp3", "wav", "m4a", "aac", "webm"].includes(extension);
-      if (!file.type.startsWith("audio/") && !extensionSupported) {
+      if (!extensionSupported) {
         throw new Error("اختر ملفًا صوتيًا بصيغة MP3 أو WAV أو M4A أو AAC أو WebM.");
       }
       if (file.size === 0 || file.size > MAX_NARRATION_AUDIO_BYTES) {
@@ -506,8 +591,9 @@ export default function App() {
         aac: "audio/aac",
         webm: "audio/webm"
       };
-      const mimeType = file.type.startsWith("audio/") ? file.type : fallbackMime[extension];
-      if (!mimeType) throw new Error("صيغة الصوت غير معروفة لهذا المتصفح. جرّب ملف WAV أو MP3.");
+      const mimeType = fallbackMime[extension];
+      const durationSeconds = await getAudioDurationSeconds(file);
+      if (!durationSeconds) throw new Error("لم يستطع المتصفح قراءة مدة الملف الصوتي. جرّب MP3 أو WAV.");
       const assetId = createId();
       await saveAudioAsset({
         id: assetId,
@@ -523,7 +609,12 @@ export default function App() {
       updateProject((project) => ({
         ...project,
         scenes: project.scenes.map((scene) => scene.id === selectedScene.id
-          ? { ...scene, narrationAudioAssetId: assetId }
+          ? {
+              ...scene,
+              narrationAudioAssetId: assetId,
+              narrationAudioText: scene.narration,
+              durationSeconds: Math.max(scene.durationSeconds, Math.ceil(durationSeconds + 0.25))
+            }
           : scene)
       }));
       if (previousAssetId) void deleteAudioAsset(previousAssetId).catch(() => undefined);
@@ -538,7 +629,7 @@ export default function App() {
   function removeNarrationAudio() {
     if (!selectedScene?.narrationAudioAssetId) return;
     const assetId = selectedScene.narrationAudioAssetId;
-    updateScene((scene) => ({ ...scene, narrationAudioAssetId: undefined }));
+    updateScene((scene) => ({ ...scene, narrationAudioAssetId: undefined, narrationAudioText: undefined }));
     void deleteAudioAsset(assetId).catch((error: unknown) => {
       setToast(error instanceof Error ? error.message : "تعذر حذف ملف الصوت المحلي");
     });
@@ -789,18 +880,33 @@ export default function App() {
                   </div>
                 )}
                 <label className="field-label">نص التعليق الصوتي</label>
-                <textarea className="text-field text-area narration-area" rows={5} value={selectedScene.narration} onChange={(event) => updateScene((scene) => ({ ...scene, narration: event.target.value }))} />
+                <textarea className="text-field text-area narration-area" rows={5} value={selectedScene.narration} disabled={ttsGenerating} onChange={(event) => updateScene((scene) => ({ ...scene, narration: event.target.value }))} />
                 <label className="field-label">ملف التعليق الصوتي للمشهد</label>
-                <div className="field-actions">
-                  <button type="button" className="subtle-button" onClick={() => narrationAudioInput.current?.click()}>
-                    <Icon name="upload" size={15} /> {selectedScene.narrationAudioAssetId ? "استبدال ملف الصوت" : "إرفاق ملف صوتي"}
+                <div className="field-actions narration-actions">
+                  <button type="button" className="primary-button small" onClick={() => void generateSceneNarration()} disabled={ttsGenerating || !selectedScene.narration.trim()}>
+                    <Icon name="spark" size={15} /> {ttsGenerating ? "جارٍ التوليد..." : "توليد صوت عربي"}
                   </button>
-                  {selectedScene.narrationAudioAssetId && (
-                    <button type="button" className="subtle-button" onClick={removeNarrationAudio}>إزالة الصوت</button>
-                  )}
+                  <button type="button" className="subtle-button" onClick={() => narrationAudioInput.current?.click()} disabled={ttsGenerating}>
+                    <Icon name="upload" size={15} /> {selectedScene.narrationAudioAssetId ? "استبدال ملف الصوت" : "رفع صوت"}
+                  </button>
                 </div>
+                {selectedScene.narrationAudioAssetId && (
+                  <div className="field-actions">
+                    <button type="button" className="subtle-button" onClick={removeNarrationAudio} disabled={ttsGenerating}>إزالة الصوت</button>
+                    <span className="audio-state-label">{selectedScene.narrationAudioText === selectedScene.narration ? "الصوت مطابق للنص" : "النص تغيّر — أعد التوليد"}</span>
+                  </div>
+                )}
                 <input ref={narrationAudioInput} type="file" accept="audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/webm,.mp3,.wav,.m4a,.aac,.webm" hidden onChange={attachNarrationAudio} />
-                <p className="panel-help">{selectedScene.narrationAudioAssetId ? "الصوت محفوظ محليًا ومتزامن مع تشغيل المشهد." : "MP3 أو WAV أو M4A أو AAC أو WebM · حتى 25 ميغابايت. هذا المسار للتعليق الصوتي فقط، بلا موسيقى."}</p>
+                {ttsGenerating ? (
+                  <div className="tts-progress" role="status" aria-live="polite">
+                    <div><span>{ttsMessage}</span><strong>{ttsProgress}%</strong></div>
+                    <span className="tts-progress-track"><i style={{ width: ttsProgress + "%" }} /></span>
+                  </div>
+                ) : (
+                  <p className="panel-help">
+                    توليد محلي بالعربية عبر Nabra، يُحمّل النموذج عند أول طلب فقط (نحو 16 ميغابايت للأوزان FP16 إضافة إلى بيئة التشغيل). يعمل دون API مدفوع، ويُخزّن الصوت على الجهاز. يمكن أيضًا رفع MP3 أو WAV أو M4A أو AAC أو WebM حتى 25 ميغابايت. لا موسيقى.
+                  </p>
+                )}
                 <div className="field-actions">
                   <button className="subtle-button" onClick={() => moveScene(-1)} disabled={activeProject.scenes[0]?.id === selectedScene.id}>تحريك للأعلى</button>
                   <button className="subtle-button" onClick={() => moveScene(1)} disabled={activeProject.scenes.at(-1)?.id === selectedScene.id}>للأسفل</button>
