@@ -761,10 +761,11 @@ export default function App() {
   }
 
   async function removeNarrationAudio() {
-    if (!activeProject || !selectedScene?.narrationAudioAssetId) return;
+    if (!activeProject || !selectedScene) return;
     const targetProject = activeProject;
     const targetScene = selectedScene;
     const assetId = targetScene.narrationAudioAssetId;
+    if (!assetId) return;
     if (!assetId) return;
 
     const result = await executeStudioCommand({
