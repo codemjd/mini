@@ -356,39 +356,201 @@ export default function App() {
     setToast("تم حذف المشهد");
   }
 
-  function exportProject() {
+  async function exportProject() {
     if (!activeProject) return;
-    const blob = new Blob([JSON.stringify(activeProject, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${activeProject.title.replace(/[^\p{L}\p{N}-]+/gu, "-") || "explainer-project"}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    setToast("تم تجهيز ملف المشروع");
+    try {
+      const assetIds = Array.from(new Set(activeProject.scenes
+        .map((scene) => scene.narrationAudioAssetId)
+        .filter((id): id is string => Boolean(id))));
+      const assets = [];
+      let totalBytes = 0;
+
+      for (const id of assetIds) {
+        const asset = await loadAudioAsset(id);
+        if (!asset) throw new Error("يوجد ملف صوتي مفقود. أعد إرفاقه قبل تصدير حزمة المشروع.");
+        totalBytes += asset.size;
+        if (totalBytes > MAX_AUDIO_BUNDLE_BYTES) {
+          throw new Error("إجمالي ملفات الصوت يتجاوز حد الحزمة البالغ 80 ميغابايت.");
+        }
+        assets.push({
+          id: asset.id,
+          sceneId: asset.sceneId,
+          name: asset.name,
+          mimeType: asset.mimeType,
+          createdAt: asset.createdAt,
+          dataUrl: await blobToDataUrl(asset.blob)
+        });
+      }
+
+      const bundle = {
+        format: "explainer-studio-project-bundle",
+        version: 1,
+        project: activeProject,
+        audioAssets: assets
+      };
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = (activeProject.title.replace(/[^\\p{L}\\p{N}-]+/gu, "-") || "explainer-project") + ".json";
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+      setToast(assetIds.length ? "تم تصدير المشروع مع ملفات التعليق الصوتي" : "تم تجهيز ملف المشروع");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "تعذر تصدير المشروع.");
+    }
   }
 
   async function importProject(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    const importedAudioIds: string[] = [];
     try {
+      if (file.size > 120 * 1024 * 1024) {
+        throw new Error("حزمة المشروع كبيرة جدًا؛ الحد الأقصى للاستيراد 120 ميغابايت.");
+      }
       const parsed: unknown = JSON.parse(await file.text());
-      const validation = validateStudioProject(parsed);
+      const bundleRecord = isRecord(parsed)
+        && parsed.format === "explainer-studio-project-bundle"
+        && parsed.version === 1
+        ? parsed
+        : null;
+      const validation = validateStudioProject(bundleRecord ? bundleRecord.project : parsed);
       if (!validation.valid) {
         const firstIssues = validation.issues.slice(0, 3).map((item) => item.message).join(" ");
         throw new Error(firstIssues || "ملف المشروع لا يطابق الصيغة المدعومة.");
       }
+
       const project = validation.project;
+      if (bundleRecord) {
+        if (!Array.isArray(bundleRecord.audioAssets)) {
+          throw new Error("قائمة ملفات الصوت داخل الحزمة غير صالحة.");
+        }
+        const references = new Map<string, string>();
+        for (const scene of project.scenes) {
+          if (scene.narrationAudioAssetId) references.set(scene.narrationAudioAssetId, scene.id);
+        }
+
+        const importedIds = new Map<string, string>();
+        const seenIds = new Set<string>();
+        let totalBytes = 0;
+
+        for (const rawAsset of bundleRecord.audioAssets) {
+          if (!isRecord(rawAsset)
+            || typeof rawAsset.id !== "string"
+            || typeof rawAsset.sceneId !== "string"
+            || typeof rawAsset.name !== "string"
+            || typeof rawAsset.mimeType !== "string") {
+            throw new Error("أحد ملفات الصوت داخل الحزمة يحتوي بيانات ناقصة.");
+          }
+          if (seenIds.has(rawAsset.id) || references.get(rawAsset.id) !== rawAsset.sceneId) {
+            throw new Error("ارتباط ملف الصوت بالمشهد غير صحيح أو مكرر.");
+          }
+          seenIds.add(rawAsset.id);
+
+          const blob = await dataUrlToAudioBlob(rawAsset.dataUrl);
+          if (blob.size < 1 || blob.size > MAX_AUDIO_ASSET_BYTES) {
+            throw new Error("أحد ملفات الصوت يتجاوز الحد المسموح أو فارغ.");
+          }
+          totalBytes += blob.size;
+          if (totalBytes > MAX_AUDIO_BUNDLE_BYTES) {
+            throw new Error("إجمالي ملفات الصوت داخل الحزمة يتجاوز 80 ميغابايت.");
+          }
+
+          const newId = createId();
+          await saveAudioAsset({
+            id: newId,
+            projectId: project.id,
+            sceneId: rawAsset.sceneId,
+            name: rawAsset.name.slice(0, 255),
+            mimeType: blob.type || rawAsset.mimeType,
+            size: blob.size,
+            blob,
+            createdAt: typeof rawAsset.createdAt === "string" ? rawAsset.createdAt : new Date().toISOString()
+          });
+          importedAudioIds.push(newId);
+          importedIds.set(rawAsset.id, newId);
+        }
+
+        if (seenIds.size !== references.size) {
+          throw new Error("الحزمة لا تتضمن كل ملفات الصوت المرتبطة بالمشاهد.");
+        }
+        project.scenes = project.scenes.map((scene) => scene.narrationAudioAssetId
+          ? { ...scene, narrationAudioAssetId: importedIds.get(scene.narrationAudioAssetId) }
+          : scene);
+      }
+
       project.updatedAt = new Date().toISOString();
       const saved = await executeStudioCommand({ type: "project.save", project });
       if (!saved.ok) throw new Error(saved.error);
       setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)]);
       await openProject(project);
-      setToast("تم استيراد المشروع");
+      setToast(importedAudioIds.length ? "تم استيراد المشروع وملفات الصوت" : "تم استيراد المشروع");
     } catch (error) {
+      await Promise.all(importedAudioIds.map(async (id) => {
+        try { await deleteAudioAsset(id); } catch { /* keep the original import error */ }
+      }));
       setToast(error instanceof Error ? error.message : "تعذر استيراد الملف");
     } finally {
       event.target.value = "";
+    }
+  }
+
+  async function handleNarrationAudioUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file || !activeProject || !selectedScene) return;
+    try {
+      if (file.size < 1 || file.size > MAX_AUDIO_ASSET_BYTES) {
+        throw new Error("حجم ملف التعليق يجب أن يكون أقل من 30 ميغابايت.");
+      }
+      const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+      const inferredTypes: Record<string, string> = {
+        mp3: "audio/mpeg",
+        wav: "audio/wav",
+        m4a: "audio/mp4",
+        aac: "audio/aac",
+        ogg: "audio/ogg",
+        opus: "audio/ogg",
+        webm: "audio/webm"
+      };
+      const mimeType = file.type || inferredTypes[extension] || "";
+      if (!mimeType.startsWith("audio/")) {
+        throw new Error("اختر ملفًا صوتيًا بصيغة مدعومة مثل MP3 أو WAV أو M4A.");
+      }
+
+      const previousId = selectedScene.narrationAudioAssetId;
+      const assetId = createId();
+      await saveAudioAsset({
+        id: assetId,
+        projectId: activeProject.id,
+        sceneId: selectedScene.id,
+        name: file.name.slice(0, 255),
+        mimeType,
+        size: file.size,
+        blob: file,
+        createdAt: new Date().toISOString()
+      });
+      updateScene((scene) => ({ ...scene, narrationAudioAssetId: assetId }));
+      if (previousId && previousId !== assetId) {
+        try { await deleteAudioAsset(previousId); } catch { /* project remains linked to the new asset */ }
+      }
+      setToast("تم إرفاق التعليق الصوتي بالمشهد");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "تعذر إرفاق ملف الصوت.");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  async function removeNarrationAudio() {
+    const assetId = selectedScene?.narrationAudioAssetId;
+    if (!assetId) return;
+    updateScene((scene) => ({ ...scene, narrationAudioAssetId: undefined }));
+    try {
+      await deleteAudioAsset(assetId);
+      setToast("تمت إزالة ملف التعليق الصوتي");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "تعذر حذف ملف الصوت.");
     }
   }
 
