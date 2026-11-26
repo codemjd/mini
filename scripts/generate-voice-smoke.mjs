@@ -8,7 +8,7 @@ const outputDirectory = resolve("out");
 const outputPath = resolve(outputDirectory, "nabra-arabic-voice-smoke.wav");
 const metadataPath = resolve(outputDirectory, "nabra-arabic-voice-smoke.json");
 const modelBase = "https://huggingface.co/oddadmix/Nabra-7M-Distill-ONNX/resolve/main";
-const sampleText = "مَرْحَبًا بِكُمْ. هَذَا اِخْتِبَارٌ لِلتَّعْلِيقِ الصَّوْتِيِّ العَرَبِيِّ فِي إكسبلينر ستوديو.";
+const sampleText = "تُقَسَّمُ البَيَانَاتُ إِلَى حُزَمٍ صَغِيرَةٍ. تَحْمِلُ كُلُّ حُزْمَةٍ جُزْءًا مِنَ المُحْتَوَى وَمَعْلُومَاتِ التَّوْجِيهِ.";
 
 const require = createRequire(import.meta.url);
 const onnxRuntimeDirectory = dirname(require.resolve("onnxruntime-web"));
