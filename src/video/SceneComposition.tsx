@@ -1,6 +1,7 @@
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import type { CSSProperties, FC } from "react";
 import type { Scene } from "../types/project";
+import { getDiagramCards, getSceneNumberLabel } from "./scene-visuals";
 
 const mint = "#83ead7";
 const violet = "#b6a7ff";
@@ -27,7 +28,8 @@ export const SceneComposition: FC<{ scene: Scene; sceneIndex?: number }> = ({ sc
   const steps = scene.blocks.filter((b) => b.kind === "step").slice(0, 4);
   const metrics = scene.blocks.filter((b) => b.kind === "metric").slice(0, 3);
   const labels = scene.blocks.filter((b) => b.kind === "shape").slice(0, 3);
-  const sceneNo = String(sceneIndex + 1).padStart(2, "0");
+  const sceneNo = getSceneNumberLabel(sceneIndex);
+  const diagramCards = getDiagramCards(scene);
 
   const visualCard = (title: string, subtitle: string, color: string, index: number) => (
     <div key={title} style={{ flex: 1, minHeight: 190, borderRadius: 20, border: "1px solid " + color + "66", background: "linear-gradient(155deg," + color + "22,rgba(255,255,255,.025))", padding: "18px 12px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", transform: "translateY(" + (Math.sin(frame / 13 + index) * 5) + "px)", direction: "rtl" }}>
@@ -120,7 +122,7 @@ export const SceneComposition: FC<{ scene: Scene; sceneIndex?: number }> = ({ sc
               </div>
             ) : scene.layout === "diagram" ? (
               <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "ltr", position: "relative", gap: 14 }}>
-                {(steps.length ? steps.slice(0, 3) : labels.length ? labels.slice(0, 3) : scene.blocks.filter((block) => block.kind !== "shape").slice(0, 3)).map((block, index) => {
+                {diagramCards.map((block, index) => {
                   const color = [mint, violet, amber][index];
                   const subtitle = block.kind === "step" ? "مرحلة في العملية" : block.kind === "metric" ? "مؤشر أساسي" : block.kind === "heading" ? "الفكرة الرئيسية" : "تفصيل من الشرح";
                   return visualCard(block.content, subtitle, color, index);
