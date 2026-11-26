@@ -94,8 +94,16 @@ export async function deleteProject(id: string): Promise<void> {
     const database = await openStudioDatabase();
     try {
       await new Promise<void>((resolve, reject) => {
-        const transaction = database.transaction(PROJECT_STORE_NAME, "readwrite");
+        const transaction = database.transaction([PROJECT_STORE_NAME, AUDIO_ASSET_STORE_NAME], "readwrite");
         transaction.objectStore(PROJECT_STORE_NAME).delete(id);
+        const audioRequest = transaction.objectStore(AUDIO_ASSET_STORE_NAME).getAll();
+        audioRequest.onsuccess = () => {
+          const assets = audioRequest.result as AudioAssetRecord[];
+          for (const asset of assets) {
+            if (asset.projectId === id) transaction.objectStore(AUDIO_ASSET_STORE_NAME).delete(asset.id);
+          }
+        };
+        audioRequest.onerror = () => transaction.abort();
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error ?? new Error("Could not delete the project."));
         transaction.onabort = () => reject(transaction.error ?? new Error("Project deletion was cancelled."));
