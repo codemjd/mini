@@ -606,17 +606,9 @@ export default function App() {
     if (!file || !activeProject || !selectedScene) return;
     const projectId = activeProject.id;
     const sceneId = selectedScene.id;
-    const narrationText = selectedScene.narration;
-    const previousAssetId = selectedScene.narrationAudioAssetId;
+
     try {
       const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-      const extensionSupported = ["mp3", "wav", "m4a", "aac", "webm"].includes(extension);
-      if (!extensionSupported) {
-        throw new Error("اختر ملفًا صوتيًا بصيغة MP3 أو WAV أو M4A أو AAC أو WebM.");
-      }
-      if (file.size === 0 || file.size > MAX_NARRATION_AUDIO_BYTES) {
-        throw new Error("حجم ملف التعليق الصوتي يجب أن يكون أقل من 25 ميغابايت.");
-      }
       const fallbackMime: Record<string, string> = {
         mp3: "audio/mpeg",
         wav: "audio/wav",
@@ -625,8 +617,26 @@ export default function App() {
         webm: "audio/webm"
       };
       const mimeType = fallbackMime[extension];
+      if (!mimeType) {
+        throw new Error("اختر ملفًا صوتيًا بصيغة MP3 أو WAV أو M4A أو AAC أو WebM.");
+      }
+      if (file.size === 0 || file.size > MAX_NARRATION_AUDIO_BYTES) {
+        throw new Error("حجم ملف التعليق الصوتي يجب أن يكون أقل من 25 ميغابايت.");
+      }
+
       const durationSeconds = await getAudioDurationSeconds(file);
-      if (!durationSeconds) throw new Error("لم يستطع المتصفح قراءة مدة الملف الصوتي. جرّب MP3 أو WAV.");
+      if (!durationSeconds) {
+        throw new Error("لم يستطع المتصفح قراءة مدة الملف الصوتي. جرّب MP3 أو WAV.");
+      }
+
+      const latestProject = activeProjectRef.current;
+      const latestScene = latestProject?.id === projectId
+        ? latestProject.scenes.find((scene) => scene.id === sceneId)
+        : undefined;
+      if (!latestScene) {
+        throw new Error("المشروع أو المشهد تغيّر أثناء قراءة ملف الصوت. أعد المحاولة.");
+      }
+
       const assetId = createId();
       await saveAudioAsset({
         id: assetId,
@@ -638,6 +648,15 @@ export default function App() {
         createdAt: new Date().toISOString(),
         blob: file
       });
+
+      const sceneAtCommit = activeProjectRef.current?.id === projectId
+        ? activeProjectRef.current.scenes.find((scene) => scene.id === sceneId)
+        : undefined;
+      if (!sceneAtCommit) {
+        await deleteAudioAsset(assetId);
+        throw new Error("لم يعد المشهد موجودًا؛ لم نربط به ملف صوت.");
+      }
+
       setActiveProject((current) => {
         if (!current || current.id !== projectId || !current.scenes.some((scene) => scene.id === sceneId)) {
           void deleteAudioAsset(assetId).catch(() => undefined);
@@ -650,13 +669,13 @@ export default function App() {
             ? {
                 ...scene,
                 narrationAudioAssetId: assetId,
-                narrationAudioText: narrationText,
+                narrationAudioText: scene.narration,
                 durationSeconds: Math.max(scene.durationSeconds, Math.ceil(durationSeconds + 0.25))
               }
             : scene)
         };
       });
-      if (previousAssetId) void deleteAudioAsset(previousAssetId).catch(() => undefined);
+
       setToast("تم ربط التعليق الصوتي بالمشهد وحفظه محليًا");
     } catch (error) {
       setToast(error instanceof Error ? error.message : "تعذر إرفاق ملف الصوت");
