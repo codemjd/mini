@@ -21,11 +21,11 @@ interface NabraEngine {
 
 let enginePromise: Promise<NabraEngine> | null = null;
 
-const MAX_SCENE_CHARACTERS = 2400;
-const MAX_SEGMENT_CHARACTERS = 160;
+export const MAX_SCENE_CHARACTERS = 2400;
+export const MAX_SEGMENT_CHARACTERS = 160;
 const PAUSE_MILLISECONDS = 140;
 
-function splitForSpeech(text: string): string[] {
+export function splitArabicSpeechText(text: string): string[] {
   const sentenceParts = text
     .replace(/\r/g, "")
     .split(/(?<=[.!?؟؛。])\s+|\n+/u)
@@ -116,7 +116,7 @@ export async function generateArabicNarration(
   const engine = await loadEngine(onProgress);
   if (signal?.aborted) throw new DOMException("تم إلغاء توليد الصوت.", "AbortError");
 
-  const segments = splitForSpeech(text);
+  const segments = splitArabicSpeechText(text);
   if (segments.length === 0) throw new Error("لم يتم العثور على نص صالح للتوليد.");
 
   const audioParts: Float32Array[] = [];
