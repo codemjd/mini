@@ -75,6 +75,27 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+function readAudioDurationSeconds(blob: Blob): Promise<number | null> {
+  return new Promise((resolve) => {
+    const audio = document.createElement("audio");
+    const url = URL.createObjectURL(blob);
+    let settled = false;
+    const finish = (duration: number | null) => {
+      if (settled) return;
+      settled = true;
+      audio.removeAttribute("src");
+      audio.load();
+      URL.revokeObjectURL(url);
+      resolve(duration && Number.isFinite(duration) && duration > 0 ? duration : null);
+    };
+    audio.preload = "metadata";
+    audio.onloadedmetadata = () => finish(audio.duration);
+    audio.onerror = () => finish(null);
+    audio.src = url;
+    audio.load();
+  });
+}
+
 async function dataUrlToAudioBlob(value: unknown): Promise<Blob> {
   if (typeof value !== "string" || !value.startsWith("data:audio/")) {
     throw new Error("صيغة ملف الصوت داخل الحزمة غير مدعومة.");
@@ -281,18 +302,21 @@ export default function App() {
       setToast(result.error);
       return;
     }
+    let audioCleanupFailed = false;
     try {
       const audioAssets = await listProjectAudioAssets(project.id);
       await Promise.all(audioAssets.map((asset) => deleteAudioAsset(asset.id)));
     } catch {
-      setToast("حُذف المشروع، لكن بقي ملف صوت محلي يتيم يمكن تنظيفه لاحقًا.");
+      audioCleanupFailed = true;
     }
     setProjects((current) => current.filter((item) => item.id !== project.id));
     if (activeProject?.id === project.id) {
       setActiveProject(null);
       setView("dashboard");
     }
-    setToast("تم حذف المشروع من هذا الجهاز");
+    setToast(audioCleanupFailed
+      ? "حُذف المشروع، لكن تعذر حذف بعض ملفات الصوت المحلية."
+      : "تم حذف المشروع من هذا الجهاز");
   }
 
   async function addScene() {
@@ -359,7 +383,8 @@ export default function App() {
     const updated = result.data as StudioProject;
     setActiveProject(updated);
     setSelectedSceneId(updated.scenes[0]?.id ?? null);
-    if (selectedScene.narrationAudioAssetId) {
+    if (selectedScene.narrationAudioAssetId
+      && !updated.scenes.some((scene) => scene.narrationAudioAssetId === selectedScene.narrationAudioAssetId)) {
       void deleteAudioAsset(selectedScene.narrationAudioAssetId).catch(() => {
         setToast("حُذف المشهد، لكن تعذر حذف ملف الصوت المحلي المرتبط به.");
       });
@@ -525,6 +550,7 @@ export default function App() {
         throw new Error("يدعم الاستوديو حاليًا ملفات MP3 وWAV فقط لضمان توافق المعاينة والتصدير.");
       }
 
+      const audioDurationSeconds = await readAudioDurationSeconds(file);
       const previousId = selectedScene.narrationAudioAssetId;
       const assetId = createId();
       await saveAudioAsset({
@@ -537,7 +563,13 @@ export default function App() {
         blob: file,
         createdAt: new Date().toISOString()
       });
-      updateScene((scene) => ({ ...scene, narrationAudioAssetId: assetId }));
+      updateScene((scene) => ({
+        ...scene,
+        narrationAudioAssetId: assetId,
+        durationSeconds: audioDurationSeconds
+          ? Math.max(scene.durationSeconds, Math.ceil(audioDurationSeconds))
+          : scene.durationSeconds
+      }));
       if (previousId && previousId !== assetId) {
         try { await deleteAudioAsset(previousId); } catch { /* project remains linked to the new asset */ }
       }
@@ -553,8 +585,11 @@ export default function App() {
     const assetId = selectedScene?.narrationAudioAssetId;
     if (!assetId) return;
     updateScene((scene) => ({ ...scene, narrationAudioAssetId: undefined }));
+    const stillReferenced = activeProject?.scenes.some((scene) =>
+      scene.id !== selectedScene?.id && scene.narrationAudioAssetId === assetId
+    );
     try {
-      await deleteAudioAsset(assetId);
+      if (!stillReferenced) await deleteAudioAsset(assetId);
       setToast("تمت إزالة ملف التعليق الصوتي");
     } catch (error) {
       setToast(error instanceof Error ? error.message : "تعذر حذف ملف الصوت.");
@@ -795,7 +830,7 @@ export default function App() {
                 <label className="field-label">التعليق الصوتي</label>
                 <textarea className="text-field text-area narration-area" rows={5} value={selectedScene.narration} onChange={(event) => updateScene((scene) => ({ ...scene, narration: event.target.value }))} />
                 <div className="audio-asset-editor">
-                  <input ref={audioInput} type="file" accept="audio/*" hidden onChange={handleNarrationAudioUpload} />
+                  <input ref={audioInput} type="file" accept="audio/mpeg,audio/wav" hidden onChange={handleNarrationAudioUpload} />
                   <div className="audio-asset-status">
                     {previewAudio && previewAudio.id === selectedScene.narrationAudioAssetId
                       ? <><strong>{previewAudio.name}</strong><span>سيعمل هذا الصوت مع تشغيل المعاينة وسيُدرج في تصدير MP4.</span></>
