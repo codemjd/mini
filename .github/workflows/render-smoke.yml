@@ -13,6 +13,16 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/render-smoke.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/video/**"
+      - "src/types/project.ts"
+      - "src/core/audio-asset-store.ts"
+      - "src/App.tsx"
+      - "scripts/**"
+      - "package.json"
+      - ".github/workflows/render-smoke.yml"
 
 permissions:
   contents: read
