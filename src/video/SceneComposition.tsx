@@ -1,194 +1,143 @@
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import type { FC, CSSProperties } from "react";
+import { AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import type { CSSProperties, FC, ReactNode } from "react";
 import type { Scene } from "../types/project";
 
-const panel: CSSProperties = {
-  position: "absolute",
-  left: "13%",
-  top: "19%",
-  width: "37%",
-  height: "62%",
-  border: "1px solid rgba(163,151,255,.3)",
-  borderRadius: 28,
-  background: "linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,255,255,.012))",
-  boxShadow: "0 32px 90px rgba(0,0,0,.18)",
-  overflow: "hidden"
+const C = {
+  ink: "#0b1222",
+  panel: "rgba(18,29,49,.82)",
+  mint: "#78ead7",
+  violet: "#a99bff",
+  gold: "#ffc98d",
+  white: "#f5f7ff",
+  muted: "#aab8cc"
 };
 
-const nodeStyle: CSSProperties = {
-  width: "27%",
-  height: "48%",
-  padding: "22px 18px",
-  boxSizing: "border-box",
-  border: "1px solid rgba(156,233,220,.32)",
-  borderRadius: 18,
-  background: "linear-gradient(155deg, rgba(156,233,220,.13), rgba(255,255,255,.025))",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  direction: "rtl"
+const ease = Easing.bezier(0.22, 1, 0.36, 1);
+const rise = (frame: number, delay = 0, distance = 34) => ({
+  opacity: interpolate(frame, [delay, delay + 18], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease }),
+  transform: `translate3d(0,${interpolate(frame, [delay, delay + 18], [distance, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease })}px,0)`
+});
+
+const Glass: FC<{ children: ReactNode; style?: CSSProperties }> = ({ children, style }) => (
+  <div style={{ border: "1px solid rgba(190,211,245,.14)", borderRadius: 28, background: "linear-gradient(145deg,rgba(25,40,66,.88),rgba(12,20,36,.76))", boxShadow: "0 32px 90px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.055)", ...style }}>{children}</div>
+);
+
+const DotField: FC<{ frame: number }> = ({ frame }) => (
+  <svg width="100%" height="100%" viewBox="0 0 1920 1080" style={{ position: "absolute", inset: 0, opacity: .35 }}>
+    {Array.from({ length: 12 }, (_, i) => <circle key={i} cx={150 + i * 150} cy={110 + (i % 3) * 370} r={2 + (i % 3)} fill={i % 2 ? C.mint : C.violet} opacity={.35 + .25 * Math.sin((frame + i * 13) / 18)} />)}
+    <path d="M0 820 C420 700 530 1000 970 820 S1530 680 1920 790" stroke="rgba(120,234,215,.12)" strokeWidth="2" fill="none" />
+  </svg>
+);
+
+const Diagram: FC<{ frame: number }> = ({ frame }) => {
+  const labels = ["تقسيم", "توجيه", "استقبال"];
+  const colors = [C.mint, C.violet, C.gold];
+  return (
+    <Glass style={{ position: "absolute", left: "7%", top: "18%", width: "47%", height: "62%", padding: "4.2% 3.2%" }}>
+      <div style={{ color: C.muted, fontSize: 19, letterSpacing: 4, textAlign: "left" }}>DATA FLOW / 03 STEPS</div>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", height: "76%", direction: "rtl" }}>
+        <div style={{ position: "absolute", top: "42%", left: "13%", right: "13%", height: 3, background: "linear-gradient(90deg,rgba(120,234,215,.2),rgba(169,155,255,.8),rgba(255,201,141,.2))" }} />
+        {labels.map((label, i) => {
+          const p = interpolate(frame, [i * 9, i * 9 + 20], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
+          return <div key={label} style={{ zIndex: 1, width: "27%", display: "flex", flexDirection: "column", alignItems: "center", gap: 22, opacity: p, transform: `translateY(${(1-p)*28}px)` }}>
+            <div style={{ width: 116, height: 116, borderRadius: 30, border: `1px solid ${colors[i]}88`, background: `linear-gradient(145deg,${colors[i]}30,rgba(12,20,36,.9))`, boxShadow: `0 0 42px ${colors[i]}22`, display: "grid", placeItems: "center" }}>
+              {i === 0 ? <svg width="62" height="62" viewBox="0 0 62 62"><rect x="7" y="8" width="48" height="12" rx="4" fill={colors[i]}/><rect x="7" y="25" width="32" height="12" rx="4" fill={colors[i]} opacity=".7"/><rect x="7" y="42" width="40" height="12" rx="4" fill={colors[i]} opacity=".4"/></svg> : i === 1 ? <svg width="62" height="62" viewBox="0 0 62 62"><path d="M8 31H48M35 17L49 31L35 45" stroke={colors[i]} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none"/><circle cx="12" cy="31" r="7" fill={colors[i]}/></svg> : <svg width="62" height="62" viewBox="0 0 62 62"><path d="M11 31L24 44L51 16" stroke={colors[i]} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>}
+            </div>
+            <strong style={{ color: C.white, fontSize: 29 }}>{label}</strong>
+            <span style={{ color: colors[i], fontSize: 17, letterSpacing: 3 }}>0{i+1}</span>
+          </div>;
+        })}
+      </div>
+      <div style={{ height: 5, borderRadius: 9, background: "rgba(255,255,255,.08)", overflow: "hidden" }}><div style={{ width: `${Math.min(100, frame / 120 * 100)}%`, height: "100%", background: C.mint }} /></div>
+    </Glass>
+  );
+};
+
+const SplitVisual: FC<{ frame: number }> = ({ frame }) => (
+  <Glass style={{ position: "absolute", left: "7%", top: "18%", width: "47%", height: "62%", padding: "4%" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", color: C.muted, fontSize: 18, letterSpacing: 3 }}><span>REASSEMBLY</span><span style={{ color: C.mint }}>DATA / 02</span></div>
+    <div style={{ position: "absolute", inset: "24% 12%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "absolute", width: 310, height: 310, borderRadius: "50%", border: "1px dashed rgba(120,234,215,.32)", transform: `rotate(${frame * .6}deg)` }} />
+      <div style={{ position: "absolute", width: 230, height: 230, borderRadius: "50%", border: "1px solid rgba(169,155,255,.3)", transform: `rotate(-${frame * .8}deg)` }} />
+      {[0,1,2,3,4,5].map(i => {
+        const angle = i * Math.PI / 3 + frame * .018;
+        const x = 150 * Math.cos(angle), y = 150 * Math.sin(angle);
+        const p = interpolate(frame, [i * 5, i * 5 + 18], [0,1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        return <div key={i} style={{ position: "absolute", width: 54, height: 54, borderRadius: 15, border: "1px solid rgba(169,155,255,.7)", background: "linear-gradient(145deg,rgba(169,155,255,.45),rgba(169,155,255,.08))", boxShadow: "0 0 28px rgba(169,155,255,.2)", transform: `translate(${x}px,${y}px) scale(${p})`, opacity: p }} />;
+      })}
+      <div style={{ width: 128, height: 128, borderRadius: 36, background: "linear-gradient(145deg,#78ead7,#2e9f9c)", boxShadow: "0 0 65px rgba(120,234,215,.3)", display: "grid", placeItems: "center", color: "#09212b", fontSize: 28, fontWeight: 800 }}>DATA</div>
+    </div>
+    <div style={{ position: "absolute", bottom: "9%", right: "10%", color: C.muted, fontSize: 20 }}>تصل الأجزاء ثم تُرتّب من جديد</div>
+  </Glass>
+);
+
+const StatsVisual: FC<{ scene: Scene; frame: number }> = ({ scene, frame }) => {
+  const metrics = scene.blocks.filter(b => b.kind === "metric").slice(0,3);
+  const labels = scene.blocks.filter(b => b.kind === "shape").slice(0,3);
+  const accents = [C.mint, C.violet, C.gold];
+  return <div style={{ position: "absolute", left: "7%", top: "21%", width: "47%", display: "flex", gap: 18 }}>
+    {metrics.map((item,i) => <Glass key={item.id} style={{ flex: 1, minHeight: 390, padding: "34px 18px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 28, ...rise(frame,i*9,35) }}>
+      <span style={{ color: accents[i], fontSize: 18, letterSpacing: 3 }}>INSIGHT / 0{i+1}</span>
+      <strong style={{ fontSize: 66, color: C.white }}>{item.content}</strong>
+      <div style={{ width: 54, height: 4, borderRadius: 8, background: accents[i], boxShadow: `0 0 22px ${accents[i]}` }} />
+      <span style={{ color: C.muted, textAlign: "center", fontSize: 23, lineHeight: 1.6 }}>{labels[i]?.content ?? "الفكرة الأساسية"}</span>
+    </Glass>)}
+  </div>;
+};
+
+const TimelineVisual: FC<{ scene: Scene; frame: number }> = ({ scene, frame }) => {
+  const steps = scene.blocks.filter(b => b.kind === "step").slice(0,4);
+  return <Glass style={{ position: "absolute", left: "7%", top: "24%", width: "47%", height: "52%", padding: "5% 4%" }}>
+    <div style={{ color: C.muted, fontSize: 18, letterSpacing: 4 }}>THE JOURNEY / TIMELINE</div>
+    <div style={{ position: "relative", display: "flex", justifyContent: "space-around", alignItems: "center", height: "80%", direction: "rtl" }}>
+      <div style={{ position: "absolute", top: "35%", right: "10%", left: "10%", height: 3, background: "linear-gradient(90deg,rgba(120,234,215,.15),rgba(169,155,255,.85),rgba(255,201,141,.3))" }} />
+      {steps.map((step,i) => <div key={step.id} style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 24, ...rise(frame,i*10,28) }}>
+        <div style={{ width: 84, height: 84, borderRadius: 26, display: "grid", placeItems: "center", border: `2px solid ${i===1?C.violet:C.mint}`, background: "#14233a", color: C.white, fontSize: 29, boxShadow: "0 0 34px rgba(120,234,215,.12)" }}>0{i+1}</div>
+        <strong style={{ color: C.white, fontSize: 26 }}>{step.content}</strong>
+      </div>)}
+    </div>
+  </Glass>;
 };
 
 export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
-  const progress = interpolate(frame, [0, Math.max(1, Math.round(fps * 0.75))], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp"
-  });
-  const drift = interpolate(frame, [0, Math.max(1, durationInFrames - 1)], [18, -18], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp"
-  });
-  const heading = scene.blocks.find((block) => block.kind === "heading")?.content ?? scene.title;
-  const body = scene.blocks.find((block) => block.kind === "body")?.content ?? scene.narration;
-  const metric = scene.blocks.find((block) => block.kind === "metric")?.content;
+  const progress = interpolate(frame, [0, Math.max(1, Math.round(fps * .8))], [0,1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
+  const heading = scene.blocks.find(b => b.kind === "heading")?.content ?? scene.title;
+  const body = scene.blocks.find(b => b.kind === "body")?.content ?? scene.narration;
+  const sceneIndex = scene.id.match(/(\d+)$/)?.[1] ?? "01";
+  const accent = scene.layout === "stats" ? C.gold : scene.layout === "split" ? C.violet : C.mint;
+  const drift = interpolate(frame, [0, Math.max(1,durationInFrames-1)], [0,22], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: scene.background,
-        color: "#f3f6fc",
-        overflow: "hidden",
-        fontFamily: '"Segoe UI", Tahoma, sans-serif',
-        direction: "rtl"
-      }}
-    >
-      <AbsoluteFill
-        style={{
-          opacity: 0.34,
-          backgroundImage: "linear-gradient(rgba(180,205,230,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(180,205,230,.08) 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-          transform: `translateX(${drift}px)`
-        }}
-      />
-      <div style={{
-        position: "absolute", width: "68%", aspectRatio: "1", left: "-19%", top: "-34%",
-        border: "2px solid rgba(126,227,211,.24)", borderRadius: "50%",
-        boxShadow: "0 0 0 65px rgba(126,227,211,.025), 0 0 0 130px rgba(126,227,211,.018)",
-        transform: `translateY(${-drift}px) rotate(18deg)`
-      }} />
+  return <AbsoluteFill style={{ background: "radial-gradient(ellipse at 16% 18%,#1d3450 0%,#111c30 37%,#0a1120 100%)", color: C.white, overflow: "hidden", fontFamily: '"Noto Sans Arabic","Segoe UI",Tahoma,sans-serif', direction: "rtl" }}>
+    <AbsoluteFill style={{ opacity: .18, backgroundImage: "linear-gradient(rgba(170,194,224,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(170,194,224,.12) 1px,transparent 1px)", backgroundSize: "72px 72px", transform: `translate3d(${drift}px,0,0)` }} />
+    <DotField frame={frame} />
+    <div style={{ position: "absolute", width: 690, height: 690, border: "1px solid rgba(120,234,215,.12)", borderRadius: "50%", left: -310, top: -360, boxShadow: "0 0 0 70px rgba(120,234,215,.018),0 0 0 140px rgba(169,155,255,.018)", transform: `rotate(${frame*.12}deg)` }} />
+    <div style={{ position: "absolute", top: "7%", right: "7%", left: "7%", display: "flex", justifyContent: "space-between", alignItems: "center", ...rise(frame,0,14) }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 13 }}><div style={{ width: 12, height: 12, borderRadius: 4, background: C.mint, boxShadow: "0 0 18px rgba(120,234,215,.8)" }} /><span style={{ fontSize: 17, letterSpacing: 4, color: "#c3d0e2" }}>EXPLAINER STUDIO</span></div>
+      <span style={{ color: "#71839e", fontSize: 16, letterSpacing: 3 }}>FIELD NOTES  /  {sceneIndex.padStart(2,"0")}</span>
+    </div>
+    <div style={{ position: "absolute", left: "7%", right: "7%", bottom: "7%", height: 3, background: "rgba(255,255,255,.1)", borderRadius: 8 }}>
+      <div style={{ height: "100%", width: `${Math.min(100, frame/Math.max(1,durationInFrames-1)*100)}%`, background: `linear-gradient(90deg,${C.mint},${C.violet})`, boxShadow: "0 0 14px rgba(120,234,215,.35)" }} />
+    </div>
 
-      <div style={{ ...panel, opacity: progress, transform: `translateY(${(1 - progress) * 38}px) rotate(-4deg)` }}>
-        {scene.layout === "diagram" ? (
-          <div style={{ position: "absolute", inset: "12%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "ltr" }}>
-            <div style={nodeStyle}>
-              <span style={{ color: "#9ce9dc", fontSize: 18, letterSpacing: 3 }}>01 / INPUT</span>
-              <strong style={{ fontSize: 28, direction: "rtl" }}>المعلومة</strong>
-              <span style={{ width: "72%", height: 7, borderRadius: 8, background: "rgba(235,243,255,.35)" }} />
-            </div>
-            <svg width="8%" height="46" viewBox="0 0 100 46" fill="none">
-              <path d="M4 23H88M76 9L90 23L76 37" stroke="#9ce9dc" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <div style={{ ...nodeStyle, borderColor: "rgba(178,169,255,.38)", background: "linear-gradient(155deg, rgba(178,169,255,.14), rgba(255,255,255,.025))" }}>
-              <span style={{ color: "#b2a9ff", fontSize: 18, letterSpacing: 3 }}>02 / PACKET</span>
-              <strong style={{ fontSize: 28, direction: "rtl" }}>حزم رقمية</strong>
-              <span style={{ display: "flex", gap: 6 }}>
-                <i style={{ width: 22, height: 22, borderRadius: 5, background: "#b2a9ff" }} />
-                <i style={{ width: 22, height: 22, borderRadius: 5, background: "rgba(178,169,255,.45)" }} />
-                <i style={{ width: 22, height: 22, borderRadius: 5, background: "rgba(178,169,255,.22)" }} />
-              </span>
-            </div>
-            <svg width="8%" height="46" viewBox="0 0 100 46" fill="none">
-              <path d="M4 23H88M76 9L90 23L76 37" stroke="#9ce9dc" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <div style={{ ...nodeStyle, borderColor: "rgba(255,190,120,.34)", background: "linear-gradient(155deg, rgba(255,190,120,.12), rgba(255,255,255,.025))" }}>
-              <span style={{ color: "#ffc58a", fontSize: 18, letterSpacing: 3 }}>03 / OUTPUT</span>
-              <strong style={{ fontSize: 28, direction: "rtl" }}>الوجهة</strong>
-              <span style={{ width: "82%", height: 7, borderRadius: 8, background: "rgba(235,243,255,.35)" }} />
-            </div>
-          </div>
-        ) : scene.layout === "timeline" ? (
-          <div style={{ position: "absolute", inset: "16% 8%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "rtl" }}>
-            <div style={{ position: "absolute", right: "8%", left: "8%", top: "39%", height: 4, borderRadius: 8, background: "linear-gradient(90deg, rgba(129,229,213,.2), rgba(178,169,255,.8), rgba(129,229,213,.2))" }} />
-            {(scene.blocks.filter((block) => block.kind === "step").length
-              ? scene.blocks.filter((block) => block.kind === "step").slice(0, 4)
-              : [
-                  { id: "timeline-1", content: "البداية" },
-                  { id: "timeline-2", content: "التحول" },
-                  { id: "timeline-3", content: "النتيجة" }
-                ]
-            ).map((step, index, allSteps) => {
-              const reveal = interpolate(frame, [index * 7, index * 7 + 12], [0, 1], {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp"
-              });
-              return (
-                <div key={step.id} style={{ position: "relative", zIndex: 1, width: `${Math.min(76, 100 / allSteps.length)}%`, display: "flex", flexDirection: "column", alignItems: "center", gap: 22, opacity: reveal, transform: `translateY(${(1 - reveal) * 24}px)` }}>
-                  <div style={{ width: 72, height: 72, borderRadius: "50%", border: `3px solid ${index === 1 ? "#b2a9ff" : "#81e5d5"}`, background: "#192338", display: "grid", placeItems: "center", color: "#f4f6ff", fontSize: 27, fontWeight: 700, boxShadow: "0 0 30px rgba(129,229,213,.12)" }}>{String(index + 1).padStart(2, "0")}</div>
-                  <strong style={{ maxWidth: "100%", textAlign: "center", fontSize: 25, lineHeight: 1.5, color: "#eaf0fb" }}>{step.content}</strong>
-                </div>
-              );
-            })}
-          </div>
-        ) : scene.layout === "stats" ? (
-          <div style={{ position: "absolute", inset: "17% 9%", display: "flex", alignItems: "stretch", gap: "4%", direction: "rtl" }}>
-            {(scene.blocks.filter((block) => block.kind === "metric").length
-              ? scene.blocks.filter((block) => block.kind === "metric").slice(0, 3)
-              : [{ id: "metric-default", content: metric ?? "—" }]
-            ).map((item, index) => {
-              const reveal = interpolate(frame, [index * 8, index * 8 + 14], [0, 1], {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp"
-              });
-              const accent = index === 1 ? "#b2a9ff" : index === 2 ? "#ffc58a" : "#81e5d5";
-              const label = scene.blocks.filter((block) => block.kind === "shape")[index]?.content;
-              return (
-                <div key={item.id} style={{ flex: 1, borderRadius: 20, border: `1px solid ${accent}55`, background: `linear-gradient(155deg, ${accent}20, rgba(255,255,255,.025))`, padding: "9% 5%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 22, opacity: reveal, transform: `translateY(${(1 - reveal) * 30}px)` }}>
-                  <span style={{ color: accent, fontSize: 19, letterSpacing: 3 }}>0{index + 1} / DATA</span>
-                  <strong style={{ fontSize: 54, lineHeight: 1.2, textAlign: "center", overflowWrap: "anywhere" }}>{item.content}</strong>
-                  {label && <span style={{ color: "rgba(235,243,255,.72)", fontSize: 20, textAlign: "center" }}>{label}</span>}
-                  <div style={{ width: "64%", height: 7, borderRadius: 8, background: `${accent}66` }} />
-                </div>
-              );
-            })}
-          </div>
-        ) : scene.layout === "split" ? (
-          <div style={{ position: "absolute", inset: "10%", display: "flex", gap: "6%", direction: "ltr" }}>
-            <div style={{ flex: 1, borderRadius: 16, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.025)", padding: 22, direction: "rtl" }}>
-              <span style={{ color: "rgba(235,243,255,.48)", fontSize: 20 }}>قبل الوصول</span>
-              <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 16 }}>
-                {[92, 65, 82, 48, 74].map((width, index) => (
-                  <div key={index} style={{ height: 13, width: `${width}%`, borderRadius: 8, background: "rgba(235,243,255,.24)" }} />
-                ))}
-              </div>
-              <div style={{ marginTop: 36, display: "flex", gap: 8 }}>
-                {[0, 1, 2, 3].map((item) => <i key={item} style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(178,169,255,.48)" }} />)}
-              </div>
-            </div>
-            <div style={{ flex: 1, borderRadius: 16, border: "1px solid rgba(126,227,211,.28)", background: "rgba(126,227,211,.055)", padding: 22, direction: "rtl" }}>
-              <span style={{ color: "#9ce9dc", fontSize: 20 }}>بعد التجميع</span>
-              <div style={{ marginTop: 28, height: 150, borderRadius: 12, border: "1px solid rgba(126,227,211,.2)", background: "linear-gradient(145deg, rgba(126,227,211,.12), transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ width: 90, height: 90, borderRadius: "50%", border: "5px solid #81e5d5", boxShadow: "0 0 35px rgba(126,227,211,.18)" }} />
-              </div>
-              <div style={{ marginTop: 24, height: 9, width: "80%", borderRadius: 8, background: "rgba(235,243,255,.38)" }} />
-              <div style={{ marginTop: 12, height: 9, width: "58%", borderRadius: 8, background: "rgba(235,243,255,.2)" }} />
-            </div>
-          </div>
-        ) : (
-          <>
-            <div style={{ position: "absolute", top: "13%", right: "12%", color: "#9ce9dc", fontSize: 22, letterSpacing: 5 }}>EXPLAINER / 01</div>
-            <div style={{ position: "absolute", right: "12%", top: "30%", width: "56%", height: 10, borderRadius: 8, background: "rgba(235,243,255,.62)" }} />
-            <div style={{ position: "absolute", right: "12%", top: "40%", width: "43%", height: 10, borderRadius: 8, background: "rgba(235,243,255,.3)" }} />
-            <div style={{ position: "absolute", right: "12%", top: "50%", width: "49%", height: 10, borderRadius: 8, background: "rgba(235,243,255,.18)" }} />
-            <div style={{ position: "absolute", left: "12%", bottom: "12%", width: "30%", aspectRatio: "1", border: "4px solid rgba(126,227,211,.8)", borderRadius: "50%", boxShadow: "0 0 50px rgba(126,227,211,.14)" }} />
-            {metric && <div style={{ position: "absolute", left: "17%", top: "17%", fontSize: 76, fontWeight: 700, color: "#b2a9ff" }}>{metric}</div>}
-          </>
-        )}
-      </div>
+    {scene.layout === "diagram" ? <Diagram frame={frame} /> :
+      scene.layout === "split" ? <SplitVisual frame={frame} /> :
+      scene.layout === "timeline" ? <TimelineVisual scene={scene} frame={frame} /> :
+      scene.layout === "stats" ? <StatsVisual scene={scene} frame={frame} /> :
+      <Glass style={{ position: "absolute", left: "7%", top: "20%", width: "47%", height: "59%", overflow: "hidden", ...rise(frame,5,42) }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 45%,rgba(120,234,215,.18),transparent 54%)" }} />
+        <div style={{ position: "absolute", width: 390, height: 390, borderRadius: "50%", border: "1px solid rgba(120,234,215,.42)", left: "calc(50% - 195px)", top: "calc(50% - 195px)", boxShadow: "0 0 0 32px rgba(120,234,215,.035),0 0 0 68px rgba(169,155,255,.025)", transform: `rotate(${frame*.35}deg)` }} />
+        <div style={{ position: "absolute", width: 190, height: 190, borderRadius: 48, left: "calc(50% - 95px)", top: "calc(50% - 95px)", background: "linear-gradient(145deg,#8af0dc,#3d9f9e)", boxShadow: "0 25px 70px rgba(45,190,173,.24)", display: "grid", placeItems: "center", color: "#09212b", fontSize: 38, fontWeight: 900, transform: `rotate(${interpolate(frame,[0,durationInFrames],[0,8],{extrapolateRight:"clamp"})}deg)` }}>NET</div>
+        <div style={{ position: "absolute", left: "12%", bottom: "12%", color: "#a9b9ce", fontSize: 17, letterSpacing: 4 }}>A CONNECTED WORLD</div>
+      </Glass>
+    }
 
-      <div style={{
-        position: "absolute", right: "10%", top: "24%", width: "39%",
-        opacity: progress, transform: `translateY(${(1 - progress) * 28}px)`
-      }}>
-        <div style={{ color: "#9ce9dc", fontSize: 23, marginBottom: 22 }}>المشهد · {scene.title}</div>
-        <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.35, letterSpacing: "-1px", textWrap: "balance" }}>{heading}</div>
-        <div style={{ marginTop: 26, maxWidth: "94%", color: "rgba(220,229,244,.72)", fontSize: 29, lineHeight: 1.8 }}>{body}</div>
-        <div style={{ marginTop: 38, width: "38%", height: 6, borderRadius: 8, background: "rgba(255,255,255,.16)", overflow: "hidden" }}>
-          <div style={{ width: `${Math.max(0, Math.min(100, (frame / Math.max(1, durationInFrames - 1)) * 100))}%`, height: "100%", background: "#81e5d5" }} />
-        </div>
-      </div>
-      <div style={{ position: "absolute", bottom: "5%", left: "4%", color: "rgba(221,234,249,.25)", fontSize: 16, letterSpacing: 5 }}>EXPLAINER STUDIO</div>
-    </AbsoluteFill>
-  );
+    <div style={{ position: "absolute", right: "61%", top: "22%", width: "32%", ...rise(frame,8,36) }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 26 }}><span style={{ width: 30, height: 2, background: accent }} /><span style={{ color: accent, fontSize: 20, letterSpacing: 1 }}>المشهد {sceneIndex}</span></div>
+      <div style={{ fontSize: 57, fontWeight: 800, lineHeight: 1.42, letterSpacing: "-1.5px", textWrap: "balance" }}>{heading}</div>
+      <div style={{ marginTop: 25, maxWidth: "96%", color: "#b7c4d7", fontSize: 27, lineHeight: 1.85, fontWeight: 400 }}>{body}</div>
+      <div style={{ marginTop: 38, display: "flex", alignItems: "center", gap: 12, color: "#788ba5", fontSize: 16, letterSpacing: 2 }}><span style={{ width: 7, height: 7, borderRadius: "50%", background: accent }} /> VISUAL EXPLANATION</div>
+    </div>
+  </AbsoluteFill>;
 };
