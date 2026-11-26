@@ -1,87 +1,33 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import { dirname, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import { NabraTTS } from "../vendor/nabra-tts/dist/index.js";
+import { copyFile, mkdir, readFile } from "node:fs/promises";
 
-const publicDirectory = resolve("public");
-const outputDirectory = resolve("out");
-const outputPath = resolve(publicDirectory, "demo-audio-fixture.wav");
-const metadataPath = resolve(outputDirectory, "nabra-demo-voice.json");
-const modelBase = "https://huggingface.co/oddadmix/Nabra-7M-Distill-ONNX/resolve/main";
-const sampleText = "مَرْحَبًا بِكُمْ. هَذَا اِخْتِبَارٌ لِلتَّعْلِيقِ الصَّوْتِيِّ العَرَبِيِّ فِي إكسبلينر ستوديو.";
+const sourcePath = "out/nabra-arabic-voice-smoke.wav";
+const destinationPath = "public/demo-audio-fixture.wav";
+const metadataPath = "out/nabra-arabic-voice-smoke.json";
 
-const require = createRequire(import.meta.url);
-const onnxRuntimeDirectory = dirname(require.resolve("onnxruntime-web"));
-const wasmPaths = pathToFileURL(onnxRuntimeDirectory + "/").href;
+const [wav, metadataText] = await Promise.all([
+  readFile(sourcePath),
+  readFile(metadataPath, "utf8")
+]);
+const metadata = JSON.parse(metadataText);
 
-await mkdir(publicDirectory, { recursive: true });
-await mkdir(outputDirectory, { recursive: true });
-
-console.log("Generating the real Arabic narration fixture with Nabra FP16 / WASM...");
-const tts = await NabraTTS.load({
-  worker: false,
-  dtype: "fp16",
-  device: "wasm",
-  cache: false,
-  modelUrl: `${modelBase}/onnx/model_fp16.onnx`,
-  voiceUrl: `${modelBase}/voices/af_msa.bin`,
-  wasmPaths,
-  onProgress: ({ file, loaded, total }) => {
-    const percentage = total > 0 ? ` ${Math.round((loaded / total) * 100)}%` : "";
-    process.stdout.write(`\rDownloading ${file}: ${loaded} / ${total} bytes${percentage}   `);
-  }
-});
-
-try {
-  console.log("\nSynthesizing Arabic narration for the diagram scene...");
-  const startedAt = performance.now();
-  const { audio, sampleRate } = await tts.generate(sampleText);
-  const synthesisMilliseconds = Math.round(performance.now() - startedAt);
-
-  if (!(audio instanceof Float32Array) || audio.length < sampleRate) {
-    throw new Error("Nabra returned an empty or implausibly short audio buffer.");
-  }
-  if (!audio.every(Number.isFinite)) {
-    throw new Error("Nabra returned non-finite PCM samples.");
-  }
-
-  let peak = 0;
-  let sumSquares = 0;
-  for (const sample of audio) {
-    const absolute = Math.abs(sample);
-    peak = Math.max(peak, absolute);
-    sumSquares += sample * sample;
-  }
-  const rms = Math.sqrt(sumSquares / audio.length);
-  const durationSeconds = audio.length / sampleRate;
-  if (peak < 0.002 || rms < 0.0001) {
-    throw new Error(`Generated narration appears silent (peak=${peak}, rms=${rms}).`);
-  }
-
-  const wav = tts.toWav(audio);
-  const bytes = Buffer.from(await wav.arrayBuffer());
-  if (bytes.length < 44 || bytes.toString("ascii", 0, 4) !== "RIFF" || bytes.toString("ascii", 8, 12) !== "WAVE") {
-    throw new Error("Nabra did not produce a valid WAV container.");
-  }
-
-  await writeFile(outputPath, bytes);
-  const metadata = {
-    text: sampleText,
-    backend: tts.device,
-    sampleRate,
-    channels: 1,
-    durationSeconds,
-    synthesisMilliseconds,
-    peak,
-    rms,
-    bytes: bytes.length,
-    format: "PCM WAV",
-    sceneId: "demo-scene-02",
-    audioStartDelayFrames: 22
-  };
-  await writeFile(metadataPath, JSON.stringify(metadata, null, 2) + "\n");
-  console.log("Created a non-silent Arabic narration fixture:", metadata);
-} finally {
-  await tts.dispose();
+if (wav.length < 44 || wav.toString("ascii", 0, 4) !== "RIFF" || wav.toString("ascii", 8, 12) !== "WAVE") {
+  throw new Error("Nabra narration fixture is not a valid WAV file.");
 }
+if (metadata.peak < 0.002 || metadata.rms < 0.0001) {
+  throw new Error("Nabra narration fixture is silent; refusing to render a silent AAC track.");
+}
+if (!(metadata.durationSeconds >= 0.5 && metadata.durationSeconds <= 7.0)) {
+  throw new Error(`Narration duration does not fit the demo scene: ${metadata.durationSeconds}s`);
+}
+if (metadata.backend !== "wasm" || metadata.sampleRate !== 24000) {
+  throw new Error("The demo voice fixture must be Nabra WASM mono 24 kHz speech.");
+}
+
+await mkdir("public", { recursive: true });
+await copyFile(sourcePath, destinationPath);
+console.log("Prepared real, non-silent Arabic narration for Remotion:", {
+  durationSeconds: metadata.durationSeconds,
+  sampleRate: metadata.sampleRate,
+  peak: metadata.peak,
+  rms: metadata.rms
+});
