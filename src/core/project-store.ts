@@ -1,8 +1,9 @@
 import type { StudioProject } from "../types/project";
 
 const DB_NAME = "explainer-studio";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "projects";
+const AUDIO_STORE_NAME = "audio-assets";
 const FALLBACK_KEY = "explainer-studio.projects.v1";
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -18,6 +19,9 @@ function openDatabase(): Promise<IDBDatabase> {
       const database = request.result;
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         database.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+      if (!database.objectStoreNames.contains(AUDIO_STORE_NAME)) {
+        database.createObjectStore(AUDIO_STORE_NAME, { keyPath: "id" });
       }
     };
 
@@ -42,6 +46,58 @@ function writeFallbackProjects(projects: StudioProject[]): void {
   localStorage.setItem(FALLBACK_KEY, JSON.stringify(projects));
 }
 
+export interface AudioAssetRecord {
+  id: string;
+  projectId: string;
+  sceneId: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  blob: Blob;
+  createdAt: string;
+}
+
+export async function saveAudioAsset(asset: AudioAssetRecord): Promise<void> {
+  const database = await openDatabase();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(AUDIO_STORE_NAME, "readwrite");
+      transaction.objectStore(AUDIO_STORE_NAME).put(asset);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error ?? new Error("تعذر حفظ ملف الصوت."));
+      transaction.onabort = () => reject(transaction.error ?? new Error("تم إلغاء حفظ ملف الصوت."));
+    });
+  } finally {
+    database.close();
+  }
+}
+
+export async function loadAudioAsset(id: string): Promise<AudioAssetRecord | null> {
+  const database = await openDatabase();
+  try {
+    return await new Promise<AudioAssetRecord | null>((resolve, reject) => {
+      const request = database.transaction(AUDIO_STORE_NAME, "readonly").objectStore(AUDIO_STORE_NAME).get(id);
+      request.onsuccess = () => resolve((request.result as AudioAssetRecord | undefined) ?? null);
+      request.onerror = () => reject(request.error ?? new Error("تعذر قراءة ملف الصوت."));
+    });
+  } finally {
+    database.close();
+  }
+}
+
+export async function deleteAudioAsset(id: string): Promise<void> {
+  const database = await openDatabase();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(AUDIO_STORE_NAME, "readwrite");
+      transaction.objectStore(AUDIO_STORE_NAME).delete(id);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error ?? new Error("تعذر حذف ملف الصوت."));
+    });
+  } finally {
+    database.close();
+  }
+}
 export async function listProjects(): Promise<StudioProject[]> {
   try {
     const database = await openDatabase();
