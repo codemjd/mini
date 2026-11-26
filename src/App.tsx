@@ -13,6 +13,7 @@ import {
 import { deleteAudioAsset, listProjectAudioAssets, listProjects, loadAudioAsset, saveAudioAsset } from "./core/project-store";
 import { executeStudioCommand } from "./core/studio-commands";
 import { validateStudioProject } from "./core/project-validation";
+import { generateArabicNarration } from "./video/narration-tts";
 
 type AppView = "dashboard" | "editor";
 type IconName = "grid" | "folder" | "plus" | "play" | "chevron" | "clock" | "layers" | "settings" | "trash" | "download" | "upload" | "arrow" | "spark" | "film" | "check" | "more" | "close" | "add" | "back";
@@ -161,6 +162,10 @@ export default function App() {
   const [newProjectTitle, setNewProjectTitle] = useState("مشروع جديد");
   const [toast, setToast] = useState("");
   const [previewAudio, setPreviewAudio] = useState<{ id: string; name: string; url: string } | null>(null);
+  const [ttsGenerating, setTtsGenerating] = useState(false);
+  const [ttsProgress, setTtsProgress] = useState(0);
+  const [ttsStatus, setTtsStatus] = useState("");
+  const ttsAbortRef = useRef<AbortController | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
   const audioInput = useRef<HTMLInputElement>(null);
   const renderAbortRef = useRef<AbortController | null>(null);
@@ -581,6 +586,98 @@ export default function App() {
     }
   }
 
+  async function generateNarrationAudio() {
+    if (!activeProject || !selectedScene || ttsGenerating) return;
+    const targetProject = activeProject;
+    const targetScene = selectedScene;
+    const narrationText = targetScene.narration.trim();
+    if (!narrationText) {
+      setToast("اكتب نص التعليق أولًا.");
+      return;
+    }
+
+    const controller = new AbortController();
+    ttsAbortRef.current = controller;
+    setTtsGenerating(true);
+    setTtsProgress(0);
+    setTtsStatus("تهيئة محرك الصوت العربي");
+
+    let createdAssetId: string | null = null;
+    try {
+      const generated = await generateArabicNarration(
+        narrationText,
+        (progress) => {
+          setTtsStatus(progress.detail);
+          if (progress.progress !== null) {
+            setTtsProgress(Math.round(progress.progress));
+          }
+        },
+        controller.signal
+      );
+
+      if (generated.blob.size < 1 || generated.blob.size > MAX_AUDIO_ASSET_BYTES) {
+        throw new Error("ملف الصوت الناتج أكبر من حد التخزين البالغ 30 ميغابايت.");
+      }
+
+      const assetId = createId();
+      createdAssetId = assetId;
+      await saveAudioAsset({
+        id: assetId,
+        projectId: targetProject.id,
+        sceneId: targetScene.id,
+        name: `${targetScene.title.slice(0, 180)} - صوت عربي.wav`,
+        mimeType: "audio/wav",
+        size: generated.blob.size,
+        blob: generated.blob,
+        createdAt: new Date().toISOString()
+      });
+
+      const result = await executeStudioCommand({
+        type: "scene.update",
+        projectId: targetProject.id,
+        sceneId: targetScene.id,
+        patch: { narrationAudioAssetId: assetId }
+      });
+      if (!result.ok) throw new Error(result.error);
+
+      const updatedProject = result.data as StudioProject;
+      setProjects((current) => [
+        updatedProject,
+        ...current.filter((item) => item.id !== updatedProject.id)
+      ]);
+      setActiveProject((current) => current?.id === updatedProject.id ? updatedProject : current);
+      createdAssetId = null;
+
+      if (targetScene.narrationAudioAssetId && targetScene.narrationAudioAssetId !== assetId) {
+        try { await deleteAudioAsset(targetScene.narrationAudioAssetId); } catch { /* keep the newly attached narration */ }
+      }
+
+      setToast(
+        generated.device === "webgpu"
+          ? "تم توليد التعليق العربي محليًا عبر WebGPU"
+          : "تم توليد التعليق العربي محليًا عبر WASM"
+      );
+    } catch (error) {
+      if (createdAssetId) {
+        try { await deleteAudioAsset(createdAssetId); } catch { /* preserve the original generation error */ }
+      }
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setToast("تم إلغاء توليد التعليق الصوتي.");
+      } else {
+        setToast(error instanceof Error ? error.message : "تعذر توليد التعليق الصوتي.");
+      }
+    } finally {
+      ttsAbortRef.current = null;
+      setTtsGenerating(false);
+      setTtsProgress(0);
+      setTtsStatus("");
+    }
+  }
+
+  function cancelNarrationGeneration() {
+    ttsAbortRef.current?.abort();
+  }
+
   async function removeNarrationAudio() {
     const assetId = selectedScene?.narrationAudioAssetId;
     if (!assetId) return;
@@ -835,6 +932,29 @@ export default function App() {
                     {previewAudio && previewAudio.id === selectedScene.narrationAudioAssetId
                       ? <><strong>{previewAudio.name}</strong><span>سيعمل هذا الصوت مع تشغيل المعاينة وسيُدرج في تصدير MP4.</span></>
                       : <span>لم يُرفق ملف صوتي لهذا المشهد بعد.</span>}
+                  </div>
+                  <div className="tts-generation">
+                    <button
+                      className="subtle-button tts-generate-button"
+                      type="button"
+                      onClick={() => void generateNarrationAudio()}
+                      disabled={ttsGenerating || !selectedScene.narration.trim()}
+                    >
+                      {ttsGenerating ? "جارٍ توليد التعليق..." : "توليد صوت عربي محليًا"}
+                    </button>
+                    {ttsGenerating && (
+                      <div className="tts-progress" role="status" aria-live="polite">
+                        <div className="tts-progress-copy">
+                          <span>{ttsStatus}</span>
+                          <strong>{ttsProgress > 0 ? `${ttsProgress}%` : "..."}</strong>
+                        </div>
+                        <div className="tts-progress-track">
+                          <span style={{ width: `${ttsProgress}%` }} />
+                        </div>
+                        <button className="subtle-button" type="button" onClick={cancelNarrationGeneration}>إلغاء التوليد</button>
+                      </div>
+                    )}
+                    <p>صوت عربي فصيح تجريبي يعمل على الجهاز. التنزيل الأول للنموذج يقارب 16 ميغابايت، ثم يُحفظ في ذاكرة المتصفح. التشكيل يحسّن النطق، ولا تُرسل الجمل إلى خدمة صوتية سحابية.</p>
                   </div>
                   <div className="field-actions">
                     <button className="subtle-button" type="button" onClick={() => audioInput.current?.click()}>إرفاق صوت (WAV / MP3)</button>
