@@ -89,7 +89,12 @@ export function installExplainerStudioAgentBridge(): void {
       throw new Error(updated.error);
     }
 
-    if (scene.narrationAudioAssetId && scene.narrationAudioAssetId !== assetId) {
+    const previousAssetStillUsed = scene.narrationAudioAssetId
+      && scene.narrationAudioAssetId !== assetId
+      && (updated.data as StudioProject).scenes.some((item) =>
+        item.id !== sceneId && item.narrationAudioAssetId === scene.narrationAudioAssetId
+      );
+    if (scene.narrationAudioAssetId && scene.narrationAudioAssetId !== assetId && !previousAssetStillUsed) {
       try { await deleteAudioAsset(scene.narrationAudioAssetId); } catch { /* keep the new narration attached */ }
     }
 
