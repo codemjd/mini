@@ -1,6 +1,6 @@
 # Arabic Voice Pipeline — Implementation Specification
 
-Status: engineering specification; not yet integrated into the application.
+Status: partially implemented on `feature/narration-audio-pipeline`; awaiting CI verification, licensing review, and real Android acceptance tests.
 
 ## Product decision
 
@@ -119,7 +119,7 @@ Do not claim Android support until tested on representative mid-range Android ha
 - Pronunciation quality needs Arabic editorial review, especially names, numbers, abbreviations, and unvowelled text.
 - Automatic diacritization is a separate capability and must not be implied by the base model.
 - Performance on the user's Android device is unknown until tested.
-- This specification is not evidence that TTS has been integrated or that audio MP4 export works.
+- The browser integration and a deterministic AAC smoke-test workflow have been added on the feature branch, but the workflow has not yet passed for this revision. Do not claim audio MP4 export is verified until CI inspects the resulting file.
 
 ## References
 
@@ -150,3 +150,43 @@ Decision:
 - The model card is a community packaging of Nabra-82M; independently verify upstream model provenance and license notices before distribution.
 
 This gives the product a quality path without forcing a 57–163 MB download on every browser user.
+
+
+## Experimental implementation on `feature/narration-audio-pipeline`
+
+The following code has been added on the feature branch. It is not yet deployed to the production Pages URL.
+
+### Durable audio and project transport
+
+- IndexedDB database version 2 creates an `audio-assets` object store additively alongside the existing `projects` store.
+- Each scene may reference `narrationAudioAssetId` and stores a `narrationAudioText` snapshot. A mismatch marks the clip stale.
+- Audio uploads accept MP3, WAV, M4A, AAC, and WebM, currently limited to 25 MiB per file. The browser reads duration metadata; the scene duration is extended to contain the clip.
+- Audio Blobs remain in IndexedDB. Object URLs are created only for preview/render and revoked after use.
+- Project export produces a versioned JSON bundle with Base64 audio payloads; current export/import caps aggregate audio payload size at 25 MiB. Older JSON files remain importable only when they do not reference audio.
+- Unreferenced audio assets are cleaned only after the project save succeeds, avoiding deletion before the project metadata is durable.
+
+### Timeline and MP4
+
+- `@remotion/media` `Audio` is placed inside each scene's Remotion `Sequence`, which aligns clip start with the scene's timeline start.
+- The scene Player preview receives a local object URL only when its saved narration snapshot matches the current script.
+- MP4 rendering resolves every referenced asset from IndexedDB, checks that its text snapshot is still current, checks `canRenderMediaOnWeb()` for H.264 + AAC, embeds AAC when audio exists, and revokes every temporary object URL in a `finally` block.
+- The audio smoke fixture is a deterministic 5-second, 48 kHz silent PCM WAV. It validates decoding and AAC muxing, not narration quality or intelligibility.
+- CI's FFprobe gate now requires both H.264 video and AAC audio streams, 1920×1080 video, and the expected 21–22.2 second total duration.
+
+### Nabra local TTS prototype
+
+- The speech module imports `nabra-tts` lazily only when the user presses the generation button.
+- The integration requests FP16 weights, automatic WebGPU/WASM selection, Web Worker execution, and model caching.
+- Text is split at word boundaries into at most 280-character requests. Generated PCM is concatenated into WAV and saved as a scene asset.
+- The UI exposes download/synthesis progress. The engine is disposed on `pagehide`.
+- This path does not send the narration text to a speech API. The browser does fetch model/runtime files from Hugging Face and jsDelivr on first use unless those resources are self-hosted.
+- Nabra does not provide automatic high-quality tashkeel. Unvowelled names, numbers, foreign terms, and long Arabic passages require listening and editorial review.
+
+### Release gates and open risks
+
+1. CI build/type-check and regression tests must pass on the feature pull request.
+2. The AAC smoke render must pass and FFprobe must report an AAC stream. The test fixture is intentionally silent.
+3. A real Arabic TTS sample must be generated, listened to, and judged for pronunciation, pacing, clipping, and scene synchronization.
+4. Android performance, memory, WebGPU/WASM selection, and WebCodecs H.264/AAC support remain unknown until tested on real devices. The app must surface unsupported codec errors rather than silently exporting a silent MP4.
+5. The Nabra npm package declares Apache-2.0, but its bundled third-party notice lists eSpeak NG 1.52 under GPL-3.0-or-later and ports logic from GPL-3.0 phonemizer. Preserve the notices and complete a distribution-license review before publishing a build containing this worker. No legal conclusion is made here.
+6. This branch is not merged into `main`, and the live Pages application has not been changed by this prototype.
