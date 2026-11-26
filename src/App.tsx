@@ -112,6 +112,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
 export default function App() {
   const [projects, setProjects] = useState<StudioProject[]>([]);
   const [activeProject, setActiveProject] = useState<StudioProject | null>(null);
+  const activeProjectRef = useRef<StudioProject | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [view, setView] = useState<AppView>("dashboard");
   const [loading, setLoading] = useState(true);
