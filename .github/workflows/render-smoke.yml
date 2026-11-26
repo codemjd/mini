@@ -91,26 +91,30 @@ jobs:
             const require = createRequire(import.meta.url);
             const ffmpeg = require("ffmpeg-static");
             if (!ffmpeg || !fs.existsSync(ffmpeg)) throw new Error("Pinned static FFmpeg binary is unavailable");
+
             const args = ["-hide_banner", "-i", "out/explainer-demo.mp4", "-map", "0:a:0", "-af", "volumedetect", "-f", "null", "/dev/null"];
-            const result = spawnSync(ffmpeg, args, { encoding: "utf8" });
+            const result = spawnSync(ffmpeg, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
             if (result.error) throw result.error;
-            if (result.status !== 0) throw new Error(result.stderr || "FFmpeg signal analysis failed");
-            const combined = String(result.stdout ?? "") + "\n" + String(result.stderr ?? "");
-            const match = combined.match(/max_volume:\s*(-?[0-9.]+) dB/);
+            if (result.status !== 0) throw new Error(result.stderr || ("FFmpeg exited with status " + result.status));
+
+            const combined = [result.stdout, result.stderr].join("\\n");
+            fs.writeFileSync("out/audio-levels.txt", combined);
+            const match = combined.match(/max_volume:\\s*(-?[0-9.]+) dB/);
             if (!match) throw new Error("Could not measure the rendered AAC audio signal");
             const maximum = Number(match[1]);
             if (!Number.isFinite(maximum) || maximum <= -75) throw new Error("The rendered AAC stream is silent or too quiet: " + maximum + " dB");
-            fs.writeFileSync("out/audio-levels.txt", "max_volume: " + maximum + " dB" + String.fromCharCode(10));
             console.log("Verified non-silent audio in rendered MP4. max_volume:", maximum, "dB");
           '
 
       - name: Upload rendered MP4 for diagnostic review
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: explainer-studio-demo-mp4-candidate
+          name: explainer-studio-diagnostic-mp4
           path: |
             out/explainer-demo.mp4
             out/metadata.json
+            out/audio-levels.txt
           retention-days: 2
 
       - name: Upload verified demo MP4
