@@ -21,9 +21,9 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
   const cameraX = Math.sin(progress * Math.PI * 1.4) * 10;
   const cameraY = Math.cos(progress * Math.PI * 1.2) * 7;
   const cameraScale = 1.018 + progress * 0.026;
-  const headingSize = heading.length > 34 ? 54 : heading.length > 23 ? 60 : 68;
   const heading = scene.blocks.find((b) => b.kind === "heading")?.content ?? scene.title;
   const body = scene.blocks.find((b) => b.kind === "body")?.content ?? scene.narration;
+  const headingSize = heading.length > 34 ? 54 : heading.length > 23 ? 60 : 68;
   const steps = scene.blocks.filter((b) => b.kind === "step").slice(0, 4);
   const metrics = scene.blocks.filter((b) => b.kind === "metric").slice(0, 3);
   const labels = scene.blocks.filter((b) => b.kind === "shape").slice(0, 3);
