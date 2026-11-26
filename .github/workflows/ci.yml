@@ -3,6 +3,8 @@ name: Verify and publish Explainer Studio
 on:
   push:
     branches: [main, feature/narration-audio-pipeline]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
