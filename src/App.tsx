@@ -191,7 +191,7 @@ export default function App() {
     let objectUrl: string | undefined;
     setNarrationAudioSrc(undefined);
 
-    if (!assetId || selectedScene?.narrationAudioText !== selectedScene?.narration) return undefined;
+    if (!assetId || selectedScene?.narrationAudioText?.trim() !== selectedScene?.narration.trim()) return undefined;
 
     void getAudioAsset(assetId)
       .then((asset) => {
