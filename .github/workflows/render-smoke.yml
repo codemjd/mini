@@ -9,6 +9,8 @@ on:
       - "src/core/**"
       - "src/App.tsx"
       - "src/types/project.ts"
+      - "vendor/nabra-tts/**"
+      - "tsconfig.json"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/render-smoke.yml"
