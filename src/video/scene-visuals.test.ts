@@ -44,6 +44,12 @@ describe("scene visual data", () => {
     ]);
   });
 
+  it("uses the demo project’s authored packet journey steps", () => {
+    const scene = demoProject.scenes.find((item) => item.id === "demo-scene-02");
+    expect(scene).toBeDefined();
+    if (!scene) return;
+    expect(getDiagramCards(scene).map((block) => block.content)).toEqual(["تقسيم البيانات", "إضافة معلومات التوجيه", "إرسال الحزم"]);
+  });
   it("numbers scenes by their actual one-based timeline position", () => {
     expect(getSceneNumberLabel(0)).toBe("01");
     expect(getSceneNumberLabel(9)).toBe("10");
