@@ -480,7 +480,8 @@ export default function App() {
     const file = event.target.files?.[0];
     if (!file || !activeProject || !selectedScene) return;
     try {
-      const extensionSupported = /\\.(mp3|wav|m4a|aac|ogg|webm)$/i.test(file.name);
+      const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+      const extensionSupported = ["mp3", "wav", "m4a", "aac", "ogg", "webm"].includes(extension);
       if (!file.type.startsWith("audio/") && !extensionSupported) {
         throw new Error("اختر ملفًا صوتيًا بصيغة MP3 أو WAV أو M4A أو AAC أو OGG أو WebM.");
       }
@@ -495,7 +496,6 @@ export default function App() {
         ogg: "audio/ogg",
         webm: "audio/webm"
       };
-      const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
       const mimeType = file.type || fallbackMime[extension] || "audio/mpeg";
       const assetId = createId();
       await saveAudioAsset({
