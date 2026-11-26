@@ -1,25 +1,30 @@
-import fs from "node:fs";
+import { copyFile, mkdir, readFile } from "node:fs/promises";
 
-const sampleRate = 48000;
-const durationSeconds = 1;
-const sampleCount = sampleRate * durationSeconds;
-const dataBytes = sampleCount * 2;
-const wav = Buffer.alloc(44 + dataBytes);
+const sourcePath = "out/nabra-arabic-voice-smoke.wav";
+const destinationPath = "public/demo-audio-fixture.wav";
+const metadataPath = "out/nabra-arabic-voice-smoke.json";
 
-wav.write("RIFF", 0);
-wav.writeUInt32LE(36 + dataBytes, 4);
-wav.write("WAVE", 8);
-wav.write("fmt ", 12);
-wav.writeUInt32LE(16, 16);
-wav.writeUInt16LE(1, 20);
-wav.writeUInt16LE(1, 22);
-wav.writeUInt32LE(sampleRate, 24);
-wav.writeUInt32LE(sampleRate * 2, 28);
-wav.writeUInt16LE(2, 32);
-wav.writeUInt16LE(16, 34);
-wav.write("data", 36);
-wav.writeUInt32LE(dataBytes, 40);
-// The fixture is deliberately silent: it tests AAC muxing, not narration content.
-fs.mkdirSync("public", { recursive: true });
-fs.writeFileSync("public/demo-audio-fixture.wav", wav);
-console.log("Created a silent WAV fixture for the audio-render smoke test.");
+const [wav, metadataText] = await Promise.all([
+  readFile(sourcePath),
+  readFile(metadataPath, "utf8")
+]);
+const metadata = JSON.parse(metadataText);
+
+if (wav.length < 44 || wav.toString("ascii", 0, 4) !== "RIFF" || wav.toString("ascii", 8, 12) !== "WAVE") {
+  throw new Error("Nabra narration fixture is not a valid WAV file.");
+}
+if (metadata.peak < 0.002 || metadata.rms < 0.0001) {
+  throw new Error("Nabra narration fixture is silent; refusing to render a silent AAC track.");
+}
+if (!(metadata.durationSeconds >= 0.5 && metadata.durationSeconds <= 7.0)) {
+  throw new Error(`Narration duration does not fit the demo scene: ${metadata.durationSeconds}s`);
+}
+
+await mkdir("public", { recursive: true });
+await copyFile(sourcePath, destinationPath);
+console.log("Prepared real, non-silent Arabic narration for Remotion:", {
+  durationSeconds: metadata.durationSeconds,
+  sampleRate: metadata.sampleRate,
+  peak: metadata.peak,
+  rms: metadata.rms
+});
