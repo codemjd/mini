@@ -1,35 +1,11 @@
 import type { StudioProject } from "../types/project";
+import { openStudioDatabase, PROJECT_STORE_NAME } from "./database";
 
 const DB_NAME = "explainer-studio";
 const DB_VERSION = 2;
 const STORE_NAME = "projects";
 const AUDIO_STORE_NAME = "audio-assets";
 const FALLBACK_KEY = "explainer-studio.projects.v1";
-
-function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === "undefined") {
-      reject(new Error("IndexedDB is not available in this browser."));
-      return;
-    }
-
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = () => {
-      const database = request.result;
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        database.createObjectStore(STORE_NAME, { keyPath: "id" });
-      }
-      if (!database.objectStoreNames.contains(AUDIO_STORE_NAME)) {
-        database.createObjectStore(AUDIO_STORE_NAME, { keyPath: "id" });
-      }
-    };
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Could not open project database."));
-    request.onblocked = () => reject(new Error("Project database upgrade is blocked."));
-  });
-}
 
 function readFallbackProjects(): StudioProject[] {
   try {
@@ -58,7 +34,7 @@ export interface AudioAssetRecord {
 }
 
 export async function saveAudioAsset(asset: AudioAssetRecord): Promise<void> {
-  const database = await openDatabase();
+  const database = await openStudioDatabase();
   try {
     await new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(AUDIO_STORE_NAME, "readwrite");
@@ -73,7 +49,7 @@ export async function saveAudioAsset(asset: AudioAssetRecord): Promise<void> {
 }
 
 export async function loadAudioAsset(id: string): Promise<AudioAssetRecord | null> {
-  const database = await openDatabase();
+  const database = await openStudioDatabase();
   try {
     return await new Promise<AudioAssetRecord | null>((resolve, reject) => {
       const request = database.transaction(AUDIO_STORE_NAME, "readonly").objectStore(AUDIO_STORE_NAME).get(id);
@@ -86,7 +62,7 @@ export async function loadAudioAsset(id: string): Promise<AudioAssetRecord | nul
 }
 
 export async function deleteAudioAsset(id: string): Promise<void> {
-  const database = await openDatabase();
+  const database = await openStudioDatabase();
   try {
     await new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(AUDIO_STORE_NAME, "readwrite");
@@ -100,9 +76,9 @@ export async function deleteAudioAsset(id: string): Promise<void> {
 }
 export async function listProjects(): Promise<StudioProject[]> {
   try {
-    const database = await openDatabase();
+    const database = await openStudioDatabase();
     const projects = await new Promise<StudioProject[]>((resolve, reject) => {
-      const request = database.transaction(STORE_NAME, "readonly")
+      const request = database.transaction(PROJECT_STORE_NAME, "readonly")
         .objectStore(STORE_NAME)
         .getAll();
       request.onsuccess = () => resolve(request.result as StudioProject[]);
@@ -117,9 +93,9 @@ export async function listProjects(): Promise<StudioProject[]> {
 
 export async function loadProject(id: string): Promise<StudioProject | null> {
   try {
-    const database = await openDatabase();
+    const database = await openStudioDatabase();
     const project = await new Promise<StudioProject | undefined>((resolve, reject) => {
-      const request = database.transaction(STORE_NAME, "readonly")
+      const request = database.transaction(PROJECT_STORE_NAME, "readonly")
         .objectStore(STORE_NAME)
         .get(id);
       request.onsuccess = () => resolve(request.result as StudioProject | undefined);
@@ -134,9 +110,9 @@ export async function loadProject(id: string): Promise<StudioProject | null> {
 
 export async function saveProject(project: StudioProject): Promise<void> {
   try {
-    const database = await openDatabase();
+    const database = await openStudioDatabase();
     await new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(STORE_NAME, "readwrite");
+      const transaction = database.transaction(PROJECT_STORE_NAME, "readwrite");
       transaction.objectStore(STORE_NAME).put(project);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error ?? new Error("Could not save project."));
@@ -152,9 +128,9 @@ export async function saveProject(project: StudioProject): Promise<void> {
 
 export async function deleteProject(id: string): Promise<void> {
   try {
-    const database = await openDatabase();
+    const database = await openStudioDatabase();
     await new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(STORE_NAME, "readwrite");
+      const transaction = database.transaction(PROJECT_STORE_NAME, "readwrite");
       transaction.objectStore(STORE_NAME).delete(id);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error ?? new Error("Could not delete project."));
