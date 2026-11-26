@@ -1,4 +1,4 @@
-name: Render a real Explainer Studio MP4
+name: Render and inspect an Explainer Studio MP4 with AAC audio
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   render:
-    name: Render and inspect a 21.6-second Arabic demo
+    name: Render and inspect a 21.6-second Arabic demo with AAC track
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -58,19 +58,22 @@ jobs:
             const ffprobe = require("ffprobe-static").path;
             const raw = execFileSync(ffprobe, [
               "-v", "error",
-              "-show_entries", "stream=codec_type,codec_name,width,height,r_frame_rate",
+              "-show_entries", "stream=codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels",
               "-show_entries", "format=duration,size",
               "-of", "json", "out/explainer-demo.mp4"
             ], { encoding: "utf8" });
             fs.writeFileSync("out/metadata.json", raw);
             const metadata = JSON.parse(raw);
             const video = metadata.streams?.find((stream) => stream.codec_type === "video");
+            const audio = metadata.streams?.find((stream) => stream.codec_type === "audio");
             const duration = Number(metadata.format?.duration);
             if (!video) throw new Error("No video stream found");
+            if (!audio) throw new Error("No AAC audio stream found");
+            if (audio.codec_name !== "aac") throw new Error("Unexpected audio codec: " + audio.codec_name);
             if (video.width !== 1920 || video.height !== 1080) throw new Error("Unexpected video dimensions");
             if (!(duration >= 21 && duration <= 22.2)) throw new Error("Unexpected video duration: " + duration);
             if (!video.codec_name || video.codec_name !== "h264") throw new Error("Unexpected video codec: " + video.codec_name);
-            console.log("Verified MP4:", { codec: video.codec_name, width: video.width, height: video.height, fps: video.r_frame_rate, duration });
+            console.log("Verified MP4:", { videoCodec: video.codec_name, audioCodec: audio.codec_name, sampleRate: audio.sample_rate, channels: audio.channels, width: video.width, height: video.height, fps: video.r_frame_rate, duration });
           '
 
       - name: Upload verified demo MP4
