@@ -9,6 +9,7 @@ export interface ArabicTtsProgress {
 export interface ArabicNarrationResult {
   blob: Blob;
   sampleRate: number;
+  durationSeconds: number;
   device: "webgpu" | "wasm";
   segments: number;
 }
@@ -154,5 +155,5 @@ export async function generateArabicNarration(
   if (blob.size < 44) throw new Error("تعذر إنشاء ملف WAV صالح.");
   onProgress?.({ phase: "synthesis", progress: 100, detail: "اكتمل توليد التعليق الصوتي" });
 
-  return { blob, sampleRate, device: engine.device, segments: segments.length };
+  return { blob, sampleRate, durationSeconds: joined.length / sampleRate, device: engine.device, segments: segments.length };
 }
