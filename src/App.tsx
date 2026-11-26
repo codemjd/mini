@@ -10,7 +10,7 @@ import {
   type SceneLayout,
   type StudioProject
 } from "./types/project";
-import { deleteAudioAsset, listProjects, loadAudioAsset, saveAudioAsset } from "./core/project-store";
+import { deleteAudioAsset, listProjectAudioAssets, listProjects, loadAudioAsset, saveAudioAsset } from "./core/project-store";
 import { executeStudioCommand } from "./core/studio-commands";
 import { validateStudioProject } from "./core/project-validation";
 
@@ -281,6 +281,12 @@ export default function App() {
       setToast(result.error);
       return;
     }
+    try {
+      const audioAssets = await listProjectAudioAssets(project.id);
+      await Promise.all(audioAssets.map((asset) => deleteAudioAsset(asset.id)));
+    } catch {
+      setToast("حُذف المشروع، لكن بقي ملف صوت محلي يتيم يمكن تنظيفه لاحقًا.");
+    }
     setProjects((current) => current.filter((item) => item.id !== project.id));
     if (activeProject?.id === project.id) {
       setActiveProject(null);
@@ -353,6 +359,11 @@ export default function App() {
     const updated = result.data as StudioProject;
     setActiveProject(updated);
     setSelectedSceneId(updated.scenes[0]?.id ?? null);
+    if (selectedScene.narrationAudioAssetId) {
+      void deleteAudioAsset(selectedScene.narrationAudioAssetId).catch(() => {
+        setToast("حُذف المشهد، لكن تعذر حذف ملف الصوت المحلي المرتبط به.");
+      });
+    }
     setToast("تم حذف المشهد");
   }
 
@@ -504,18 +515,14 @@ export default function App() {
         throw new Error("حجم ملف التعليق يجب أن يكون أقل من 30 ميغابايت.");
       }
       const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-      const inferredTypes: Record<string, string> = {
+      const supportedAudioTypes: Record<string, string> = {
         mp3: "audio/mpeg",
-        wav: "audio/wav",
-        m4a: "audio/mp4",
-        aac: "audio/aac",
-        ogg: "audio/ogg",
-        opus: "audio/ogg",
-        webm: "audio/webm"
+        wav: "audio/wav"
       };
-      const mimeType = file.type || inferredTypes[extension] || "";
-      if (!mimeType.startsWith("audio/")) {
-        throw new Error("اختر ملفًا صوتيًا بصيغة مدعومة مثل MP3 أو WAV أو M4A.");
+      const mimeType = supportedAudioTypes[extension];
+      const browserType = file.type.toLowerCase();
+      if (!mimeType || (browserType && browserType !== mimeType && !(extension === "wav" && browserType === "audio/x-wav"))) {
+        throw new Error("يدعم الاستوديو حاليًا ملفات MP3 وWAV فقط لضمان توافق المعاينة والتصدير.");
       }
 
       const previousId = selectedScene.narrationAudioAssetId;
@@ -790,7 +797,7 @@ export default function App() {
                 <div className="audio-asset-editor">
                   <input ref={audioInput} type="file" accept="audio/*" hidden onChange={handleNarrationAudioUpload} />
                   <div className="audio-asset-status">
-                    {previewAudio?.id === selectedScene.narrationAudioAssetId
+                    {previewAudio && previewAudio.id === selectedScene.narrationAudioAssetId
                       ? <><strong>{previewAudio.name}</strong><span>سيعمل هذا الصوت مع تشغيل المعاينة وسيُدرج في تصدير MP4.</span></>
                       : <span>لم يُرفق ملف صوتي لهذا المشهد بعد.</span>}
                   </div>
