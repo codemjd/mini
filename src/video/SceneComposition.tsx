@@ -27,7 +27,7 @@ export const SceneComposition: FC<{ scene: Scene; sceneIndex?: number }> = ({ sc
   const steps = scene.blocks.filter((b) => b.kind === "step").slice(0, 4);
   const metrics = scene.blocks.filter((b) => b.kind === "metric").slice(0, 3);
   const labels = scene.blocks.filter((b) => b.kind === "shape").slice(0, 3);
-  const sceneNo = scene.id.match(/(\d+)$/)?.[1] ?? "01";
+  const sceneNo = String(sceneIndex + 1).padStart(2, "0");
 
   const visualCard = (title: string, subtitle: string, color: string, index: number) => (
     <div key={title} style={{ flex: 1, minHeight: 190, borderRadius: 20, border: "1px solid " + color + "66", background: "linear-gradient(155deg," + color + "22,rgba(255,255,255,.025))", padding: "18px 12px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", transform: "translateY(" + (Math.sin(frame / 13 + index) * 5) + "px)", direction: "rtl" }}>
