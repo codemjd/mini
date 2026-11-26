@@ -1,8 +1,8 @@
 import { renderProjectToMp4, type LocalRenderOptions } from "../video/render-project";
 import { executeStudioCommand } from "./studio-commands";
-import { deleteAudioAsset, loadAudioAsset, saveAudioAsset } from "./project-store";
+import { deleteAudioAsset, saveAudioAsset } from "./project-store";
 import { generateArabicNarration, type ArabicTtsProgress } from "../video/narration-tts";
-import type { StudioProject } from "../types/project";
+import { createId, type StudioProject } from "../types/project";
 
 export interface ExplainerStudioAgentBridge {
   readonly apiVersion: 1;
@@ -51,7 +51,8 @@ export function installExplainerStudioAgentBridge(): void {
     if (!scene.narration.trim()) throw new Error("لا يوجد نص تعليق صوتي لهذا المشهد.");
 
     const generated = await generateArabicNarration(scene.narration, options.onProgress, options.signal);
-    const assetId = `tts-${crypto.randomUUID()}`;
+    if (generated.blob.size > 30 * 1024 * 1024) throw new Error("ملف الصوت الناتج يتجاوز 30 ميغابايت.");
+    const assetId = createId();
     await saveAudioAsset({
       id: assetId,
       projectId,
