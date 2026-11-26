@@ -12,7 +12,7 @@ describe("splitArabicSpeechText", () => {
 
     expect(chunks.length).toBeGreaterThan(1);
     expect(chunks.every((chunk) => Array.from(chunk).length <= MAX_SEGMENT_CHARACTERS)).toBe(true);
-    expect(chunks.join(" ").split(/\\s+/u)).toEqual(words);
+    expect(chunks.join(" ").split(" ")).toEqual(words);
   });
 
   it("preserves Arabic sentence punctuation across segments", () => {
