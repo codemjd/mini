@@ -163,6 +163,12 @@ export default function App() {
             return [activeProject, ...next].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
           });
         })
+          const keepAudioIds = activeProject.scenes
+            .map((scene) => scene.narrationAudioAssetId)
+            .filter((id): id is string => Boolean(id));
+          void deleteUnreferencedAudioAssets(activeProject.id, keepAudioIds).catch((error: unknown) => {
+            setToast(error instanceof Error ? error.message : "تعذر تنظيف ملفات الصوت القديمة.");
+          });
         .finally(() => setSaving(false));
     }, 300);
     return () => window.clearTimeout(timer);
