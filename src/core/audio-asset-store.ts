@@ -83,6 +83,37 @@ export async function deleteAudioAsset(id: string): Promise<void> {
   }
 }
 
+
+export async function getAudioDurationSeconds(blob: Blob): Promise<number | null> {
+  if (typeof document === "undefined" || typeof URL === "undefined") return null;
+  const objectUrl = URL.createObjectURL(blob);
+  const audio = document.createElement("audio");
+  audio.preload = "metadata";
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (duration: number | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      audio.onloadedmetadata = null;
+      audio.onerror = null;
+      audio.removeAttribute("src");
+      audio.load();
+      URL.revokeObjectURL(objectUrl);
+      resolve(duration);
+    };
+    const timeout = window.setTimeout(() => finish(null), 8000);
+
+    audio.onloadedmetadata = () => {
+      finish(Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null);
+    };
+    audio.onerror = () => finish(null);
+    audio.src = objectUrl;
+    audio.load();
+  });
+}
+
 export async function encodeBlobToBase64(blob: Blob): Promise<string> {
   const bytes = new Uint8Array(await blob.arrayBuffer());
   let binary = "";
