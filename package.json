@@ -16,6 +16,7 @@
   "dependencies": {
     "@remotion/player": "4.0.547",
     "@remotion/media": "4.0.547",
+    "nabra-tts": "0.1.0",
     "remotion": "4.0.547",
     "react": "19.3.1",
     "react-dom": "19.3.1",
