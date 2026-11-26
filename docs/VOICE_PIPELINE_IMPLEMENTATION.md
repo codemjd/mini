@@ -1,6 +1,6 @@
 # Arabic Voice Pipeline — Implementation Specification
 
-Status: engineering specification; not yet integrated into the application.
+Status: scene-audio asset import, persistence, preview wiring, project bundling, and AAC render wiring are implemented in application code. CI validation of the AAC output is pending. Arabic TTS generation is not integrated.
 
 ## Product decision
 
@@ -26,6 +26,19 @@ Documented characteristics observed on 2026-11-26:
 Licensing:
 - Repository and model are described as Apache-2.0.
 - Bundled espeak-ng is GPL-3.0-or-later. Preserve notices and review distribution implications before bundling or self-hosting any runtime files.
+
+## Implemented in the application (2026-11-26)
+
+- Each scene may hold an optional narrationAudioAssetId.
+- The shared IndexedDB database is version 2 and creates an audio-assets object store alongside the existing project store.
+- The scene inspector accepts MP3 and WAV files, up to 30 MB per asset.
+- Audio Blobs are stored in IndexedDB; only durable asset IDs are written into project JSON.
+- The preview resolves the scene asset to a temporary object URL and passes it into the Remotion Player. The URL is revoked when the selected asset changes or the component is disposed.
+- Project export creates a versioned JSON bundle with embedded audio data; import validates scene-to-asset references, remaps IDs, and rejects oversized or incomplete bundles.
+- Deleting a scene or project attempts to delete its attached audio assets.
+- SceneComposition uses Audio from @remotion/media, nested under the scene Sequence, so the clip begins at that scene timeline start.
+- The local MP4 renderer loads durable Blobs, creates temporary URLs, requests AAC capability when audio exists, and releases the URLs after rendering.
+- The CI render fixture contains a one-second silent WAV. The updated FFprobe check is intended to verify that the output has an AAC stream. It is a muxing test, not a speech-quality or sync test.
 
 ## Proposed architecture
 
@@ -64,6 +77,9 @@ Nabra should be one implementation behind this interface. Future cloud or altern
 
 ### 3. Durable audio assets
 
+The UI implementation currently uses MP3 and WAV uploads (not generated WAV) and has no source metadata, sample-rate field, audio-duration field, or stale-voice status yet. Those remain follow-up hardening items.
+
+
 Persist audio Blobs in a dedicated IndexedDB object store, not inside project JSON and not as object URLs.
 
 Suggested record:
@@ -92,12 +108,12 @@ Database migration must be additive and must preserve existing projects. The pro
 - Narration starts at the scene's timeline start by default.
 - The UI must show whether narration is absent, generating, ready, or out of date relative to the narration text.
 - If narration text changes, mark the existing audio as stale; never silently present it as synchronized.
-- Support preview playback, regeneration, deletion, and WAV import.
+- Implemented: preview playback, deletion, and MP3/WAV import. Not implemented: generation/regeneration and stale-audio detection.
 - The composition must resolve stored Blobs to renderable URLs before rendering and release those URLs afterward.
 - Use `Audio` from `@remotion/media`, not `Html5Audio`, because Html5Audio is unsupported by the browser renderer.
 - Check browser render capability for an audio codec before enabling audio export. MP4 output needs a compatible audio encoding path (typically AAC).
 - Add an automated render fixture containing a short generated or deterministic WAV, then use ffprobe to verify both video and audio streams and their durations.
-- The demo's current silent render remains a separate visual regression test until narration integration is complete.
+- The demo uses a silent WAV fixture only to confirm AAC muxing; spoken narration remains a separate acceptance test.
 
 ## Android acceptance tests
 
@@ -119,7 +135,7 @@ Do not claim Android support until tested on representative mid-range Android ha
 - Pronunciation quality needs Arabic editorial review, especially names, numbers, abbreviations, and unvowelled text.
 - Automatic diacritization is a separate capability and must not be implied by the base model.
 - Performance on the user's Android device is unknown until tested.
-- This specification is not evidence that TTS has been integrated or that audio MP4 export works.
+- This specification is not evidence that Arabic TTS has been integrated, that the local Android renderer works on a physical device, or that spoken narration is synchronized in a released MP4.
 
 ## References
 
