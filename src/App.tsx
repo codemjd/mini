@@ -13,7 +13,7 @@ import {
 import { deleteAudioAsset, listProjectAudioAssets, listProjects, loadAudioAsset, saveAudioAsset } from "./core/project-store";
 import { executeStudioCommand } from "./core/studio-commands";
 import { validateStudioProject } from "./core/project-validation";
-import { generateArabicNarration } from "./video/narration-tts";
+import { disposeArabicNarrationEngine, generateArabicNarration } from "./video/narration-tts";
 import { isNarrationAudioCurrent } from "./core/narration-audio-state";
 
 type AppView = "dashboard" | "editor";
@@ -170,6 +170,12 @@ export default function App() {
   const importInput = useRef<HTMLInputElement>(null);
   const audioInput = useRef<HTMLInputElement>(null);
   const renderAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const disposeSpeechEngine = () => { void disposeArabicNarrationEngine(); };
+    window.addEventListener("pagehide", disposeSpeechEngine);
+    return () => window.removeEventListener("pagehide", disposeSpeechEngine);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
