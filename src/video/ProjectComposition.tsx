@@ -29,7 +29,7 @@ export const ProjectComposition: FC<{ project: StudioProject }> = ({ project }) 
             from={getSceneStartFrame(project, index)}
             durationInFrames={durationInFrames}
           >
-            <SceneComposition scene={scene} />
+            <SceneComposition scene={scene} sceneIndex={index} />
           </Sequence>
         );
       })}
