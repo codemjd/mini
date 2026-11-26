@@ -1,5 +1,6 @@
 import { canRenderMediaOnWeb, renderMediaOnWeb } from "@remotion/web-renderer";
 import type { StudioProject } from "../types/project";
+import { getAudioAsset } from "../core/audio-asset-store";
 import { validateStudioProject } from "../core/project-validation";
 import { getProjectDurationInFrames, ProjectComposition } from "./ProjectComposition";
 
@@ -32,51 +33,77 @@ export async function renderProjectToMp4(
   const height = project.settings.height;
   const scale = Math.min(1, LOCAL_RENDER_MAX_WIDTH / width, LOCAL_RENDER_MAX_HEIGHT / height);
   const durationInFrames = getProjectDurationInFrames(project);
+  const audioSources: Record<string, string> = {};
+  const objectUrls: string[] = [];
 
-  const capability = await canRenderMediaOnWeb({
-    width,
-    height,
-    scale,
-    container: "mp4",
-    videoCodec: "h264",
-    muted: true
-  });
+  try {
+    for (const scene of project.scenes) {
+      if (!scene.narrationAudioAssetId) continue;
+      const asset = await getAudioAsset(scene.narrationAudioAssetId);
+      if (!asset) {
+        throw new Error(`ملف التعليق الصوتي للمشهد «${scene.title}» غير موجود على هذا الجهاز. أعد إرفاقه أو استورد حزمة المشروع الأصلية.`);
+      }
+      if (asset.projectId !== project.id || asset.sceneId !== scene.id) {
+        throw new Error(`ملف الصوت المرتبط بالمشهد «${scene.title}» لا يطابق بيانات هذا المشروع.`);
+      }
+      const url = URL.createObjectURL(asset.blob);
+      objectUrls.push(url);
+      audioSources[scene.id] = url;
+    }
 
-  if (!capability.canRender) {
-    const blockingIssues = capability.issues.filter((item) => item.severity === "error");
-    throw new Error(blockingIssues.map((item) => item.message).join(" ") || "هذا المتصفح لا يدعم إعداد التصدير المطلوب.");
-  }
-
-  if (options.signal?.aborted) throw new DOMException("تم إلغاء التصدير.", "AbortError");
-
-  const result = await renderMediaOnWeb({
-    composition: {
-      id: `explainer-${project.id.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32)}`,
-      component: ProjectComposition,
-      durationInFrames,
-      fps,
+    const hasAudio = Object.keys(audioSources).length > 0;
+    const capability = await canRenderMediaOnWeb({
       width,
       height,
-      defaultProps: { project }
-    },
-    inputProps: { project },
-    container: "mp4",
-    videoCodec: "h264",
-    muted: true,
-    scale,
-    videoBitrate: "high",
-    pageResponsiveness: "high",
-    hardwareAcceleration: "no-preference",
-    signal: options.signal,
-    onProgress: ({ progress }) => options.onProgress?.(Math.max(0, Math.min(1, progress))),
-    licenseKey: "free-license",
-    metadata: {
-      title: project.title,
-      comment: "Explainer Studio local draft render. Silent video; no music or narration track."
-    }
-  });
+      scale,
+      container: "mp4",
+      videoCodec: "h264",
+      audioCodec: hasAudio ? "aac" : undefined,
+      muted: !hasAudio
+    });
 
-  const blob = await result.getBlob();
-  if (blob.size < 1024) throw new Error("ملف الفيديو الناتج أصغر من المتوقع؛ أوقفنا تسليمه كملف صالح.");
-  return blob;
+    if (!capability.canRender) {
+      const blockingIssues = capability.issues.filter((item) => item.severity === "error");
+      throw new Error(blockingIssues.map((item) => item.message).join(" ") || "هذا المتصفح لا يدعم إعداد التصدير المطلوب.");
+    }
+
+    if (options.signal?.aborted) throw new DOMException("تم إلغاء التصدير.", "AbortError");
+
+    const result = await renderMediaOnWeb({
+      composition: {
+        id: `explainer-${project.id.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32)}`,
+        component: ProjectComposition,
+        durationInFrames,
+        fps,
+        width,
+        height,
+        defaultProps: { project, audioSources }
+      },
+      inputProps: { project, audioSources },
+      container: "mp4",
+      videoCodec: "h264",
+      audioCodec: hasAudio ? "aac" : undefined,
+      muted: !hasAudio,
+      scale,
+      videoBitrate: "high",
+      audioBitrate: "high",
+      pageResponsiveness: "high",
+      hardwareAcceleration: "no-preference",
+      signal: options.signal,
+      onProgress: ({ progress }) => options.onProgress?.(Math.max(0, Math.min(1, progress))),
+      licenseKey: "free-license",
+      metadata: {
+        title: project.title,
+        comment: hasAudio
+          ? "Explainer Studio local render with scene narration. No music."
+          : "Explainer Studio local draft render. No narration or music track."
+      }
+    });
+
+    const blob = await result.getBlob();
+    if (blob.size < 1024) throw new Error("ملف الفيديو الناتج أصغر من المتوقع؛ أوقفنا تسليمه كملف صالح.");
+    return blob;
+  } finally {
+    for (const url of objectUrls) URL.revokeObjectURL(url);
+  }
 }
