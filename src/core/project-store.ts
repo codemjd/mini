@@ -1,7 +1,7 @@
 import type { StudioProject } from "../types/project";
 
 const DB_NAME = "explainer-studio";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "projects";
 const FALLBACK_KEY = "explainer-studio.projects.v1";
 
@@ -18,6 +18,9 @@ function openDatabase(): Promise<IDBDatabase> {
       const database = request.result;
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         database.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+      if (!database.objectStoreNames.contains("audio-assets")) {
+        database.createObjectStore("audio-assets", { keyPath: "id" });
       }
     };
 
