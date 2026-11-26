@@ -13,6 +13,7 @@ export interface Scene {
   id: string;
   title: string;
   narration: string;
+  narrationAudioAssetId?: string;
   durationSeconds: number;
   layout: SceneLayout;
   background: string;
