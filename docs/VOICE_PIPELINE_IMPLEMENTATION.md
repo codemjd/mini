@@ -57,7 +57,7 @@ The editor now exposes **توليد صوت عربي محليًا** for the selec
 - The upstream performance table was measured on Apple M-series hardware, not Android. The Xiaomi Mi A3 target has not been tested.
 - The 16 MB FP16 figure describes the model weight file, not the total first-run download; ONNX Runtime Web and its WASM runtime add size.
 - Nabra's repository identifies its code/model as Apache-2.0 but bundles eSpeak NG under GPL-3.0-or-later. The app repository currently has no top-level LICENSE. Resolve the app's distribution license before treating this integration as a production release.
-- The current CI WAV is silent. It checks that an AAC stream is muxed into MP4; it does not prove speech is audible, intelligible, or synchronized against the script.
+- The current CI WAV is silent. It checks that an AAC stream is muxed into MP4; it does not prove speech is audible, intelligible, or synchronized against the script. The scene composition now offsets later narration by 22 frames and automatically pads the scene to fit the clip.
 
 ## Proposed architecture
 
@@ -124,10 +124,10 @@ Database migration must be additive and must preserve existing projects. The pro
 
 ### 4. Scene timeline and render
 
-- Narration starts at the scene's timeline start by default.
+- Narration starts at frame zero in the first scene; later clips wait until the incoming visual entrance completes.
 - The UI must show whether narration is absent, generating, ready, or out of date relative to the narration text.
-- If narration text changes, mark the existing audio as stale; never silently present it as synchronized.
-- Implemented: preview playback, deletion, and MP3/WAV import. Not implemented: generation/regeneration and stale-audio detection.
+- If narration text changes, the UI hides the stale preview and the export guard refuses to use the old audio.
+- Implemented: preview playback, deletion, MP3/WAV import, opt-in local Nabra generation, and a narration-text snapshot that marks an attached clip stale when the script changes.
 - The composition must resolve stored Blobs to renderable URLs before rendering and release those URLs afterward.
 - Use `Audio` from `@remotion/media`, not `Html5Audio`, because Html5Audio is unsupported by the browser renderer.
 - Check browser render capability for an audio codec before enabling audio export. MP4 output needs a compatible audio encoding path (typically AAC).
@@ -185,3 +185,12 @@ Decision:
 - The model card is a community packaging of Nabra-82M; independently verify upstream model provenance and license notices before distribution.
 
 This gives the product a quality path without forcing a 57–163 MB download on every browser user.
+
+
+## Timeline and license delivery hardening — 26 November 2026
+
+- Later scene narration begins after the incoming visual reveal (22 frames); the first scene begins at frame zero.
+- Uploaded and generated narration use the same frame-based duration helper. Scenes expand when needed to fit the voice clip, its incoming delay, and six trailing frames; existing longer scene durations are preserved.
+- Regression tests cover the narration offset and duration padding.
+- The build now copies Nabra's Apache-2.0 license, upstream third-party notices, and eSpeak NG's GPL-3.0-or-later license text into the public site under `/vendor/nabra-tts/`.
+- This makes the component notices reachable from the editor. It does not choose a license for Explainer Studio as a whole; that decision remains a distribution gate.

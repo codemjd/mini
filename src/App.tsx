@@ -1075,7 +1075,7 @@ export default function App() {
                         <button className="subtle-button" type="button" onClick={cancelNarrationGeneration}>إلغاء التوليد</button>
                       </div>
                     )}
-                    <p>صوت عربي فصيح تجريبي يعمل على الجهاز. التنزيل الأول للنموذج يقارب 16 ميغابايت، ثم يُحفظ في ذاكرة المتصفح. التشكيل يحسّن النطق، ولا تُرسل الجمل إلى خدمة صوتية سحابية.</p>
+                    <p>صوت عربي فصيح تجريبي يعمل على الجهاز. التنزيل الأول يحتاج نحو 16 ميغابايت للنموذج، إضافة إلى ملفات تشغيل ONNX وملفات النطق (قرابة 7 ميغابايت مضغوطة لملف WASM وفق توثيق المحرك). تُحفظ الملفات مؤقتًا في ذاكرة المتصفح. التشكيل يحسّن النطق، ولا تُرسل الجمل إلى خدمة صوتية سحابية. <a href="./vendor/nabra-tts/THIRD_PARTY_NOTICES.md" target="_blank" rel="noreferrer">التراخيص وإشعارات المكونات</a>.</p>
                   </div>
                   <div className="field-actions">
                     <button className="subtle-button" type="button" onClick={() => audioInput.current?.click()}>إرفاق صوت (WAV / MP3)</button>
