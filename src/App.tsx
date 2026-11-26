@@ -213,6 +213,7 @@ export default function App() {
     };
   }, [selectedScene?.narrationAudioAssetId, selectedScene?.narrationAudioText, selectedScene?.narration]);
 
+  const previewNarrationAudioSrc = selectedScene?.narrationAudioText?.trim() === selectedScene?.narration.trim() ? narrationAudioSrc : undefined;
   const projectDuration = activeProject?.scenes.reduce((sum, scene) => sum + scene.durationSeconds, 0) ?? 0;
   const totalDuration = projects.reduce((sum, project) => sum + project.scenes.reduce((duration, scene) => duration + scene.durationSeconds, 0), 0);
 
@@ -373,7 +374,7 @@ export default function App() {
           throw new Error("تعذر العثور على أحد ملفات الصوت. أعد إرفاقه قبل تصدير الحزمة.");
         }
         totalAudioBytes += asset.blob.size;
-        if (totalAudioBytes > 50 * 1024 * 1024) {
+        if (totalAudioBytes > 25 * 1024 * 1024) {
           throw new Error("إجمالي ملفات الصوت يتجاوز الحد المدعوم للحزمة وهو 50 ميغابايت.");
         }
         return {
@@ -573,7 +574,6 @@ export default function App() {
         throw new Error("تغيّر المشهد أثناء حفظ الصوت؛ أعد التوليد بعد تثبيت النص.");
       }
 
-      const previousAssetId = sceneAtCommit.narrationAudioAssetId;
       const fittedDuration = Math.max(sceneAtCommit.durationSeconds, Math.ceil(result.durationSeconds + 0.25));
       setActiveProject((current) => {
         const currentScene = current?.id === projectId
@@ -597,7 +597,6 @@ export default function App() {
         };
       });
 
-      if (previousAssetId) void deleteAudioAsset(previousAssetId).catch(() => undefined);
       setTtsProgress(100);
       setTtsMessage("اكتمل توليد الصوت");
       setToast("تم توليد التعليق العربي محليًا عبر " + (result.device === "webgpu" ? "WebGPU" : "WASM") + " وحفظه للمشهد");
@@ -812,7 +811,7 @@ export default function App() {
                 <Player
                   key={selectedScene.id}
                   component={SceneComposition}
-                  inputProps={{ scene: selectedScene, sceneIndex: Math.max(0, activeProject.scenes.findIndex((scene) => scene.id === selectedScene.id)), narrationAudioSrc }}
+                  inputProps={{ scene: selectedScene, sceneIndex: Math.max(0, activeProject.scenes.findIndex((scene) => scene.id === selectedScene.id)), narrationAudioSrc: previewNarrationAudioSrc }}
                   durationInFrames={Math.max(1, Math.round(selectedScene.durationSeconds * activeProject.settings.fps))}
                   compositionWidth={activeProject.settings.width}
                   compositionHeight={activeProject.settings.height}
@@ -955,7 +954,7 @@ export default function App() {
                 {selectedScene.narrationAudioAssetId && (
                   <div className="field-actions">
                     <button type="button" className="subtle-button" onClick={removeNarrationAudio} disabled={ttsGenerating}>إزالة الصوت</button>
-                    <span className="audio-state-label">{selectedScene.narrationAudioText === selectedScene.narration ? "الصوت مطابق للنص" : "النص تغيّر — أعد التوليد"}</span>
+                    <span className="audio-state-label">{selectedScene.narrationAudioText?.trim() === selectedScene.narration.trim() ? "الصوت مطابق للنص" : "النص تغيّر — أعد التوليد"}</span>
                   </div>
                 )}
                 <input ref={narrationAudioInput} type="file" accept="audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/webm,.mp3,.wav,.m4a,.aac,.webm" hidden onChange={attachNarrationAudio} />
