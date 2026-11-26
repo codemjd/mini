@@ -1,9 +1,17 @@
 import { renderProjectToMp4, type LocalRenderOptions } from "../video/render-project";
 import { executeStudioCommand } from "./studio-commands";
+import { deleteAudioAsset, loadAudioAsset, saveAudioAsset } from "./project-store";
+import { generateArabicNarration, type ArabicTtsProgress } from "../video/narration-tts";
+import type { StudioProject } from "../types/project";
 
 export interface ExplainerStudioAgentBridge {
   readonly apiVersion: 1;
   execute: typeof executeStudioCommand;
+  generateNarration: (
+    projectId: string,
+    sceneId: string,
+    options?: { onProgress?: (progress: ArabicTtsProgress) => void; signal?: AbortSignal }
+  ) => Promise<{ assetId: string; size: number; sampleRate: number; durationSeconds: number; device: "webgpu" | "wasm" }>;
   render: (project: unknown, options?: LocalRenderOptions) => Promise<Blob>;
   renderAndDownload: (project: unknown, fileName?: string, options?: LocalRenderOptions) => Promise<{ fileName: string; size: number; type: string }>;
 }
@@ -28,6 +36,55 @@ export function installExplainerStudioAgentBridge(): void {
       throw new Error("يجب قبول إشعار خصوصية التصيير من واجهة التطبيق أولًا.");
     }
     return renderProjectToMp4(project, options);
+  };
+
+  const generateNarration: ExplainerStudioAgentBridge["generateNarration"] = async (
+    projectId,
+    sceneId,
+    options = {}
+  ) => {
+    const opened = await executeStudioCommand({ type: "project.open", projectId });
+    if (!opened.ok) throw new Error(opened.error);
+    const project = opened.data as StudioProject;
+    const scene = project.scenes.find((item) => item.id === sceneId);
+    if (!scene) throw new Error("المشهد المطلوب غير موجود.");
+    if (!scene.narration.trim()) throw new Error("لا يوجد نص تعليق صوتي لهذا المشهد.");
+
+    const generated = await generateArabicNarration(scene.narration, options.onProgress, options.signal);
+    const assetId = `tts-${crypto.randomUUID()}`;
+    await saveAudioAsset({
+      id: assetId,
+      projectId,
+      sceneId,
+      name: `${scene.title.slice(0, 180)} - صوت عربي.wav`,
+      mimeType: "audio/wav",
+      size: generated.blob.size,
+      blob: generated.blob,
+      createdAt: new Date().toISOString()
+    });
+
+    const updated = await executeStudioCommand({
+      type: "scene.update",
+      projectId,
+      sceneId,
+      patch: { narrationAudioAssetId: assetId }
+    });
+    if (!updated.ok) {
+      try { await deleteAudioAsset(assetId); } catch { /* preserve command failure */ }
+      throw new Error(updated.error);
+    }
+
+    if (scene.narrationAudioAssetId && scene.narrationAudioAssetId !== assetId) {
+      try { await deleteAudioAsset(scene.narrationAudioAssetId); } catch { /* keep the new narration attached */ }
+    }
+
+    return {
+      assetId,
+      size: generated.blob.size,
+      sampleRate: generated.sampleRate,
+      durationSeconds: Math.max(0, (generated.blob.size - 44) / (generated.sampleRate * 2)),
+      device: generated.device
+    };
   };
 
   const renderAndDownload: ExplainerStudioAgentBridge["renderAndDownload"] = async (
@@ -59,6 +116,7 @@ export function installExplainerStudioAgentBridge(): void {
     value: Object.freeze({
       apiVersion: 1 as const,
       execute: executeStudioCommand,
+      generateNarration,
       render,
       renderAndDownload
     })
