@@ -756,17 +756,38 @@ export default function App() {
   }
 
   async function removeNarrationAudio() {
-    const assetId = selectedScene?.narrationAudioAssetId;
-    if (!assetId) return;
-    updateScene((scene) => ({ ...scene, narrationAudioAssetId: undefined, narrationAudioText: undefined }));
-    const stillReferenced = activeProject?.scenes.some((scene) =>
-      scene.id !== selectedScene?.id && scene.narrationAudioAssetId === assetId
-    );
+    if (!activeProject || !selectedScene?.narrationAudioAssetId) return;
+    const targetProject = activeProject;
+    const targetScene = selectedScene;
+    const assetId = targetScene.narrationAudioAssetId;
+
+    const result = await executeStudioCommand({
+      type: "scene.update",
+      projectId: targetProject.id,
+      sceneId: targetScene.id,
+      patch: {
+        narrationAudioAssetId: undefined,
+        narrationAudioText: undefined
+      }
+    });
+    if (!result.ok) {
+      setToast(result.error);
+      return;
+    }
+
+    const updatedProject = result.data as StudioProject;
+    setProjects((current) => [
+      updatedProject,
+      ...current.filter((item) => item.id !== updatedProject.id)
+    ]);
+    setActiveProject((current) => current?.id === updatedProject.id ? updatedProject : current);
+
+    const stillReferenced = updatedProject.scenes.some((scene) => scene.narrationAudioAssetId === assetId);
     try {
       if (!stillReferenced) await deleteAudioAsset(assetId);
       setToast("تمت إزالة ملف التعليق الصوتي");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "تعذر حذف ملف الصوت.");
+      setToast(error instanceof Error ? error.message : "تم فصل الصوت، لكن تعذّر حذف الملف المحلي.");
     }
   }
 
