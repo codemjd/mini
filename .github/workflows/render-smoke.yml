@@ -3,7 +3,7 @@ name: Render a real Explainer Studio MP4
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/narration-audio-pipeline]
     paths:
       - "src/video/**"
       - "src/types/project.ts"
