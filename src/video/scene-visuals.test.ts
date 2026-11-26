@@ -44,6 +44,14 @@ describe("scene visual data", () => {
     ]);
   });
 
+  it("uses all three authored steps in the Arabic demo diagram", () => {
+    expect(getDiagramCards(demoProject.scenes[1]).map((block) => block.content)).toEqual([
+      "تقسيم البيانات",
+      "إضافة معلومات التوجيه",
+      "إرسال الحزم"
+    ]);
+  });
+
   it("numbers scenes by their actual one-based timeline position", () => {
     expect(getSceneNumberLabel(0)).toBe("01");
     expect(getSceneNumberLabel(9)).toBe("10");
