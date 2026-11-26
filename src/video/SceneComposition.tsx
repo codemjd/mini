@@ -11,7 +11,7 @@ const glass: CSSProperties = {
   boxShadow: "0 30px 90px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)"
 };
 
-export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
+export const SceneComposition: FC<{ scene: Scene; sceneIndex?: number }> = ({ scene, sceneIndex = 0 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const enter = interpolate(frame, [0, 22], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -119,11 +119,13 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
                 </div>
               </div>
             ) : scene.layout === "diagram" ? (
-              <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "ltr", position: "relative" }}>
-                {visualCard("المصدر", "بيانات أصلية", mint, 0)}
-                {visualCard("حزم رقمية", "وحدات صغيرة", violet, 1)}
-                {visualCard("الوجهة", "إعادة التجميع", amber, 2)}
-                <div style={{ position: "absolute", left: "25%", right: "25%", top: "49%", height: 3, background: "linear-gradient(90deg," + mint + "," + violet + "," + amber + ")", zIndex: -1 }} />
+              <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "ltr", position: "relative", gap: 14 }}>
+                {(steps.length ? steps.slice(0, 3) : labels.length ? labels.slice(0, 3) : scene.blocks.filter((block) => block.kind !== "shape").slice(0, 3)).map((block, index) => {
+                  const color = [mint, violet, amber][index];
+                  const subtitle = block.kind === "step" ? "مرحلة في العملية" : block.kind === "metric" ? "مؤشر أساسي" : block.kind === "heading" ? "الفكرة الرئيسية" : "تفصيل من الشرح";
+                  return visualCard(block.content, subtitle, color, index);
+                })}
+                <div style={{ position: "absolute", left: "20%", right: "20%", top: "49%", height: 3, background: "linear-gradient(90deg," + mint + "," + violet + "," + amber + ")", zIndex: -1 }} />
                 <div style={{ position: "absolute", left: (49 + Math.sin(frame / 8) * 12) + "%", top: "calc(49% - 7px)", width: 14, height: 14, borderRadius: 5, background: mint, boxShadow: "0 0 22px " + mint }} />
               </div>
             ) : scene.layout === "timeline" ? (
