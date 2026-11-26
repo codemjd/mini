@@ -725,7 +725,12 @@ export default function App() {
       setActiveProject((current) => current?.id === updatedProject.id ? updatedProject : current);
       createdAssetId = null;
 
-      if (targetScene.narrationAudioAssetId && targetScene.narrationAudioAssetId !== assetId) {
+      const previousAssetStillUsed = targetScene.narrationAudioAssetId
+        && targetScene.narrationAudioAssetId !== assetId
+        && updatedProject.scenes.some((scene) =>
+          scene.id !== targetScene.id && scene.narrationAudioAssetId === targetScene.narrationAudioAssetId
+        );
+      if (targetScene.narrationAudioAssetId && targetScene.narrationAudioAssetId !== assetId && !previousAssetStillUsed) {
         try { await deleteAudioAsset(targetScene.narrationAudioAssetId); } catch { /* keep the newly attached narration */ }
       }
 
