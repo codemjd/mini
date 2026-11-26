@@ -1,4 +1,4 @@
-name: Render and inspect an Explainer Studio MP4 with AAC audio
+name: Render and inspect an Explainer Studio MP4 with real Arabic narration
 
 on:
   workflow_dispatch:
@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - "src/video/**"
+      - "scripts/create-audio-fixture.mjs"
+      - "scripts/generate-voice-smoke.mjs"
       - "src/core/**"
       - "src/App.tsx"
       - "src/types/project.ts"
@@ -24,7 +26,7 @@ concurrency:
 
 jobs:
   render:
-    name: Render and inspect a 21.6-second Arabic demo with AAC track
+    name: Render and inspect a 24.6-second Arabic narrated demo
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -75,9 +77,22 @@ jobs:
             if (!audio) throw new Error("No AAC audio stream found");
             if (audio.codec_name !== "aac") throw new Error("Unexpected audio codec: " + audio.codec_name);
             if (video.width !== 1920 || video.height !== 1080) throw new Error("Unexpected video dimensions");
-            if (!(duration >= 21 && duration <= 22.2)) throw new Error("Unexpected video duration: " + duration);
+            if (!(duration >= 24 && duration <= 25.2)) throw new Error("Unexpected video duration: " + duration);
             if (!video.codec_name || video.codec_name !== "h264") throw new Error("Unexpected video codec: " + video.codec_name);
             console.log("Verified MP4:", { videoCodec: video.codec_name, audioCodec: audio.codec_name, sampleRate: audio.sample_rate, channels: audio.channels, width: video.width, height: video.height, fps: video.r_frame_rate, duration });
+          '
+
+      - name: Verify the AAC stream contains audible signal
+        run: |
+          ffmpeg -hide_banner -i out/explainer-demo.mp4 -map 0:a:0 -af volumedetect -f null /dev/null 2> out/audio-levels.txt
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const log = fs.readFileSync("out/audio-levels.txt", "utf8");
+            const match = log.match(/max_volume:\\s*(-?[0-9.]+) dB/);
+            if (!match) throw new Error("Could not measure the rendered AAC audio signal");
+            const maximum = Number(match[1]);
+            if (!Number.isFinite(maximum) || maximum <= -75) throw new Error("The rendered AAC stream is silent or too quiet: " + maximum + " dB");
+            console.log("Verified non-silent audio in rendered MP4. max_volume:", maximum, "dB");
           '
 
       - name: Upload verified demo MP4
@@ -87,4 +102,5 @@ jobs:
           path: |
             out/explainer-demo.mp4
             out/metadata.json
+            out/audio-levels.txt
           retention-days: 2
