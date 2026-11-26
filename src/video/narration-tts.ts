@@ -17,6 +17,7 @@ export interface ArabicNarrationResult {
 interface NabraEngine {
   generate(text: string): Promise<{ audio: Float32Array; sampleRate: number }>;
   toWav(audio: Float32Array): Blob;
+  dispose(): Promise<void>;
   readonly device: "webgpu" | "wasm";
 }
 
