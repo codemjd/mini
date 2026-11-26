@@ -78,6 +78,12 @@ export function validateStudioProject(input: unknown): ProjectValidationResult {
       ) {
         issue(`${path}.narrationAudioAssetId`, "مرجع ملف التعليق الصوتي غير صالح.");
       }
+      if (
+        scene.narrationAudioText !== undefined &&
+        !isText(scene.narrationAudioText, 12000)
+      ) {
+        issue(`${path}.narrationAudioText`, "نسخة نص التعليق المرتبطة بالصوت غير صالحة.");
+      }
       if (!Number.isFinite(scene.durationSeconds) || Number(scene.durationSeconds) < 1 || Number(scene.durationSeconds) > 600) issue(`${path}.durationSeconds`, "مدة المشهد يجب أن تكون بين 1 و600 ثانية.");
       if (!["title", "split", "diagram", "timeline", "stats", "quote", "comparison", "flow"].includes(String(scene.layout))) issue(`${path}.layout`, "تخطيط المشهد غير معروف.");
       if (!isHexColor(scene.background)) issue(`${path}.background`, "لون الخلفية يجب أن يكون HEX صالحًا.");
