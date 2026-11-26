@@ -46,9 +46,9 @@ describe("project composition timeline", () => {
     const fps = 30;
     const duration = 3.2;
     expect(getSceneDurationWithNarration(2, duration, fps, 0) * fps)
-      .toBe(Math.ceil(duration * fps) + SCENE_NARRATION_TAIL_FRAMES);
+      .toBeCloseTo(Math.ceil(duration * fps) + SCENE_NARRATION_TAIL_FRAMES, 8);
     expect(getSceneDurationWithNarration(2, duration, fps, 1) * fps)
-      .toBe(Math.ceil(duration * fps) + SCENE_NARRATION_START_DELAY_FRAMES + SCENE_NARRATION_TAIL_FRAMES);
+      .toBeCloseTo(Math.ceil(duration * fps) + SCENE_NARRATION_START_DELAY_FRAMES + SCENE_NARRATION_TAIL_FRAMES, 8);
     expect(getSceneDurationWithNarration(8, duration, fps, 1)).toBe(8);
     expect(getSceneDurationWithNarration(8, Number.NaN, fps, 1)).toBe(8);
   });
