@@ -7,7 +7,7 @@ import {
 import { deleteAudioAsset, deleteProject, listProjects, loadProject, saveProject } from "./project-store";
 import { validateStudioProject } from "./project-validation";
 
-type ScenePatch = Partial<Pick<Scene, "title" | "narration" | "narrationAudioAssetId" | "durationSeconds" | "layout" | "background" | "blocks">>;
+type ScenePatch = Partial<Pick<Scene, "title" | "narration" | "narrationAudioAssetId" | "narrationAudioText" | "durationSeconds" | "layout" | "background" | "blocks">>;
 type ProjectPatch = Partial<Pick<StudioProject, "title" | "description">> & { settings?: Partial<StudioProject["settings"]> };
 
 export type StudioCommand =
