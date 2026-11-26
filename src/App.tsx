@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Player } from "@remotion/player";
 import { SceneComposition } from "./video/SceneComposition";
 import { renderProjectToMp4 } from "./video/render-project";
-import { getSceneDurationWithNarration } from "./video/ProjectComposition";
+import { getProjectDurationInFrames, getSceneDurationInFrames, getSceneDurationWithNarration, getSceneNarrationStartOffsetFrames } from "./video/ProjectComposition";
 import type { ChangeEvent, ReactNode } from "react";
 import {
   createId,
@@ -251,7 +251,7 @@ export default function App() {
     };
   }, [activeProject?.id, selectedScene?.id, selectedScene?.narration, selectedScene?.narrationAudioAssetId, selectedScene?.narrationAudioText]);
 
-  const projectDuration = activeProject?.scenes.reduce((sum, scene) => sum + scene.durationSeconds, 0) ?? 0;
+  const projectDuration = activeProject ? getProjectDurationInFrames(activeProject) / activeProject.settings.fps : 0;
   const totalDuration = projects.reduce((sum, project) => sum + project.scenes.reduce((duration, scene) => duration + scene.durationSeconds, 0), 0);
 
   function updateProject(updater: (project: StudioProject) => StudioProject) {
@@ -871,6 +871,12 @@ export default function App() {
   if (view === "editor" && activeProject) {
     const firstHeading = selectedScene?.blocks.find((block) => block.kind === "heading");
     const firstBody = selectedScene?.blocks.find((block) => block.kind === "body");
+    const selectedSceneIndex = selectedScene
+      ? Math.max(0, activeProject.scenes.findIndex((scene) => scene.id === selectedScene.id))
+      : 0;
+    const selectedSceneDurationInFrames = selectedScene
+      ? getSceneDurationInFrames(selectedScene, selectedSceneIndex, activeProject.settings.fps)
+      : 1;
     const timelineTotal = Math.max(projectDuration, 1);
 
     return (
@@ -909,7 +915,7 @@ export default function App() {
                     <i />
                     <b />
                   </div>
-                  <div className="scene-item-copy"><strong>{scene.title}</strong><small>{formatDuration(scene.durationSeconds)}</small></div>
+                  <div className="scene-item-copy"><strong>{scene.title}</strong><small>{formatDuration(getSceneDurationInFrames(scene, index, activeProject.settings.fps) / activeProject.settings.fps)}</small></div>
                   <span className="scene-item-index">{String(index + 1).padStart(2, "0")}</span>
                 </button>
               ))}
@@ -927,8 +933,13 @@ export default function App() {
                 <Player
                   key={selectedScene.id}
                   component={SceneComposition}
-                  inputProps={{ scene: selectedScene, sceneIndex: Math.max(0, activeProject.scenes.findIndex((scene) => scene.id === selectedScene.id)), audioSource: previewAudio?.url }}
-                  durationInFrames={Math.max(1, Math.round(selectedScene.durationSeconds * activeProject.settings.fps))}
+                  inputProps={{
+                    scene: selectedScene,
+                    sceneIndex: selectedSceneIndex,
+                    audioSource: previewAudio?.url,
+                    audioStartOffsetFrames: getSceneNarrationStartOffsetFrames(selectedSceneIndex)
+                  }}
+                  durationInFrames={selectedSceneDurationInFrames}
                   compositionWidth={activeProject.settings.width}
                   compositionHeight={activeProject.settings.height}
                   fps={activeProject.settings.fps}
@@ -956,7 +967,7 @@ export default function App() {
                   <button
                     key={scene.id}
                     className={`timeline-clip ${selectedScene?.id === scene.id ? "selected" : ""}`}
-                    style={{ flexGrow: scene.durationSeconds, background: scene.background }}
+                    style={{ flexGrow: getSceneDurationInFrames(scene, index, activeProject.settings.fps), background: scene.background }}
                     onClick={() => setSelectedSceneId(scene.id)}
                     title={scene.title}
                   >
