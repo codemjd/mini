@@ -1,0 +1,75 @@
+name: Verify real Arabic Nabra TTS output
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/generate-voice-smoke.mjs"
+      - "vendor/nabra-tts/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/voice-smoke.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voice-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  speech:
+    name: Generate and inspect a non-silent Arabic WAV
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build the vendored Nabra runtime
+        run: npm run build:nabra
+
+      - name: Generate real Arabic speech using Nabra WASM
+        run: node scripts/generate-voice-smoke.mjs
+
+      - name: Inspect generated WAV with FFprobe
+        run: |
+          test -s out/nabra-arabic-voice-smoke.wav
+          node --input-type=module -e '
+            import { createRequire } from "node:module";
+            import { execFileSync } from "node:child_process";
+            const require = createRequire(import.meta.url);
+            const ffprobe = require("ffprobe-static").path;
+            const raw = execFileSync(ffprobe, [
+              "-v", "error",
+              "-show_entries", "stream=codec_name,codec_type,sample_rate,channels",
+              "-show_entries", "format=duration,size",
+              "-of", "json", "out/nabra-arabic-voice-smoke.wav"
+            ], { encoding: "utf8" });
+            const meta = JSON.parse(raw);
+            const audio = meta.streams?.find((stream) => stream.codec_type === "audio");
+            const duration = Number(meta.format?.duration);
+            if (!audio || audio.codec_name !== "pcm_s16le") throw new Error("Expected PCM WAV audio stream");
+            if (audio.sample_rate !== "24000" || audio.channels !== 1) throw new Error("Unexpected sample format");
+            if (!(duration >= 0.5 && duration <= 30)) throw new Error("Unexpected speech duration: " + duration);
+            console.log("WAV stream verified:", { codec: audio.codec_name, sampleRate: audio.sample_rate, channels: audio.channels, duration });
+          '
+
+      - name: Upload generated Arabic speech sample
+        uses: actions/upload-artifact@v4
+        with:
+          name: nabra-arabic-voice-smoke
+          path: |
+            out/nabra-arabic-voice-smoke.wav
+            out/nabra-arabic-voice-smoke.json
+          retention-days: 2
