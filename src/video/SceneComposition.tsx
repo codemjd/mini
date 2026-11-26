@@ -71,7 +71,28 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
             <span style={{ color: "rgba(230,238,252,.4)", fontSize: 14, letterSpacing: 2 }}>FIG. 0{sceneNo}</span>
           </div>
           <div style={{ position: "absolute", inset: "20% 7% 12%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {scene.layout === "diagram" ? (
+            {scene.layout === "quote" ? (
+              <div style={{ width: "88%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: 22, direction: "rtl", transform: "translateY(" + (Math.sin(frame / 20) * 5) + "px)" }}>
+                <div style={{ color: mint, fontSize: 112, lineHeight: .7, fontFamily: "Georgia,serif", opacity: .8 }}>”</div>
+                <strong style={{ color: "#f7f8ff", fontSize: 43, lineHeight: 1.65, fontWeight: 800, textShadow: "0 12px 38px rgba(0,0,0,.24)" }}>{heading}</strong>
+                <div style={{ width: 86, height: 4, borderRadius: 8, background: "linear-gradient(90deg," + mint + "," + violet + ")" }} />
+                <div style={{ color: "rgba(225,233,248,.68)", fontSize: 22, lineHeight: 1.7 }}>{body}</div>
+              </div>
+            ) : scene.layout === "comparison" ? (
+              <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 18, direction: "rtl" }}>
+                {[0, 1].map((i) => {
+                  const color = i === 0 ? violet : mint;
+                  const label = steps[i]?.content ?? (i === 0 ? "الحالة الأولى" : "الحالة الثانية");
+                  const reveal = interpolate(frame, [i * 8, i * 8 + 18], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+                  return <div key={i} style={{ ...glass, flex: 1, minHeight: 270, maxWidth: "42%", borderRadius: 24, padding: 26, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, borderColor: color + "88", background: "linear-gradient(155deg," + color + "24,rgba(255,255,255,.025))", opacity: reveal, transform: "translateY(" + ((1 - reveal) * 24) + "px) scale(" + (.96 + reveal * .04) + ")" }}>
+                    <span style={{ color, fontSize: 16, letterSpacing: 2 }}>0{i + 1} / {i === 0 ? "A" : "B"}</span>
+                    <div style={{ width: 94, height: 94, borderRadius: i === 0 ? 22 : "50%", border: "2px solid " + color, display: "grid", placeItems: "center", color, fontSize: 34, background: color + "15", boxShadow: "0 0 36px " + color + "22" }}>{i === 0 ? "−" : "+"}</div>
+                    <strong style={{ color: "#f4f7ff", fontSize: 27, textAlign: "center" }}>{label}</strong>
+                    <span style={{ color: "rgba(225,233,248,.5)", fontSize: 14 }}>{i === 0 ? "المشهد الأول" : "المشهد الثاني"}</span>
+                  </div>;
+                })}
+              </div>
+            ) : scene.layout === "diagram" ? (
               <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "ltr", position: "relative" }}>
                 {visualCard("المصدر", "بيانات أصلية", mint, 0)}
                 {visualCard("حزم رقمية", "وحدات صغيرة", violet, 1)}
