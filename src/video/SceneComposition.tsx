@@ -105,6 +105,19 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
                   </div>;
                 })}
               </div>
+            ) : scene.layout === "title" ? (
+              <div style={{ width: "100%", height: "100%", position: "relative", display: "grid", placeItems: "center", overflow: "hidden" }}>
+                <div style={{ position: "absolute", width: 330, height: 330, borderRadius: "50%", border: "1px solid " + mint + "66", boxShadow: "0 0 0 34px " + mint + "0b,0 0 0 72px " + violet + "0a,0 0 90px " + mint + "22", transform: "rotate(" + (frame * .22) + "deg) scale(" + (1 + Math.sin(frame / 24) * .025) + ")" }} />
+                <div style={{ position: "absolute", width: 205, height: 205, borderRadius: 44, border: "1px solid " + violet + "88", transform: "rotate(" + (-frame * .32) + "deg)", background: "linear-gradient(145deg," + violet + "15,transparent)" }} />
+                <div style={{ position: "absolute", width: 12, height: 12, borderRadius: "50%", background: amber, boxShadow: "0 0 26px " + amber, top: "19%", left: "22%", transform: "translateY(" + (Math.sin(frame / 12) * 18) + "px)" }} />
+                <div style={{ position: "absolute", width: 8, height: 8, borderRadius: 2, background: mint, boxShadow: "0 0 22px " + mint, bottom: "20%", right: "21%", transform: "rotate(" + (frame * 1.3) + "deg)" }} />
+                <div style={{ zIndex: 1, width: "88%", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 22, transform: "translateY(" + (Math.sin(frame / 20) * 7) + "px)" }}>
+                  <span style={{ color: mint, fontSize: 17, letterSpacing: 5, fontWeight: 700 }}>EXPLAINER / 01</span>
+                  <strong style={{ color: "#f7f8ff", fontSize: heading.length > 26 ? 40 : 52, lineHeight: 1.55, fontWeight: 900, textShadow: "0 12px 48px rgba(0,0,0,.34)" }}>{heading}</strong>
+                  <div style={{ width: 110, height: 4, borderRadius: 8, background: "linear-gradient(90deg," + mint + "," + violet + "," + amber + ")" }} />
+                  <span style={{ color: "rgba(225,233,248,.7)", fontSize: 22, lineHeight: 1.7, maxWidth: "82%" }}>{body}</span>
+                </div>
+              </div>
             ) : scene.layout === "diagram" ? (
               <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", direction: "ltr", position: "relative" }}>
                 {visualCard("المصدر", "بيانات أصلية", mint, 0)}
@@ -140,12 +153,12 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
             ) : scene.layout === "split" ? (
               <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 22, direction: "rtl" }}>
                 <div style={{ ...glass, flex: 1, minHeight: 270, borderRadius: 20, padding: 24 }}>
-                  <span style={{ color: violet, fontSize: 16, letterSpacing: 3 }}>BEFORE</span>
+                  <span style={{ color: violet, fontSize: 16, letterSpacing: 3 }}>{labels[0]?.content ?? "الجانب الأول"}</span>
                   <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 38 }}>{[88, 64, 78, 48].map((w, i) => <div key={i} style={{ height: 9, width: w + "%", borderRadius: 9, background: violet + "88" }} />)}</div>
                   <div style={{ display: "flex", gap: 9, marginTop: 34 }}>{[0, 1, 2, 3].map(i => <i key={i} style={{ width: 22, height: 22, borderRadius: 6, background: violet, opacity: .35 + i * .15 }} />)}</div>
                 </div>
                 <div style={{ ...glass, flex: 1, minHeight: 270, borderRadius: 20, padding: 24 }}>
-                  <span style={{ color: mint, fontSize: 16, letterSpacing: 3 }}>AFTER</span>
+                  <span style={{ color: mint, fontSize: 16, letterSpacing: 3 }}>{labels[1]?.content ?? "الجانب الثاني"}</span>
                   <div style={{ height: 130, marginTop: 26, borderRadius: 16, border: "1px solid " + mint + "66", background: "radial-gradient(circle," + mint + "33,transparent 68%)", display: "grid", placeItems: "center" }}>
                     <div style={{ width: 80, height: 80, borderRadius: "50%", border: "4px solid " + mint, boxShadow: "0 0 35px " + mint + "55", transform: "scale(" + (1 + Math.sin(frame / 12) * .04) + ")" }} />
                   </div>
