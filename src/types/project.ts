@@ -14,6 +14,8 @@ export interface Scene {
   title: string;
   narration: string;
   narrationAudioAssetId?: string;
+  /** Exact narration text associated with the attached audio asset. */
+  narrationAudioText?: string;
   durationSeconds: number;
   layout: SceneLayout;
   background: string;
