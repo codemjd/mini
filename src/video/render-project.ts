@@ -43,6 +43,9 @@ export async function renderProjectToMp4(
       if (!asset) {
         throw new Error(`ملف التعليق الصوتي للمشهد «${scene.title}» غير موجود على هذا الجهاز. أعد إرفاقه أو استورد حزمة المشروع الأصلية.`);
       }
+      if (scene.narrationAudioText?.trim() !== scene.narration.trim()) {
+        throw new Error("نص التعليق الصوتي في المشهد «" + scene.title + "» تغيّر بعد تسجيل الصوت. أعد توليد الصوت أو ارفع ملفًا جديدًا قبل التصدير.");
+      }
       if (asset.projectId !== project.id || asset.sceneId !== scene.id) {
         throw new Error(`ملف الصوت المرتبط بالمشهد «${scene.title}» لا يطابق بيانات هذا المشروع.`);
       }
