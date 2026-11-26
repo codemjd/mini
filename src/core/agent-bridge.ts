@@ -50,8 +50,18 @@ export function installExplainerStudioAgentBridge(): void {
     if (!scene) throw new Error("المشهد المطلوب غير موجود.");
     if (!scene.narration.trim()) throw new Error("لا يوجد نص تعليق صوتي لهذا المشهد.");
 
-    const generated = await generateArabicNarration(scene.narration, options.onProgress, options.signal);
-    if (generated.blob.size > 30 * 1024 * 1024) throw new Error("ملف الصوت الناتج يتجاوز 30 ميغابايت.");
+    const narrationText = scene.narration.trim();
+    const generated = await generateArabicNarration(narrationText, options.onProgress, options.signal);
+    if (generated.blob.size < 44 || generated.blob.size > 30 * 1024 * 1024) {
+      throw new Error("حجم ملف الصوت الناتج غير صالح أو يتجاوز 30 ميغابايت.");
+    }
+    const latestResult = await executeStudioCommand({ type: "project.open", projectId });
+    if (!latestResult.ok) throw new Error(latestResult.error);
+    const latestProject = latestResult.data as StudioProject;
+    const latestScene = latestProject.scenes.find((item) => item.id === sceneId);
+    if (!latestScene || latestScene.narration.trim() !== narrationText) {
+      throw new Error("تغيّر نص المشهد أثناء توليد الصوت. أعد المحاولة بعد تثبيت النص.");
+    }
     const assetId = createId();
     await saveAudioAsset({
       id: assetId,
@@ -68,7 +78,11 @@ export function installExplainerStudioAgentBridge(): void {
       type: "scene.update",
       projectId,
       sceneId,
-      patch: { narrationAudioAssetId: assetId }
+      patch: {
+        narrationAudioAssetId: assetId,
+        narrationAudioText: narrationText,
+        durationSeconds: Math.max(scene.durationSeconds, Math.ceil(generated.durationSeconds + 0.25))
+      }
     });
     if (!updated.ok) {
       try { await deleteAudioAsset(assetId); } catch { /* preserve command failure */ }
@@ -83,7 +97,7 @@ export function installExplainerStudioAgentBridge(): void {
       assetId,
       size: generated.blob.size,
       sampleRate: generated.sampleRate,
-      durationSeconds: Math.max(0, (generated.blob.size - 44) / (generated.sampleRate * 2)),
+      durationSeconds: generated.durationSeconds,
       device: generated.device
     };
   };
