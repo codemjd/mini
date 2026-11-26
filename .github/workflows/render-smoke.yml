@@ -82,13 +82,18 @@ jobs:
             console.log("Verified MP4:", { videoCodec: video.codec_name, audioCodec: audio.codec_name, sampleRate: audio.sample_rate, channels: audio.channels, width: video.width, height: video.height, fps: video.r_frame_rate, duration });
           '
 
+      - name: Install FFmpeg for audio-signal inspection
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
       - name: Verify the AAC stream contains audible signal
         run: |
           ffmpeg -hide_banner -i out/explainer-demo.mp4 -map 0:a:0 -af volumedetect -f null /dev/null 2> out/audio-levels.txt
           node --input-type=module -e '
             import fs from "node:fs";
             const log = fs.readFileSync("out/audio-levels.txt", "utf8");
-            const match = log.match(/max_volume:\\s*(-?[0-9.]+) dB/);
+            const match = log.match(/max_volume:\s*(-?[0-9.]+) dB/);
             if (!match) throw new Error("Could not measure the rendered AAC audio signal");
             const maximum = Number(match[1]);
             if (!Number.isFinite(maximum) || maximum <= -75) throw new Error("The rendered AAC stream is silent or too quiet: " + maximum + " dB");
