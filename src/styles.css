@@ -424,3 +424,32 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .visual-list-editor { display: grid; gap: 8px; margin: 10px 0 14px; }
 .visual-list-editor .field-label { margin-bottom: 0; }
 .visual-list-editor .text-field { min-height: 42px; }
+
+
+.audio-asset-editor {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 18px;
+  padding: 12px;
+  border: 1px solid rgba(126,227,211,.16);
+  border-radius: 11px;
+  background: rgba(126,227,211,.035);
+}
+.audio-asset-status {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: #8f9eb4;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.audio-asset-status strong {
+  overflow: hidden;
+  color: #dce9f5;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.audio-asset-editor .field-actions {
+  margin-top: 0;
+}
