@@ -351,6 +351,7 @@ export default function App() {
 
   function acceptRenderTelemetry() {
     setRenderConsentAccepted(true);
+    window.explainerStudioRenderConsent = true;
     setShowRenderConsent(false);
     void performVideoRender();
   }
