@@ -685,7 +685,19 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div className="timeline-empty-track"><span className="track-label">التعليق الصوتي</span><div><i /></div></div>
+              <div className="timeline-empty-track">
+                <span className="track-label">التعليق الصوتي</span>
+                <div className="narration-track">
+                  {activeProject.scenes.map((scene) => (
+                    <span
+                      key={scene.id}
+                      className={`narration-segment ${scene.narrationAudioAssetId ? "has-audio" : "no-audio"}`}
+                      style={{ flexGrow: scene.durationSeconds }}
+                      title={scene.title + (scene.narrationAudioAssetId ? " — صوت مرفق" : " — بلا صوت")}
+                    />
+                  ))}
+                </div>
+              </div>
               <div className="timeline-empty-track"><span className="track-label">العناصر البصرية</span><div><i /></div></div>
             </div>
           </section>
