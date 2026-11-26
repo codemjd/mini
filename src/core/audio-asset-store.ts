@@ -68,6 +68,35 @@ export async function getAudioAsset(id: string): Promise<AudioAssetRecord | null
   }
 }
 
+export async function deleteUnreferencedAudioAssets(
+  projectId: string,
+  referencedAssetIds: readonly string[]
+): Promise<void> {
+  const database = await openAudioDatabase();
+  const keep = new Set(referencedAssetIds);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(AUDIO_STORE_NAME, "readwrite");
+      const store = transaction.objectStore(AUDIO_STORE_NAME);
+      const request = store.getAll();
+      request.onsuccess = () => {
+        for (const asset of request.result as AudioAssetRecord[]) {
+          if (asset.projectId === projectId && !keep.has(asset.id)) {
+            store.delete(asset.id);
+          }
+        }
+      };
+      request.onerror = () => transaction.abort();
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error ?? new Error("تعذر تنظيف ملفات الصوت غير المستخدمة."));
+      transaction.onabort = () => reject(transaction.error ?? new Error("أُلغيت عملية تنظيف ملفات الصوت."));
+    });
+  } finally {
+    database.close();
+  }
+}
+
+
 export async function deleteAudioAsset(id: string): Promise<void> {
   const database = await openAudioDatabase();
   try {
@@ -129,6 +158,8 @@ export function decodeBase64Audio(base64: string, mimeType: string): Blob {
     throw new Error("نوع ملف التعليق الصوتي غير صالح.");
   }
   const normalized = base64.replace(/\s/g, "");
+  const maxEncodedLength = Math.ceil(MAX_NARRATION_AUDIO_BYTES / 3) * 4;
+  if (normalized.length > maxEncodedLength) throw new Error("ملف التعليق الصوتي يتجاوز الحد المدعوم البالغ 25 ميغابايت.");
   if (!normalized || normalized.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)) {
     throw new Error("بيانات ملف الصوت داخل ملف المشروع تالفة.");
   }
