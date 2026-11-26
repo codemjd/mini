@@ -81,6 +81,7 @@ export function installExplainerStudioAgentBridge(): void {
       patch: {
         narrationAudioAssetId: assetId,
         narrationAudioText: narrationText,
+        narrationAudioDurationSeconds: generated.durationSeconds,
         durationSeconds: Math.max(scene.durationSeconds, Math.ceil(generated.durationSeconds + 0.25))
       }
     });

@@ -35,11 +35,29 @@ export function getSceneDurationWithNarration(
   return Math.max(currentFrames, requiredFrames) / safeFps;
 }
 
-/** Resolve a scene's timeline position from the same overlap rule used by total duration. */
+/** Compute duration from the stored clip duration and its current position in the scene order. */
+export function getSceneDurationInFrames(
+  scene: StudioProject["scenes"][number],
+  sceneIndex: number,
+  fps: number
+): number {
+  const durationSeconds = scene.narrationAudioAssetId
+    && typeof scene.narrationAudioDurationSeconds === "number"
+    ? getSceneDurationWithNarration(
+        scene.durationSeconds,
+        scene.narrationAudioDurationSeconds,
+        fps,
+        sceneIndex
+      )
+    : scene.durationSeconds;
+  return Math.max(1, Math.round(durationSeconds * fps));
+}
+
+/** Resolve a scene's timeline position using durations recomputed for the current ordering. */
 export function getSceneStartFrame(project: StudioProject, sceneIndex: number): number {
   const index = Math.max(0, Math.min(project.scenes.length, Math.floor(sceneIndex)));
   const framesBefore = project.scenes.slice(0, index).reduce(
-    (total, scene) => total + Math.max(1, Math.round(scene.durationSeconds * project.settings.fps)),
+    (total, scene, previousIndex) => total + getSceneDurationInFrames(scene, previousIndex, project.settings.fps),
     0
   );
   return Math.max(0, framesBefore - index * SCENE_CROSSFADE_FRAMES);
@@ -51,7 +69,7 @@ export const ProjectComposition: FC<{ project: StudioProject; audioSources?: Rec
   return (
     <AbsoluteFill style={{ backgroundColor: "#10131d", overflow: "hidden" }}>
       {project.scenes.map((scene, index) => {
-        const durationInFrames = Math.max(1, Math.round(scene.durationSeconds * fps));
+        const durationInFrames = getSceneDurationInFrames(scene, index, fps);
         return (
           <Sequence
             key={scene.id}
@@ -73,7 +91,7 @@ export const ProjectComposition: FC<{ project: StudioProject; audioSources?: Rec
 
 export function getProjectDurationInFrames(project: StudioProject): number {
   const sceneFrames = project.scenes.reduce(
-    (total, scene) => total + Math.max(1, Math.round(scene.durationSeconds * project.settings.fps)),
+    (total, scene, index) => total + getSceneDurationInFrames(scene, index, project.settings.fps),
     0
   );
   const transitionFrames = Math.max(0, project.scenes.length - 1) * SCENE_CROSSFADE_FRAMES;

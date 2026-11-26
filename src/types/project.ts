@@ -16,6 +16,8 @@ export interface Scene {
   narrationAudioAssetId?: string;
   /** Exact narration text associated with the attached audio asset. */
   narrationAudioText?: string;
+  /** Decoded duration of the attached audio clip in seconds. */
+  narrationAudioDurationSeconds?: number;
   durationSeconds: number;
   layout: SceneLayout;
   background: string;

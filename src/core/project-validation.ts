@@ -81,6 +81,17 @@ export function validateStudioProject(input: unknown): ProjectValidationResult {
       if (scene.narrationAudioText !== undefined && !scene.narrationAudioAssetId) {
         issue(`${path}.narrationAudioText`, "لا يمكن حفظ نسخة نص مرتبطة بالصوت دون ملف صوت.");
       }
+      if (scene.narrationAudioDurationSeconds !== undefined && (
+        typeof scene.narrationAudioDurationSeconds !== "number"
+        || !Number.isFinite(scene.narrationAudioDurationSeconds)
+        || scene.narrationAudioDurationSeconds <= 0
+        || scene.narrationAudioDurationSeconds > 600
+      )) {
+        issue(`${path}.narrationAudioDurationSeconds`, "مدة ملف التعليق الصوتي يجب أن تكون رقمًا موجبًا لا يتجاوز 600 ثانية.");
+      }
+      if (scene.narrationAudioDurationSeconds !== undefined && !scene.narrationAudioAssetId) {
+        issue(`${path}.narrationAudioDurationSeconds`, "لا يمكن حفظ مدة صوت دون ملف صوت مرتبط بالمشهد.");
+      }
       if (!Number.isFinite(scene.durationSeconds) || Number(scene.durationSeconds) < 1 || Number(scene.durationSeconds) > 600) issue(`${path}.durationSeconds`, "مدة المشهد يجب أن تكون بين 1 و600 ثانية.");
       if (!["title", "split", "diagram", "timeline", "stats", "quote", "comparison", "flow"].includes(String(scene.layout))) issue(`${path}.layout`, "تخطيط المشهد غير معروف.");
       if (!isHexColor(scene.background)) issue(`${path}.background`, "لون الخلفية يجب أن يكون HEX صالحًا.");

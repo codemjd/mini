@@ -3,6 +3,7 @@ import { createStarterProject } from "../types/project";
 import {
   getProjectDurationInFrames,
   getSceneStartFrame,
+  getSceneDurationInFrames,
   SCENE_CROSSFADE_FRAMES,
   SCENE_NARRATION_START_DELAY_FRAMES,
   SCENE_NARRATION_TAIL_FRAMES,
@@ -51,6 +52,40 @@ describe("project composition timeline", () => {
       .toBeCloseTo(Math.ceil(duration * fps) + SCENE_NARRATION_START_DELAY_FRAMES + SCENE_NARRATION_TAIL_FRAMES, 8);
     expect(getSceneDurationWithNarration(8, duration, fps, 1)).toBe(8);
     expect(getSceneDurationWithNarration(8, Number.NaN, fps, 1)).toBe(8);
+  });
+
+  it("recomputes a narration-bearing scene duration after the scene is reordered", () => {
+    const project = createStarterProject();
+    const voiceScene = {
+      ...project.scenes[0],
+      durationSeconds: 7.2,
+      narrationAudioAssetId: "audio-asset-01",
+      narrationAudioText: project.scenes[0].narration,
+      narrationAudioDurationSeconds: 7
+    };
+    project.scenes = [project.scenes[1], voiceScene, project.scenes[2]];
+
+    const movedSceneIndex = 1;
+    const movedScene = project.scenes[movedSceneIndex];
+    const fps = project.settings.fps;
+    const movedDurationFrames = getSceneDurationInFrames(movedScene, movedSceneIndex, fps);
+    const audioEndFrame = getSceneStartFrame(project, movedSceneIndex)
+      + getSceneNarrationStartOffsetFrames(movedSceneIndex)
+      + Math.ceil(movedScene.narrationAudioDurationSeconds! * fps);
+    const nextNarrationStartFrame = getSceneStartFrame(project, 2)
+      + getSceneNarrationStartOffsetFrames(2);
+
+    expect(movedDurationFrames).toBe(
+      Math.ceil(7 * fps) + SCENE_NARRATION_START_DELAY_FRAMES + SCENE_NARRATION_TAIL_FRAMES
+    );
+    expect(audioEndFrame + SCENE_NARRATION_TAIL_FRAMES).toBe(
+      getSceneStartFrame(project, movedSceneIndex) + movedDurationFrames
+    );
+    expect(nextNarrationStartFrame).toBeGreaterThan(audioEndFrame);
+    expect(getProjectDurationInFrames(project)).toBe(
+      project.scenes.reduce((total, scene, index) => total + getSceneDurationInFrames(scene, index, fps), 0)
+        - (project.scenes.length - 1) * SCENE_CROSSFADE_FRAMES
+    );
   });
 
   it("keeps all scene offsets non-negative for valid minimum-length scenes", () => {

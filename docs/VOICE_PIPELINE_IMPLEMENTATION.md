@@ -194,3 +194,12 @@ This gives the product a quality path without forcing a 57–163 MB download on 
 - Regression tests cover the narration offset and duration padding.
 - The build now copies Nabra's Apache-2.0 license, upstream third-party notices, and eSpeak NG's GPL-3.0-or-later license text into the public site under `/vendor/nabra-tts/`.
 - This makes the component notices reachable from the editor. It does not choose a license for Explainer Studio as a whole; that decision remains a distribution gate.
+
+
+## Reorder-safe narration duration — 26 November 2026
+
+- Each attached voice clip stores its decoded duration in `narrationAudioDurationSeconds`, independently of the scene duration.
+- The composition recalculates required duration from the clip length and the scene's current order. Moving a voice-bearing scene to a later position automatically adds the incoming narration delay.
+- Sequence durations, scene start frames, and total project duration all use the same index-aware frame calculation.
+- The upload path, local TTS path, and agent automation bridge persist the same duration metadata.
+- Regression coverage checks that moving a narration-bearing scene from first to second position extends it and leaves a gap before the next clip.

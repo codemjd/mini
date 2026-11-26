@@ -617,6 +617,7 @@ export default function App() {
         patch: {
           narrationAudioAssetId: assetId,
           narrationAudioText: narrationSnapshot,
+          narrationAudioDurationSeconds: audioDurationSeconds,
           durationSeconds: getSceneDurationWithNarration(
             latestScene.durationSeconds,
             audioDurationSeconds,
@@ -724,6 +725,7 @@ export default function App() {
         patch: {
           narrationAudioAssetId: assetId,
           narrationAudioText: narrationText,
+          narrationAudioDurationSeconds: generated.durationSeconds,
           durationSeconds: fittedDuration
         }
       });
@@ -786,7 +788,8 @@ export default function App() {
       sceneId: targetScene.id,
       patch: {
         narrationAudioAssetId: undefined,
-        narrationAudioText: undefined
+        narrationAudioText: undefined,
+        narrationAudioDurationSeconds: undefined
       }
     });
     if (!result.ok) {

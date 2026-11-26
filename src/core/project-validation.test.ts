@@ -148,6 +148,39 @@ describe("validateStudioProject", () => {
     expect(result.valid).toBe(true);
   });
 
+  it("accepts a positive decoded narration audio duration for an attached asset", () => {
+    const project = createStarterProject();
+    const scene = {
+      ...project.scenes[0],
+      narrationAudioAssetId: "audio-asset-01",
+      narrationAudioText: project.scenes[0].narration,
+      narrationAudioDurationSeconds: 4.25
+    };
+    const result = validateStudioProject({ ...project, scenes: [scene, ...project.scenes.slice(1)] });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects narration audio duration metadata without an asset", () => {
+    const project = createStarterProject();
+    const scene = { ...project.scenes[0], narrationAudioDurationSeconds: 4 };
+    const result = validateStudioProject({ ...project, scenes: [scene, ...project.scenes.slice(1)] });
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.issues.some((item) => item.path === "scenes[0].narrationAudioDurationSeconds")).toBe(true);
+  });
+
+  it("rejects a non-positive or oversized narration audio duration", () => {
+    const project = createStarterProject();
+    for (const duration of [0, -1, 601, Number.NaN]) {
+      const scene = {
+        ...project.scenes[0],
+        narrationAudioAssetId: "audio-asset-01",
+        narrationAudioDurationSeconds: duration
+      };
+      const result = validateStudioProject({ ...project, scenes: [scene, ...project.scenes.slice(1)] });
+      expect(result.valid).toBe(false);
+    }
+  });
+
   it("rejects narration text snapshots without an audio asset", () => {
     const project = createStarterProject();
     const scene = { ...project.scenes[0], narrationAudioText: "نص مرتبط بالصوت" };
