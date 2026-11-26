@@ -73,7 +73,7 @@ export function validateStudioProject(input: unknown): ProjectValidationResult {
       if (!isText(scene.title, 160) || !scene.title.trim()) issue(`${path}.title`, "عنوان المشهد مطلوب.");
       if (!isText(scene.narration, 12000)) issue(`${path}.narration`, "نص التعليق طويل أو غير صالح.");
       if (!Number.isFinite(scene.durationSeconds) || Number(scene.durationSeconds) < 1 || Number(scene.durationSeconds) > 600) issue(`${path}.durationSeconds`, "مدة المشهد يجب أن تكون بين 1 و600 ثانية.");
-      if (!["title", "split", "diagram", "timeline", "stats", "quote", "comparison"].includes(String(scene.layout))) issue(`${path}.layout`, "تخطيط المشهد غير معروف.");
+      if (!["title", "split", "diagram", "timeline", "stats", "quote", "comparison", "flow"].includes(String(scene.layout))) issue(`${path}.layout`, "تخطيط المشهد غير معروف.");
       if (!isHexColor(scene.background)) issue(`${path}.background`, "لون الخلفية يجب أن يكون HEX صالحًا.");
       if (!Array.isArray(scene.blocks) || scene.blocks.length > 30) {
         issue(`${path}.blocks`, "قائمة العناصر البصرية غير صالحة أو تتجاوز 30 عنصرًا.");
