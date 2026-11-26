@@ -13,7 +13,7 @@ const glass: CSSProperties = {
   boxShadow: "0 30px 90px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)"
 };
 
-export const SceneComposition: FC<{ scene: Scene; sceneIndex?: number; audioSource?: string }> = ({ scene, sceneIndex = 0, audioSource }) => {
+export const SceneComposition: FC<{ scene: Scene; sceneIndex?: number; audioSource?: string; audioStartOffsetFrames?: number }> = ({ scene, sceneIndex = 0, audioSource, audioStartOffsetFrames = 0 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const enter = interpolate(frame, [0, 22], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -43,7 +43,7 @@ export const SceneComposition: FC<{ scene: Scene; sceneIndex?: number; audioSour
 
   return (
     <AbsoluteFill style={{ background: "radial-gradient(ellipse at 24% 18%," + scene.background + " 0%,#111827 68%,#0b1220 100%)", color: "#f4f7ff", overflow: "hidden", opacity: enter * exit, transform: "translate(" + cameraX + "px," + cameraY + "px) scale(" + cameraScale + ")", transformOrigin: "50% 50%", fontFamily: '"Noto Sans Arabic","Segoe UI",Tahoma,sans-serif', direction: "rtl" }}>
-      {audioSource ? <Audio src={audioSource} /> : null}
+      {audioSource ? <Audio from={audioStartOffsetFrames} src={audioSource} /> : null}
       <AbsoluteFill style={{ opacity: .17, backgroundImage: "linear-gradient(rgba(190,210,240,.11) 1px,transparent 1px),linear-gradient(90deg,rgba(190,210,240,.11) 1px,transparent 1px)", backgroundSize: "72px 72px", transform: "translate(" + drift + "px," + -drift + "px)" }} />
       <div style={{ position: "absolute", width: 760, height: 760, borderRadius: "50%", right: "-19%", top: "-54%", background: "radial-gradient(circle,rgba(131,234,215,.12),transparent 68%)" }} />
       <div style={{ position: "absolute", width: 650, height: 650, borderRadius: "50%", left: "-22%", bottom: "-58%", background: "radial-gradient(circle,rgba(182,167,255,.12),transparent 68%)" }} />

@@ -5,6 +5,35 @@ import { SceneComposition } from "./SceneComposition";
 
 /** Frames shared by adjacent scenes to create a true animated crossfade. */
 export const SCENE_CROSSFADE_FRAMES = 18;
+export const SCENE_NARRATION_START_DELAY_FRAMES = 22;
+export const SCENE_NARRATION_TAIL_FRAMES = 6;
+
+/** The first scene starts immediately; later narrations wait until their visual entrance completes. */
+export function getSceneNarrationStartOffsetFrames(sceneIndex: number): number {
+  return Number.isFinite(sceneIndex) && Math.floor(sceneIndex) > 0
+    ? SCENE_NARRATION_START_DELAY_FRAMES
+    : 0;
+}
+
+/** Preserve longer scenes and extend shorter ones to fit the entire narration safely. */
+export function getSceneDurationWithNarration(
+  currentDurationSeconds: number,
+  narrationDurationSeconds: number,
+  fps: number,
+  sceneIndex: number
+): number {
+  if (!Number.isFinite(narrationDurationSeconds) || narrationDurationSeconds <= 0) {
+    return currentDurationSeconds;
+  }
+
+  const safeFps = Number.isFinite(fps) && fps > 0 ? fps : 30;
+  const currentFrames = Math.max(1, Math.round(currentDurationSeconds * safeFps));
+  const narrationFrames = Math.ceil(narrationDurationSeconds * safeFps);
+  const requiredFrames = narrationFrames
+    + getSceneNarrationStartOffsetFrames(sceneIndex)
+    + SCENE_NARRATION_TAIL_FRAMES;
+  return Math.max(currentFrames, requiredFrames) / safeFps;
+}
 
 /** Resolve a scene's timeline position from the same overlap rule used by total duration. */
 export function getSceneStartFrame(project: StudioProject, sceneIndex: number): number {
@@ -29,7 +58,12 @@ export const ProjectComposition: FC<{ project: StudioProject; audioSources?: Rec
             from={getSceneStartFrame(project, index)}
             durationInFrames={durationInFrames}
           >
-            <SceneComposition scene={scene} sceneIndex={index} audioSource={audioSources[scene.id]} />
+            <SceneComposition
+              scene={scene}
+              sceneIndex={index}
+              audioSource={audioSources[scene.id]}
+              audioStartOffsetFrames={getSceneNarrationStartOffsetFrames(index)}
+            />
           </Sequence>
         );
       })}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Player } from "@remotion/player";
 import { SceneComposition } from "./video/SceneComposition";
 import { renderProjectToMp4 } from "./video/render-project";
+import { getSceneDurationWithNarration } from "./video/ProjectComposition";
 import type { ChangeEvent, ReactNode } from "react";
 import {
   createId,
@@ -585,6 +586,9 @@ export default function App() {
       }
 
       const audioDurationSeconds = await readAudioDurationSeconds(file);
+      if (audioDurationSeconds === null) {
+        throw new Error("تعذر قراءة مدة ملف الصوت. جرّب ملف MP3 أو WAV صالحًا.");
+      }
       const latestResult = await executeStudioCommand({ type: "project.open", projectId: targetProject.id });
       if (!latestResult.ok) throw new Error(latestResult.error);
       const latestProject = latestResult.data as StudioProject;
@@ -613,9 +617,12 @@ export default function App() {
         patch: {
           narrationAudioAssetId: assetId,
           narrationAudioText: narrationSnapshot,
-          durationSeconds: audioDurationSeconds
-            ? Math.max(latestScene.durationSeconds, Math.ceil(audioDurationSeconds))
-            : latestScene.durationSeconds
+          durationSeconds: getSceneDurationWithNarration(
+            latestScene.durationSeconds,
+            audioDurationSeconds,
+            latestProject.settings.fps,
+            latestProject.scenes.findIndex((scene) => scene.id === targetScene.id)
+          )
         }
       });
       if (!result.ok) throw new Error(result.error);
@@ -704,7 +711,12 @@ export default function App() {
         throw new Error("تغيّر نص المشهد أثناء توليد الصوت. لم نربط التسجيل بالنص القديم؛ أعد المحاولة بعد تثبيت النص.");
       }
 
-      const fittedDuration = Math.max(targetScene.durationSeconds, Math.ceil(generated.durationSeconds + 0.25));
+      const fittedDuration = getSceneDurationWithNarration(
+        latestScene.durationSeconds,
+        generated.durationSeconds,
+        latestProject.settings.fps,
+        latestProject.scenes.findIndex((scene) => scene.id === targetScene.id)
+      );
       const result = await executeStudioCommand({
         type: "scene.update",
         projectId: targetProject.id,
