@@ -450,7 +450,7 @@ export default function App() {
                 <Player
                   key={selectedScene.id}
                   component={SceneComposition}
-                  inputProps={{ scene: selectedScene }}
+                  inputProps={{ scene: selectedScene, sceneIndex: Math.max(0, activeProject.scenes.findIndex((scene) => scene.id === selectedScene.id)) }}
                   durationInFrames={Math.max(1, Math.round(selectedScene.durationSeconds * activeProject.settings.fps))}
                   compositionWidth={activeProject.settings.width}
                   compositionHeight={activeProject.settings.height}
