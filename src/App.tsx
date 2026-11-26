@@ -492,9 +492,9 @@ export default function App() {
     if (!file || !activeProject || !selectedScene) return;
     try {
       const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-      const extensionSupported = ["mp3", "wav", "m4a", "aac", "ogg", "webm"].includes(extension);
+      const extensionSupported = ["mp3", "wav", "m4a", "aac", "webm"].includes(extension);
       if (!file.type.startsWith("audio/") && !extensionSupported) {
-        throw new Error("اختر ملفًا صوتيًا بصيغة MP3 أو WAV أو M4A أو AAC أو OGG أو WebM.");
+        throw new Error("اختر ملفًا صوتيًا بصيغة MP3 أو WAV أو M4A أو AAC أو WebM.");
       }
       if (file.size === 0 || file.size > MAX_NARRATION_AUDIO_BYTES) {
         throw new Error("حجم ملف التعليق الصوتي يجب أن يكون أقل من 25 ميغابايت.");
@@ -504,7 +504,6 @@ export default function App() {
         wav: "audio/wav",
         m4a: "audio/mp4",
         aac: "audio/aac",
-        ogg: "audio/ogg",
         webm: "audio/webm"
       };
       const mimeType = file.type.startsWith("audio/") ? file.type : fallbackMime[extension];
@@ -800,8 +799,8 @@ export default function App() {
                     <button type="button" className="subtle-button" onClick={removeNarrationAudio}>إزالة الصوت</button>
                   )}
                 </div>
-                <input ref={narrationAudioInput} type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm" hidden onChange={attachNarrationAudio} />
-                <p className="panel-help">{selectedScene.narrationAudioAssetId ? "الصوت محفوظ محليًا ومتزامن مع تشغيل المشهد." : "MP3 أو WAV أو M4A أو AAC أو OGG أو WebM · حتى 25 ميغابايت. هذا المسار للتعليق الصوتي فقط، بلا موسيقى."}</p>
+                <input ref={narrationAudioInput} type="file" accept="audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/webm,.mp3,.wav,.m4a,.aac,.webm" hidden onChange={attachNarrationAudio} />
+                <p className="panel-help">{selectedScene.narrationAudioAssetId ? "الصوت محفوظ محليًا ومتزامن مع تشغيل المشهد." : "MP3 أو WAV أو M4A أو AAC أو WebM · حتى 25 ميغابايت. هذا المسار للتعليق الصوتي فقط، بلا موسيقى."}</p>
                 <div className="field-actions">
                   <button className="subtle-button" onClick={() => moveScene(-1)} disabled={activeProject.scenes[0]?.id === selectedScene.id}>تحريك للأعلى</button>
                   <button className="subtle-button" onClick={() => moveScene(1)} disabled={activeProject.scenes.at(-1)?.id === selectedScene.id}>للأسفل</button>
