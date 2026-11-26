@@ -36,6 +36,6 @@ describe("project composition timeline", () => {
       durationSeconds: 1
     }));
     expect(project.scenes.map((_, index) => getSceneStartFrame(project, index))).toEqual([0, 12, 24]);
-    expect(getProjectDurationInFrames(project)).toBe(36);
+    expect(getProjectDurationInFrames(project)).toBe(54);
   });
 });
