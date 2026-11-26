@@ -17,6 +17,11 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
   const enter = interpolate(frame, [0, 22], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const progress = interpolate(frame, [0, Math.max(1, durationInFrames - 1)], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const drift = Math.sin(frame / 18) * 8;
+  const exit = interpolate(frame, [Math.max(0, durationInFrames - 16), durationInFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const cameraX = Math.sin(progress * Math.PI * 1.4) * 10;
+  const cameraY = Math.cos(progress * Math.PI * 1.2) * 7;
+  const cameraScale = 1.018 + progress * 0.026;
+  const headingSize = heading.length > 34 ? 54 : heading.length > 23 ? 60 : 68;
   const heading = scene.blocks.find((b) => b.kind === "heading")?.content ?? scene.title;
   const body = scene.blocks.find((b) => b.kind === "body")?.content ?? scene.narration;
   const steps = scene.blocks.filter((b) => b.kind === "step").slice(0, 4);
@@ -34,10 +39,12 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
   );
 
   return (
-    <AbsoluteFill style={{ background: "radial-gradient(ellipse at 24% 18%," + scene.background + " 0%,#111827 68%,#0b1220 100%)", color: "#f4f7ff", overflow: "hidden", fontFamily: '"Noto Sans Arabic","Segoe UI",Tahoma,sans-serif', direction: "rtl" }}>
+    <AbsoluteFill style={{ background: "radial-gradient(ellipse at 24% 18%," + scene.background + " 0%,#111827 68%,#0b1220 100%)", color: "#f4f7ff", overflow: "hidden", opacity: exit, transform: "translate(" + cameraX + "px," + cameraY + "px) scale(" + cameraScale + ")", transformOrigin: "50% 50%", fontFamily: '"Noto Sans Arabic","Segoe UI",Tahoma,sans-serif', direction: "rtl" }}>
       <AbsoluteFill style={{ opacity: .17, backgroundImage: "linear-gradient(rgba(190,210,240,.11) 1px,transparent 1px),linear-gradient(90deg,rgba(190,210,240,.11) 1px,transparent 1px)", backgroundSize: "72px 72px", transform: "translate(" + drift + "px," + -drift + "px)" }} />
       <div style={{ position: "absolute", width: 760, height: 760, borderRadius: "50%", right: "-19%", top: "-54%", background: "radial-gradient(circle,rgba(131,234,215,.12),transparent 68%)" }} />
       <div style={{ position: "absolute", width: 650, height: 650, borderRadius: "50%", left: "-22%", bottom: "-58%", background: "radial-gradient(circle,rgba(182,167,255,.12),transparent 68%)" }} />
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(115deg,transparent 25%,rgba(255,255,255,.035) 48%,transparent 68%)", transform: "translateX(" + (interpolate(frame, [0, durationInFrames], [-18, 18]) * 18) + "%)" }} />
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: "inset 0 0 180px rgba(0,0,0,.28)" }} />
 
       <div style={{ position: "absolute", top: "8%", right: "9%", display: "flex", alignItems: "center", gap: 13, opacity: enter }}>
         <span style={{ width: 34, height: 2, background: mint }} />
@@ -47,7 +54,7 @@ export const SceneComposition: FC<{ scene: Scene }> = ({ scene }) => {
       <div style={{ position: "absolute", right: "9%", top: "23%", width: "37%", opacity: enter, transform: "translateY(" + ((1 - enter) * 30) + "px)" }}>
         <div style={{ fontSize: 18, color: "rgba(225,233,248,.5)", marginBottom: 22 }}>المشهد {sceneNo} <span style={{ color: "rgba(225,233,248,.22)" }}> / </span> {scene.title}</div>
         <div style={{ width: 54, height: 5, borderRadius: 9, background: "linear-gradient(90deg," + mint + "," + violet + ")", marginBottom: 26 }} />
-        <div style={{ fontSize: 68, fontWeight: 800, lineHeight: 1.35, letterSpacing: "-1.8px", textShadow: "0 8px 38px rgba(0,0,0,.2)" }}>{heading}</div>
+        <div style={{ fontSize: headingSize, fontWeight: 800, lineHeight: 1.35, letterSpacing: "-1.8px", textShadow: "0 8px 38px rgba(0,0,0,.2)" }}>{heading}</div>
         <div style={{ marginTop: 28, maxWidth: "96%", fontSize: 29, lineHeight: 1.9, color: "rgba(225,233,248,.72)" }}>{body}</div>
         <div style={{ marginTop: 44, display: "flex", alignItems: "center", gap: 14 }}>
           <i style={{ width: 9, height: 9, borderRadius: "50%", background: mint, boxShadow: "0 0 18px " + mint }} />
