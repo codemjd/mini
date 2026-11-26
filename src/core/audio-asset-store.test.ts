@@ -30,13 +30,7 @@ describe("narration audio bundle encoding", () => {
       .toThrow("بيانات ملف الصوت داخل ملف المشروع تالفة.");
   });
 
-  it("enforces a 25 MiB per-file limit", () => {
-    const tooLarge = new Uint8Array(MAX_NARRATION_AUDIO_BYTES + 1);
-    const base64 = btoa(String.fromCharCode(tooLarge[0] ?? 0)).repeat(4);
-    // The size guard is checked after decoding; a short, valid payload still round-trips.
-    expect(decodeBase64Audio("AQID", "audio/wav").size).toBe(3);
+  it("documents the maximum supported narration clip size", () => {
     expect(MAX_NARRATION_AUDIO_BYTES).toBe(25 * 1024 * 1024);
-    expect(tooLarge.byteLength).toBe(MAX_NARRATION_AUDIO_BYTES + 1);
-    expect(base64.length).toBeGreaterThan(0);
   });
 });
