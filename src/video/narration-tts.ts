@@ -157,3 +157,21 @@ export async function generateArabicNarration(
 
   return { blob, sampleRate, durationSeconds: joined.length / sampleRate, device: engine.device, segments: segments.length };
 }
+
+
+/**
+ * Release the ONNX session and terminate the inline worker when the app page
+ * is leaving. The model/voice cache remains in browser storage for next use.
+ */
+export async function disposeArabicNarrationEngine(): Promise<void> {
+  const pending = enginePromise;
+  if (!pending) return;
+  enginePromise = null;
+
+  try {
+    const engine = await pending;
+    await engine.dispose();
+  } catch {
+    // The app may be leaving while the model is still loading or initialization failed.
+  }
+}
