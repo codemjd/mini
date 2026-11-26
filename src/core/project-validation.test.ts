@@ -137,6 +137,37 @@ describe("validateStudioProject", () => {
     expect(result.valid).toBe(false);
     if (!result.valid) expect(result.issues.some((issue) => issue.path === "scenes[0].narrationAudioAssetId")).toBe(true);
   });
+  it("accepts narration text snapshots for attached audio assets", () => {
+    const project = createStarterProject();
+    const scene = {
+      ...project.scenes[0],
+      narrationAudioAssetId: "audio-asset-01",
+      narrationAudioText: project.scenes[0].narration
+    };
+    const result = validateStudioProject({ ...project, scenes: [scene, ...project.scenes.slice(1)] });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects narration text snapshots without an audio asset", () => {
+    const project = createStarterProject();
+    const scene = { ...project.scenes[0], narrationAudioText: "نص مرتبط بالصوت" };
+    const result = validateStudioProject({ ...project, scenes: [scene, ...project.scenes.slice(1)] });
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.issues.some((item) => item.path === "scenes[0].narrationAudioText")).toBe(true);
+  });
+
+  it("rejects a narration text snapshot that exceeds the narration limit", () => {
+    const project = createStarterProject();
+    const scene = {
+      ...project.scenes[0],
+      narrationAudioAssetId: "audio-asset-01",
+      narrationAudioText: "ن".repeat(12001)
+    };
+    const result = validateStudioProject({ ...project, scenes: [scene, ...project.scenes.slice(1)] });
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.issues.some((item) => item.path === "scenes[0].narrationAudioText")).toBe(true);
+  });
+
   it("accepts timeline and statistics scenes with step blocks", () => {
     const project = createStarterProject();
     const timeline = {
