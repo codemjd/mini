@@ -283,6 +283,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .narration-area { min-height: 98px; }
 .field-actions { display: flex; gap: 7px; margin-top: 15px; }
 .field-actions .subtle-button { flex: 1; }
+.panel-help { margin: 7px 0 0; color: #78869c; font-size: 9px; line-height: 1.8; }
+.narration-track { display: flex; min-width: 0; height: 16px; flex: 1; gap: 3px; overflow: hidden; border: 1px solid rgba(155,173,201,.09); border-radius: 4px; background: rgba(255,255,255,.018); }
+.narration-segment { display: block; min-width: 0; height: 100%; flex-basis: 0; border-radius: 2px; }
+.narration-segment.no-audio { background: rgba(155,173,201,.12); }
+.narration-segment.has-audio { background: repeating-linear-gradient(90deg,rgba(131,234,215,.28),rgba(131,234,215,.28) 4px,rgba(131,234,215,.75) 5px,rgba(131,234,215,.75) 6px); box-shadow: 0 0 12px rgba(131,234,215,.12); }
 .danger-button { width: 100%; min-height: 35px; margin-top: 9px; border-color: rgba(239,129,139,.15); background: rgba(239,129,139,.055); color: #db9299; font-size: 10px; }
 .danger-button:hover { border-color: rgba(239,129,139,.35); background: rgba(239,129,139,.1); }
 .panel-note { display: flex; gap: 8px; margin-top: 18px; padding: 10px; border: 1px solid rgba(163,151,255,.14); border-radius: 9px; background: rgba(163,151,255,.045); color: #a99cff; }
