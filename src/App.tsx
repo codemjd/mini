@@ -196,7 +196,7 @@ export default function App() {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [selectedScene?.narrationAudioAssetId]);
+  }, [selectedScene?.narrationAudioAssetId, selectedScene?.narrationAudioText, selectedScene?.narration]);
 
   const projectDuration = activeProject?.scenes.reduce((sum, scene) => sum + scene.durationSeconds, 0) ?? 0;
   const totalDuration = projects.reduce((sum, project) => sum + project.scenes.reduce((duration, scene) => duration + scene.durationSeconds, 0), 0);
@@ -575,6 +575,10 @@ export default function App() {
   async function attachNarrationAudio(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file || !activeProject || !selectedScene) return;
+    const projectId = activeProject.id;
+    const sceneId = selectedScene.id;
+    const narrationText = selectedScene.narration;
+    const previousAssetId = selectedScene.narrationAudioAssetId;
     try {
       const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
       const extensionSupported = ["mp3", "wav", "m4a", "aac", "webm"].includes(extension);
@@ -597,26 +601,32 @@ export default function App() {
       const assetId = createId();
       await saveAudioAsset({
         id: assetId,
-        projectId: activeProject.id,
-        sceneId: selectedScene.id,
+        projectId,
+        sceneId,
         fileName: file.name,
         mimeType,
         size: file.size,
         createdAt: new Date().toISOString(),
         blob: file
       });
-      const previousAssetId = selectedScene.narrationAudioAssetId;
-      updateProject((project) => ({
-        ...project,
-        scenes: project.scenes.map((scene) => scene.id === selectedScene.id
-          ? {
-              ...scene,
-              narrationAudioAssetId: assetId,
-              narrationAudioText: scene.narration,
-              durationSeconds: Math.max(scene.durationSeconds, Math.ceil(durationSeconds + 0.25))
-            }
-          : scene)
-      }));
+      setActiveProject((current) => {
+        if (!current || current.id !== projectId || !current.scenes.some((scene) => scene.id === sceneId)) {
+          void deleteAudioAsset(assetId).catch(() => undefined);
+          return current;
+        }
+        return {
+          ...current,
+          updatedAt: new Date().toISOString(),
+          scenes: current.scenes.map((scene) => scene.id === sceneId
+            ? {
+                ...scene,
+                narrationAudioAssetId: assetId,
+                narrationAudioText: narrationText,
+                durationSeconds: Math.max(scene.durationSeconds, Math.ceil(durationSeconds + 0.25))
+              }
+            : scene)
+        };
+      });
       if (previousAssetId) void deleteAudioAsset(previousAssetId).catch(() => undefined);
       setToast("تم ربط التعليق الصوتي بالمشهد وحفظه محليًا");
     } catch (error) {
@@ -793,7 +803,7 @@ export default function App() {
                   {activeProject.scenes.map((scene) => (
                     <span
                       key={scene.id}
-                      className={`narration-segment ${scene.narrationAudioAssetId ? "has-audio" : "no-audio"}`}
+                      className={`narration-segment ${!scene.narrationAudioAssetId ? "no-audio" : scene.narrationAudioText === scene.narration ? "has-audio" : "stale-audio"}`}
                       style={{ flexGrow: scene.durationSeconds }}
                       title={scene.title + (scene.narrationAudioAssetId ? " — صوت مرفق" : " — بلا صوت")}
                     />
