@@ -118,6 +118,25 @@ describe("validateStudioProject", () => {
     }
   });
 
+  it("accepts a valid narration audio asset reference on a scene", () => {
+    const project = createStarterProject();
+    const result = validateStudioProject({
+      ...project,
+      scenes: [{ ...project.scenes[0], narrationAudioAssetId: "audio-asset-01" }, ...project.scenes.slice(1)]
+    });
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.project.scenes[0].narrationAudioAssetId).toBe("audio-asset-01");
+  });
+
+  it("rejects an empty narration audio asset reference", () => {
+    const project = createStarterProject();
+    const result = validateStudioProject({
+      ...project,
+      scenes: [{ ...project.scenes[0], narrationAudioAssetId: " " }, ...project.scenes.slice(1)]
+    });
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.issues.some((issue) => issue.path === "scenes[0].narrationAudioAssetId")).toBe(true);
+  });
   it("accepts timeline and statistics scenes with step blocks", () => {
     const project = createStarterProject();
     const timeline = {
