@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: render-smoke-audio-v2-${{ github.ref }}
+  group: render-smoke-audio-v3-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
