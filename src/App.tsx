@@ -14,6 +14,7 @@ import { deleteAudioAsset, listProjectAudioAssets, listProjects, loadAudioAsset,
 import { executeStudioCommand } from "./core/studio-commands";
 import { validateStudioProject } from "./core/project-validation";
 import { generateArabicNarration } from "./video/narration-tts";
+import { isNarrationAudioCurrent } from "./core/narration-audio-state";
 
 type AppView = "dashboard" | "editor";
 type IconName = "grid" | "folder" | "plus" | "play" | "chevron" | "clock" | "layers" | "settings" | "trash" | "download" | "upload" | "arrow" | "spark" | "film" | "check" | "more" | "close" | "add" | "back";
@@ -214,11 +215,17 @@ export default function App() {
     let objectUrl: string | null = null;
     const assetId = selectedScene?.narrationAudioAssetId;
     setPreviewAudio(null);
-    if (!assetId) return () => { disposed = true; };
+    if (!assetId || !selectedScene || !isNarrationAudioCurrent(selectedScene)) {
+      return () => { disposed = true; };
+    }
 
     void loadAudioAsset(assetId).then((asset) => {
       if (!asset) {
         if (!disposed) setToast("ملف التعليق الصوتي غير موجود في التخزين المحلي.");
+        return;
+      }
+      if (asset.projectId !== activeProject?.id || asset.sceneId !== selectedScene.id) {
+        if (!disposed) setToast("ملف الصوت لا يطابق هذا المشهد.");
         return;
       }
       objectUrl = URL.createObjectURL(asset.blob);
@@ -235,7 +242,7 @@ export default function App() {
       disposed = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [selectedScene?.id, selectedScene?.narrationAudioAssetId]);
+  }, [activeProject?.id, selectedScene?.id, selectedScene?.narration, selectedScene?.narrationAudioAssetId, selectedScene?.narrationAudioText]);
 
   const projectDuration = activeProject?.scenes.reduce((sum, scene) => sum + scene.durationSeconds, 0) ?? 0;
   const totalDuration = projects.reduce((sum, project) => sum + project.scenes.reduce((duration, scene) => duration + scene.durationSeconds, 0), 0);
@@ -400,6 +407,12 @@ export default function App() {
   async function exportProject() {
     if (!activeProject) return;
     try {
+      const staleAudioScene = activeProject.scenes.find((scene) =>
+        scene.narrationAudioAssetId && !isNarrationAudioCurrent(scene)
+      );
+      if (staleAudioScene) {
+        throw new Error(`نص التعليق في المشهد «${staleAudioScene.title}» تغيّر بعد إرفاق الصوت. أعد توليد الصوت أو أرفق ملفًا جديدًا قبل تصدير الحزمة.`);
+      }
       const assetIds = Array.from(new Set(activeProject.scenes
         .map((scene) => scene.narrationAudioAssetId)
         .filter((id): id is string => Boolean(id))));
@@ -409,6 +422,10 @@ export default function App() {
       for (const id of assetIds) {
         const asset = await loadAudioAsset(id);
         if (!asset) throw new Error("يوجد ملف صوتي مفقود. أعد إرفاقه قبل تصدير حزمة المشروع.");
+        const scene = activeProject.scenes.find((item) => item.narrationAudioAssetId === id);
+        if (!scene || asset.projectId !== activeProject.id || asset.sceneId !== scene.id) {
+          throw new Error("يوجد ملف صوتي مرتبط بمشروع أو مشهد آخر.");
+        }
         totalBytes += asset.size;
         if (totalBytes > MAX_AUDIO_BUNDLE_BYTES) {
           throw new Error("إجمالي ملفات الصوت يتجاوز حد الحزمة البالغ 80 ميغابايت.");
@@ -568,9 +585,11 @@ export default function App() {
         blob: file,
         createdAt: new Date().toISOString()
       });
+      const narrationSnapshot = selectedScene.narration.trim();
       updateScene((scene) => ({
         ...scene,
         narrationAudioAssetId: assetId,
+        narrationAudioText: narrationSnapshot,
         durationSeconds: audioDurationSeconds
           ? Math.max(scene.durationSeconds, Math.ceil(audioDurationSeconds))
           : scene.durationSeconds
@@ -632,11 +651,27 @@ export default function App() {
         createdAt: new Date().toISOString()
       });
 
+      const latestResult = await executeStudioCommand({
+        type: "project.open",
+        projectId: targetProject.id
+      });
+      if (!latestResult.ok) throw new Error(latestResult.error);
+      const latestProject = latestResult.data as StudioProject;
+      const latestScene = latestProject.scenes.find((scene) => scene.id === targetScene.id);
+      if (!latestScene || latestScene.narration.trim() !== narrationText) {
+        throw new Error("تغيّر نص المشهد أثناء توليد الصوت. لم نربط التسجيل بالنص القديم؛ أعد المحاولة بعد تثبيت النص.");
+      }
+
+      const fittedDuration = Math.max(targetScene.durationSeconds, Math.ceil(generated.durationSeconds + 0.25));
       const result = await executeStudioCommand({
         type: "scene.update",
         projectId: targetProject.id,
         sceneId: targetScene.id,
-        patch: { narrationAudioAssetId: assetId }
+        patch: {
+          narrationAudioAssetId: assetId,
+          narrationAudioText: narrationText,
+          durationSeconds: fittedDuration
+        }
       });
       if (!result.ok) throw new Error(result.error);
 
@@ -681,7 +716,7 @@ export default function App() {
   async function removeNarrationAudio() {
     const assetId = selectedScene?.narrationAudioAssetId;
     if (!assetId) return;
-    updateScene((scene) => ({ ...scene, narrationAudioAssetId: undefined }));
+    updateScene((scene) => ({ ...scene, narrationAudioAssetId: undefined, narrationAudioText: undefined }));
     const stillReferenced = activeProject?.scenes.some((scene) =>
       scene.id !== selectedScene?.id && scene.narrationAudioAssetId === assetId
     );
@@ -929,9 +964,13 @@ export default function App() {
                 <div className="audio-asset-editor">
                   <input ref={audioInput} type="file" accept="audio/mpeg,audio/wav" hidden onChange={handleNarrationAudioUpload} />
                   <div className="audio-asset-status">
-                    {previewAudio && previewAudio.id === selectedScene.narrationAudioAssetId
-                      ? <><strong>{previewAudio.name}</strong><span>سيعمل هذا الصوت مع تشغيل المعاينة وسيُدرج في تصدير MP4.</span></>
-                      : <span>لم يُرفق ملف صوتي لهذا المشهد بعد.</span>}
+                    {previewAudio && previewAudio.id === selectedScene.narrationAudioAssetId && isNarrationAudioCurrent(selectedScene)
+                      ? <><strong>{previewAudio.name}</strong><span>الصوت مرتبط بالنص الحالي وسيعمل في المعاينة وتصدير MP4.</span></>
+                      : selectedScene.narrationAudioAssetId && !isNarrationAudioCurrent(selectedScene)
+                        ? <span>النص تغيّر بعد إرفاق الصوت؛ لن يُستخدم الصوت القديم. أعد التوليد أو أرفق تسجيلًا جديدًا.</span>
+                        : selectedScene.narrationAudioAssetId
+                          ? <span>ملف الصوت مرفق لكن لم يُحمّل بعد.</span>
+                          : <span>لم يُرفق ملف صوتي لهذا المشهد بعد.</span>}
                   </div>
                   <div className="tts-generation">
                     <button
