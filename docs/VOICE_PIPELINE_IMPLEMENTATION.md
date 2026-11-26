@@ -214,4 +214,4 @@ A CI run generated non-silent Arabic speech with Nabra FP16/WASM, then a separat
 - FFmpeg measured max_volume near -6.6 dB after AAC muxing.
 - The MP4 was downloaded and representative visual frames were reviewed.
 - This is evidence of speech synthesis and audio muxing in CI, not a human listening assessment or Android-device acceptance test.
-- A later smoke run exposed a regular-expression escaping bug in the max_volume parser. The underlying diagnostic file already contained a valid measurement; the matcher was fixed in commit `fc4243080b6f92f17d76af5e0610566885224e82`, and the follow-up run remained in progress at the time of this documentation update.
+- A later smoke run exposed a regular-expression escaping bug in the max_volume parser. The underlying diagnostic file already contained a valid measurement; the matcher was fixed in commit `fc4243080b6f92f17d76af5e0610566885224e82`, and the follow-up run `45808668420` completed successfully, including its AAC signal check.
