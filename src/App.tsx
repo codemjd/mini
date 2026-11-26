@@ -765,6 +765,7 @@ export default function App() {
     const targetProject = activeProject;
     const targetScene = selectedScene;
     const assetId = targetScene.narrationAudioAssetId;
+    if (!assetId) return;
 
     const result = await executeStudioCommand({
       type: "scene.update",
