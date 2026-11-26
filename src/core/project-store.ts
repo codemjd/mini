@@ -58,7 +58,7 @@ export async function loadProject(id: string): Promise<StudioProject | null> {
           .objectStore(PROJECT_STORE_NAME)
           .get(id);
         request.onsuccess = () => resolve((request.result as StudioProject | undefined) ?? null);
-        request.onerror = () => reject(request.error ?? new Error("Could not load projects."));
+        request.onerror = () => reject(request.error ?? new Error("Could not load the project."));
       });
     } finally {
       database.close();
@@ -76,7 +76,7 @@ export async function saveProject(project: StudioProject): Promise<void> {
         const transaction = database.transaction(PROJECT_STORE_NAME, "readwrite");
         transaction.objectStore(PROJECT_STORE_NAME).put(project);
         transaction.oncomplete = () => resolve();
-        transaction.onerror = () => reject(transaction.error ?? new Error("Could not save project."));
+        transaction.onerror = () => reject(transaction.error ?? new Error("Could not save the project."));
         transaction.onabort = () => reject(transaction.error ?? new Error("Project save was cancelled."));
       });
     } finally {
@@ -97,7 +97,7 @@ export async function deleteProject(id: string): Promise<void> {
         const transaction = database.transaction(PROJECT_STORE_NAME, "readwrite");
         transaction.objectStore(PROJECT_STORE_NAME).delete(id);
         transaction.oncomplete = () => resolve();
-        transaction.onerror = () => reject(transaction.error ?? new Error("Could not delete project."));
+        transaction.onerror = () => reject(transaction.error ?? new Error("Could not delete the project."));
         transaction.onabort = () => reject(transaction.error ?? new Error("Project deletion was cancelled."));
       });
     } finally {
@@ -132,6 +132,21 @@ export async function loadAudioAsset(id: string): Promise<AudioAssetRecord | nul
         .get(id);
       request.onsuccess = () => resolve((request.result as AudioAssetRecord | undefined) ?? null);
       request.onerror = () => reject(request.error ?? new Error("تعذر قراءة ملف الصوت."));
+    });
+  } finally {
+    database.close();
+  }
+}
+
+export async function listProjectAudioAssets(projectId: string): Promise<AudioAssetRecord[]> {
+  const database = await openStudioDatabase();
+  try {
+    return await new Promise<AudioAssetRecord[]>((resolve, reject) => {
+      const request = database.transaction(AUDIO_ASSET_STORE_NAME, "readonly")
+        .objectStore(AUDIO_ASSET_STORE_NAME)
+        .getAll();
+      request.onsuccess = () => resolve((request.result as AudioAssetRecord[]).filter((asset) => asset.projectId === projectId));
+      request.onerror = () => reject(request.error ?? new Error("تعذر قراءة ملفات الصوت."));
     });
   } finally {
     database.close();
