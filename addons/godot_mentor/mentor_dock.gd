@@ -100,7 +100,217 @@ Editor APK: يفتح المحرر لإنشاء المشاريع وتعديلها
 		],
 		"correct": 1,
 		"feedback": "تمييز مهم: مشروعنا النهائي يحتاج نسخة محرر مشتقة من Godot، لا مجرد لعبة APK."
+	},
+	{
+		"title": "6 — الإشارات Signals",
+		"explanation": "الإشارة رسالة تصدر من عقدة عندما يحدث شيء، ويمكن لعقدة أخرى الاستماع إليها. هذا يقلل الاعتماد المباشر بين أجزاء اللعبة.",
+		"mission": "تخيّل أن اللاعب يخبر واجهة المستخدم عندما تتغير صحته. اربط إشارة health_changed بدالة في واجهة الصحة بدل أن تجعل اللاعب يعدّل عناصر الواجهة مباشرة.",
+		"hint": "عرّف signal، ثم استخدم emit لإرسالها، واربطها بدالة عبر connect.",
+		"snippet": """signal health_changed(new_health: int)
+
+var health: int = 100
+
+func take_damage(amount: int) -> void:
+	health = maxi(health - amount, 0)
+	health_changed.emit(health)""",
+		"question": "لماذا نستخدم Signals غالبًا؟",
+		"options": [
+			"لجعل كل العقدة تكتب داخل ملف واحد",
+			"لإرسال أحداث بين العقد دون ربطها ببعض بقوة",
+			"لتحويل المشهد إلى صورة"
+		],
+		"correct": 1,
+		"feedback": "الإشارات تفصل مصدر الحدث عن الجزء الذي يستجيب له."
+	},
+	{
+		"title": "7 — Area2D واكتشاف التلامس",
+		"explanation": "Area2D منطقة تكشف دخول الأجسام إليها أو خروجها منها. تُستخدم لالتقاط العملات، ومناطق الضرر، ومجالات الرؤية، ومناطق التفعيل.",
+		"mission": "أضف Area2D إلى مشهد، وأضف لها CollisionShape2D. فعّل مراقبة التصادم، ثم اربط body_entered بدالة تعرض رسالة عندما يدخل اللاعب.",
+		"hint": "Area2D لا تحرّك الجسم بنفسها. إنها ترصد التداخل وترسل إشارة عند دخول جسم مناسب.",
+		"snippet": """extends Area2D
+
+func _ready() -> void:
+	body_entered.connect(_on_body_entered)
+
+func _on_body_entered(body: Node2D) -> void:
+	if body.is_in_group("player"):
+		print("دخل اللاعب المنطقة")""",
+		"question": "ما الاستخدام الصحيح لـ Area2D؟",
+		"options": [
+			"اكتشاف دخول جسم إلى منطقة",
+			"تغيير دقة الشاشة",
+			"استبدال كل أنواع العقد"
+		],
+		"correct": 0,
+		"feedback": "Area2D ترصد التداخلات وترسل إشارات مثل body_entered."
+	},
+	{
+		"title": "8 — واجهة المستخدم Control",
+		"explanation": "عقد Control هي أساس واجهات Godot: الأزرار، والملصقات النصية، والصور، واللوحات والحاويات. تختلف عن Node2D لأنها مصممة للتخطيط داخل مساحة الواجهة.",
+		"mission": "أنشئ مشهد واجهة من Control، وضع Label باسم ScoreLabel. اقرأ المثال لترى كيف يتغير النص عندما تزيد النقاط.",
+		"hint": "المسار $ScoreLabel يعني الوصول إلى عقدة ابن اسمها ScoreLabel من العقدة الحالية.",
+		"snippet": """extends Control
+
+@onready var score_label: Label = $ScoreLabel
+var score: int = 0
+
+func add_point() -> void:
+	score += 1
+	score_label.text = "النقاط: %d" % score""",
+		"question": "أي عقدة هي الأنسب لبناء زر وملصق نصي؟",
+		"options": [
+			"RigidBody2D",
+			"Control مع Button وLabel",
+			"AudioStreamPlayer3D"
+		],
+		"correct": 1,
+		"feedback": "Control هو الأساس لعناصر الواجهة والتخطيط."
+	},
+	{
+		"title": "9 — المؤقت Timer",
+		"explanation": "Timer عقدة تنفّذ إشارة timeout بعد مدة محددة. تستطيع جعلها تعمل مرة واحدة أو تتكرر، وهي مفيدة للعد التنازلي وإعادة ظهور العناصر وتأخير الأحداث.",
+		"mission": "أضف Timer إلى مشهد Node. غيّر wait_time إلى ثانيتين، ثم جرّب تشغيله والاستماع إلى timeout.",
+		"hint": "استدعاء start يبدأ العد. أما one_shot فيحدد ما إذا كان المؤقت يتوقف بعد أول انتهاء.",
+		"snippet": """extends Node
+
+@onready var timer: Timer = $Timer
+
+func _ready() -> void:
+	timer.timeout.connect(_on_timer_timeout)
+	timer.start()
+
+func _on_timer_timeout() -> void:
+	print("انتهى الوقت")""",
+		"question": "متى تصدر إشارة timeout؟",
+		"options": [
+			"عندما تنتهي مدة المؤقت",
+			"عند حفظ المشروع فقط",
+			"عند تغيير لون العقدة"
+		],
+		"correct": 0,
+		"feedback": "تصدر timeout بعد انقضاء wait_time ما دام المؤقت يعمل."
+	},
+	{
+		"title": "10 — التحريك AnimationPlayer",
+		"explanation": "AnimationPlayer يشغّل مسارات حركة محفوظة: موضع، ودوران، وحجم، وشفافية، وخصائص أخرى. تستطيع تشغيل الأنيميشن من سكربت أو من محرر التحريك.",
+		"mission": "أنشئ AnimationPlayer داخل مشهد، وأنشئ حركة باسم intro. أضف مسارًا يحرك موضع Sprite2D أو يغيّر شفافيته.",
+		"hint": "تأكد من أن اسم الحركة في السكربت يطابق اسم الحركة الذي حفظته في AnimationPlayer.",
+		"snippet": """extends Node2D
+
+@onready var animation_player: AnimationPlayer = $AnimationPlayer
+
+func play_intro() -> void:
+	if animation_player.has_animation("intro"):
+		animation_player.play("intro")""",
+		"question": "ما الذي يديره AnimationPlayer؟",
+		"options": [
+			"تخزين حسابات المستخدمين",
+			"تشغيل مسارات تحريك خصائص العقد",
+			"ضغط ملفات الصوت"
+		],
+		"correct": 1,
+		"feedback": "AnimationPlayer يشغّل حركة الخصائص على خط زمني."
+	},
+	{
+		"title": "11 — حفظ البيانات",
+		"explanation": "بيانات التقدم والنتائج ينبغي أن تبقى بعد إغلاق اللعبة. في هذا المثال نحفظ أفضل نتيجة في ملف JSON داخل user://، وهو مجلد بيانات التطبيق.",
+		"mission": "اقرأ المثال، ثم جرّب حفظ قيمة أفضل نتيجة. افتح الملف لاحقًا للتأكد من أن النص حُفظ.",
+		"hint": "استخدم FileAccess.WRITE للكتابة، ثم JSON.stringify لتحويل القاموس إلى نص JSON.",
+		"snippet": """func save_best_score(score: int) -> void:
+	var file := FileAccess.open("user://save.json", FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify({"best_score": score}))""",
+		"question": "لماذا نستخدم المسار user:// للحفظ؟",
+		"options": [
+			"لأنه مساحة بيانات التطبيق المناسبة لملفات المستخدم",
+			"لأنه يحفظ الملفات داخل محرر Godot نفسه",
+			"لأنه يمنع حفظ أي بيانات"
+		],
+		"correct": 0,
+		"feedback": "user:// مخصص لملفات بيانات التطبيق، وليس لأصول المشروع الثابتة."
+	},
+	{
+		"title": "12 — قراءة البيانات",
+		"explanation": "بعد حفظ نتيجة اللعبة، تحتاج إلى قراءتها عند بدء التشغيل. يجب فحص وجود الملف ونجاح فتحه وصحة محتوى JSON قبل استخدام القيم.",
+		"mission": "اربط دالة load_best_score ببدء اللعبة، واجعلها تعيد صفرًا إذا لم يوجد ملف حفظ بعد.",
+		"hint": "JSON.parse_string يعيد Variant؛ افحص أنه Dictionary قبل قراءة best_score.",
+		"snippet": """func load_best_score() -> int:
+	if not FileAccess.file_exists("user://save.json"):
+		return 0
+	var file := FileAccess.open("user://save.json", FileAccess.READ)
+	if file == null:
+		return 0
+	var data = JSON.parse_string(file.get_as_text())
+	if data is Dictionary:
+		return int(data.get("best_score", 0))
+	return 0""",
+		"question": "لماذا نفحص نوع نتيجة JSON قبل قراءة المفتاح؟",
+		"options": [
+			"لأن تحليل JSON قد يعيد قيمة ليست قاموسًا",
+			"لأن كل ملفات JSON صور",
+			"لأن Godot لا يدعم الأعداد"
+		],
+		"correct": 0,
+		"feedback": "الفحص يمنع التعامل مع قيمة غير متوقعة على أنها قاموس."
+	},
+	{
+		"title": "13 — مجموعات العقد Groups",
+		"explanation": "المجموعات تسهّل تصنيف العقد حسب دورها، مثل player أو enemies أو interactable. يمكنك استدعاء دوال على كل أعضاء مجموعة أو اختبار انتماء عقدة إليها.",
+		"mission": "أضف اللاعب إلى مجموعة player، والأعداء إلى enemies. استخدم is_in_group لتحديد ما إذا كانت العقدة عدوًا.",
+		"hint": "أسماء المجموعات نصوص، ومن الأفضل أن تكون واضحة وثابتة في المشروع.",
+		"snippet": """func _ready() -> void:
+	add_to_group("enemies")
+
+func check_target(target: Node) -> void:
+	if target.is_in_group("player"):
+		print("هذا هو اللاعب")""",
+		"question": "ما فائدة Groups؟",
+		"options": [
+			"تنظيم العقد والوصول إلى مجموعة منها حسب الدور",
+			"استبدال المشاهد",
+			"إنشاء ملفات APK تلقائيًا"
+		],
+		"correct": 0,
+		"feedback": "المجموعات طريقة عملية لتجميع العقد واستهدافها دون الحاجة إلى مسارات ثابتة."
+	},
+	{
+		"title": "14 — اكتشاف الأخطاء Debugger",
+		"explanation": "المصحح يعرض الأخطاء والاستثناءات ومكدس الاستدعاءات. استخدم رسائل الطباعة المؤقتة، ونقاط التوقف، وافحص القيم بدل محاولة تغيير عدة أشياء عشوائيًا.",
+		"mission": "شغّل مثالًا فيه قيمة صحة، وراقب تغيرها في Output. بعد ذلك ضع نقطة توقف داخل الدالة وافحص المتغيرات.",
+		"hint": "الخطأ الأحمر في لوحة Debugger غالبًا يعرض الملف ورقم السطر. ابدأ بأول خطأ في القائمة لأنه قد يسبب أخطاء لاحقة.",
+		"snippet": """var health: int = 10
+
+func take_damage(amount: int) -> void:
+	health -= amount
+	print("health =", health)
+	assert(health >= 0, "الصحة أصبحت سالبة")""",
+		"question": "ما أفضل بداية عند ظهور خطأ في Debugger؟",
+		"options": [
+			"إعادة كتابة المشروع كله",
+			"قراءة أول رسالة خطأ وفتح الملف والسطر المشار إليهما",
+			"حذف جميع العقد"
+		],
+		"correct": 1,
+		"feedback": "ابدأ بأول خطأ وسطره؛ قد تكون بقية الرسائل نتيجة له."
+	},
+	{
+		"title": "15 — InputMap وأزرار التحكم",
+		"explanation": "InputMap يسمح بتعريف أفعال مثل jump أو attack وربطها بعدة أزرار. ثم تستعمل الاسم داخل السكربت بدل ربط الحركة بمفتاح واحد.",
+		"mission": "من Project Settings افتح Input Map وأضف فعلًا باسم jump، ثم اربطه بمفتاح Space. اقرأ المثال الذي يتحقق من ضغطه.",
+		"hint": "استخدم is_action_just_pressed للاستجابة مرة عند بداية الضغط، وis_action_pressed للاستمرار أثناء الضغط.",
+		"snippet": """func _process(_delta: float) -> void:
+	if Input.is_action_just_pressed("jump"):
+		print("قفز!")""",
+		"question": "ما ميزة تعريف فعل jump في InputMap؟",
+		"options": [
+			"يمكن ربط أكثر من وسيلة إدخال بالفعل نفسه",
+			"يجعل اللعبة تعمل دون مشهد",
+			"يحذف الحاجة إلى معالجة الإدخال"
+		],
+		"correct": 0,
+		"feedback": "InputMap يفصل معنى الفعل عن المفتاح الفعلي، ويسهّل دعم لوحة المفاتيح واللمس واليد."
 	}
+
 ]
 
 var _current_lesson: int = 0
@@ -284,7 +494,8 @@ func _render_lesson() -> void:
 
 	_step_label.text = "الدرس %d من %d" % [_current_lesson + 1, LESSONS.size()]
 	_previous_button.disabled = _current_lesson == 0
-	_next_button.text = "أنهيت الدروس" if _current_lesson == LESSONS.size() - 1 else "الدرس التالي"
+	_next_button.text = "اكتمل المنهج" if _current_lesson == LESSONS.size() - 1 else "الدرس التالي"
+	_next_button.disabled = _current_lesson == LESSONS.size() - 1
 	_task_button.text = "تم إنجاز التطبيق ✓" if bool(_completed.get(_current_lesson, false)) else "علّمت التطبيق كمكتمل"
 	_update_progress()
 
@@ -338,7 +549,8 @@ func _go_previous() -> void:
 
 
 func _go_next() -> void:
-	_current_lesson = 0 if _current_lesson >= LESSONS.size() - 1 else _current_lesson + 1
+	if _current_lesson < LESSONS.size() - 1:
+		_current_lesson += 1
 	_save_progress()
 	_render_lesson()
 
