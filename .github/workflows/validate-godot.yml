@@ -55,6 +55,7 @@ jobs:
 
           features = Path("addons/godot_mentor/feature_hub.gd").read_text(encoding="utf-8")
           plugin = Path("addons/godot_mentor/plugin.gd").read_text(encoding="utf-8")
+          assert "func _make_scroll_page" in features and "ScrollContainer.SCROLL_MODE_DISABLED" in features, "Feature tabs must scroll vertically on narrow screens"
           for required in ("func _build_elements_tab", "func _build_recipes_tab", "func _build_lab_tab", "func _on_beginner_toggled", "func _copy_recipe", "func _refresh_selected_node", "selection_changed.connect(_refresh_selected_node)"):
               assert required in features, f"Missing feature hub control: {required}"
           assert features.count('"name": "') >= 18, "Expected 10 element references and 8 code recipes"
