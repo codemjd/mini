@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - godot-beginner
+      - build-diagnostics
     paths:
       - "project.godot"
       - "addons/**"
@@ -11,6 +12,7 @@ on:
       - "patches/**"
       - "docs/**"
       - ".github/workflows/validate-godot.yml"
+      - ".github/workflows/build-android-editor.yml"
   pull_request:
     paths:
       - "project.godot"
