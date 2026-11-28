@@ -14,6 +14,17 @@ Godot يقدم محرر Android يستطيع إنشاء وتطوير وتصدي�
 المصدر:
 https://docs.godotengine.org/en/4.7/tutorials/editor/using_the_android_editor.html
 
+## دعم اللمس الموجود أصلًا في Godot 4.7.2
+
+فحصنا `editor/settings/editor_settings.cpp` في المصدر المثبّت، ووجدنا أن Godot يفعّل افتراضيًا على أجهزة اللمس إعدادات منها:
+- `interface/touchscreen/enable_touch_optimizations`
+- `interface/touchscreen/enable_long_press_as_right_click`
+- `interface/touchscreen/haptic_on_long_press`
+- `interface/touchscreen/enable_pan_and_scale_gestures`
+- `interface/touchscreen/scale_gizmo_handles` (القيمة الافتراضية أعلى على أجهزة اللمس).
+
+لذلك لن نكرر هذه الوظائف أو نغيّر قيمها عشوائيًا. سنحافظ على سلوك Godot الأصلي، ونركز تخصيصنا على لوحة المرشد، وتبسيط سير العمل، وتحسين قابلية القراءة واللمس بعد اختبار APK على جهاز فعلي.
+
 ## الجهاز المستهدف
 
 المعطيات المتاحة للمشروع:
