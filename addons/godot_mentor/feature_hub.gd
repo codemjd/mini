@@ -40,6 +40,22 @@ const RECIPES := [
 		"description": "سلوك حتمي بسيط: يتحرك نحو عقدة اللاعب دون ذكاء اصطناعي خارجي.",
 		"code": "extends CharacterBody2D\n\n@export var speed: float = 120.0\n@export var target: Node2D\n\nfunc _physics_process(_delta: float) -> void:\n\tif not is_instance_valid(target):\n\t\tvelocity = Vector2.ZERO\n\t\treturn\n\tvelocity = global_position.direction_to(target.global_position) * speed\n\tmove_and_slide()"
 	}
+	,
+	{
+		"name": "واجهة النقاط",
+		"description": "تحديث Label عند زيادة نقاط اللاعب.",
+		"code": "extends Control\n\n@onready var score_label: Label = $ScoreLabel\nvar score: int = 0\n\nfunc add_point() -> void:\n\tscore += 1\n\tscore_label.text = \"النقاط: %d\" % score"
+	},
+	{
+		"name": "مؤقت دوري",
+		"description": "تشغيل Timer وتلقي إشارة timeout عند انتهاء كل دورة.",
+		"code": "extends Node\n\n@onready var timer: Timer = $Timer\n\nfunc _ready() -> void:\n\ttimer.timeout.connect(_on_timeout)\n\ttimer.start()\n\nfunc _on_timeout() -> void:\n\tprint(\"انتهت دورة المؤقت\")"
+	},
+	{
+		"name": "زر بدء اللعبة",
+		"description": "ربط زر في واجهة Control بدالة تبدأ اللعبة أو تنتقل إلى مشهد آخر.",
+		"code": "extends Control\n\n@onready var start_button: Button = $StartButton\n\nfunc _ready() -> void:\n\tstart_button.pressed.connect(_on_start_pressed)\n\nfunc _on_start_pressed() -> void:\n\tprint(\"بدأت اللعبة\")"
+	}
 ]
 
 var _mode_toggle: CheckButton
@@ -73,7 +89,10 @@ const RECIPE_DETAILS := [
 	"يمكن ربط health_changed بواجهة المستخدم باستخدام connect بدل جعل مكوّن الصحة يعرف الواجهة.",
 	"أضف العقدة إلى مجموعة player من Node > Groups، واضبط طبقات التصادم لتناسب اللعبة.",
 	"عيّن direction قبل إضافة المقذوف إلى الشجرة، وأضف CollisionShape2D إلى Area2D.",
-	"اسند target من Inspector أو عبر get_node. هذا سلوك برمجي ثابت وليس تعلمًا آليًا."
+	"اسند target من Inspector أو عبر get_node. هذا سلوك برمجي ثابت وليس تعلمًا آليًا.",
+	"أنشئ Label باسم ScoreLabel كابن لعقدة Control، ثم استدعِ add_point عند جمع النقاط.",
+	"أضف Timer باسم Timer إلى المشهد واضبط wait_time و one_shot من المفتش.",
+	"أضف Button باسم StartButton داخل Control. يمكن لاحقًا استبدال print بتغيير المشهد."
 ]
 
 
