@@ -1,0 +1,65 @@
+name: Build Godot Mentor Android Editor
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout mentor project
+        uses: actions/checkout@v4
+
+      - name: Checkout pinned Godot source
+        uses: actions/checkout@v4
+        with:
+          repository: godotengine/godot
+          ref: 4.7.2-stable
+          path: godot-source
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned Android toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.1.0" \
+            "ndk;29.0.14206865"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+      - name: Install SCons
+        run: python -m pip install "scons>=4.4,<5"
+
+      - name: Build ARM64 Godot Android Editor baseline
+        working-directory: godot-source
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
+        run: |
+          scons platform=android arch=arm64 production=yes target=editor generate_android_binaries=yes
+
+      - name: Upload baseline editor APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-mentor-editor-arm64-4.7.2-baseline
+          path: godot-source/bin/android_editor_builds/*.apk
+          if-no-files-found: error
+          retention-days: 14

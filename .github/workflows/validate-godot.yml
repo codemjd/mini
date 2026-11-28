@@ -1,0 +1,39 @@
+name: Validate Godot Mentor
+
+on:
+  push:
+    branches:
+      - godot-beginner
+    paths:
+      - "project.godot"
+      - "addons/**"
+      - "lessons/**"
+      - ".github/workflows/validate-godot.yml"
+  pull_request:
+    paths:
+      - "project.godot"
+      - "addons/**"
+      - "lessons/**"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 \
+            "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip" \
+            -o godot.zip
+          unzip -q godot.zip -d godot-bin
+          chmod +x godot-bin/Godot_v4.7.2-stable_linux.x86_64
+
+      - name: Parse project and load editor plugin
+        run: |
+          godot-bin/Godot_v4.7.2-stable_linux.x86_64 \
+            --headless --editor --path . --quit

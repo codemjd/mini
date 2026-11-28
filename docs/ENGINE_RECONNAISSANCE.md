@@ -1,0 +1,90 @@
+# تشريح Godot — المرحلة الأولى
+
+## قرار الإصدار
+
+اعتمدنا Godot **4.7.2-stable** كأساس أولي. في 28 نوفمبر 2026 كان هذا هو الإصدار المستقر الظاهر في أرشيف الإصدارات الرسمي، بينما كان 4.8 في مرحلة Release Candidate 1. تثبيت الإصدار المستقر يقلل احتمال تغيّر واجهات المحرر أثناء بناء الإضافة والمنهج.
+
+مرجع الوسم الرسمي: https://github.com/godotengine/godot/releases/tag/4.7.2-stable  
+Commit الوسم: ed1daf0
+
+## تقسيم معماري أولي
+
+| الطبقة | المسار الرسمي | الدور |
+|---|---|---|
+| محرك التشغيل والأنظمة الأساسية | core/ و servers/ و scene/ | الكائنات، الموارد، المشاهد، الرسوم، الفيزياء، الصوت |
+| محرر المشاريع | editor/ | إدارة المشروع والمحرر وشجرة المشهد والمفتش ولوحات العمل |
+| واجهة إضافات المحرر | EditorPlugin / EditorInterface | إضافة لوحات وأدوات دون نسخ المحرك أو تغيير سلوكه الأساسي |
+| واجهة Android | platform/android/java/editor/ | نشاط Android، الصلاحيات، النوافذ، تشغيل اللعبة المضمن، الربط مع المحرر |
+| بناء Android الأصلي | platform/android/ و SCons | المكتبات الأصلية وملفات APK للمحرر |
+
+## ملفات مصدر راجعناها
+
+### 1. Android Editor lifecycle
+
+الملف:
+platform/android/java/editor/src/main/java/org/godotengine/editor/BaseGodotEditor.kt
+
+هذا الملف ليس المحرك الرسومي. إنه طبقة Android التي تدير دورة حياة Activity، والأذونات، وIntent فتح المشاريع، وتعدد نوافذ المحرر واللعبة، ووضع تشغيل اللعبة، ومزود بناء Gradle، وبعض إيماءات اللمس.
+
+رابط الملف في Godot 4.7.2:
+https://github.com/godotengine/godot/blob/4.7.2-stable/platform/android/java/editor/src/main/java/org/godotengine/editor/BaseGodotEditor.kt
+
+### 2. جسر المحرر
+
+الملف:
+editor/editor_interface.cpp
+
+هذا جزء من واجهة C++ التي تتيح لمكونات المحرر والإضافات الوصول إلى خدمات المحرر. سنراجع واجهته العامة قبل أي تعديل أصلي؛ لا ينبغي تعديل المحرك لمجرد أن إضافة GDScript تستطيع أداء الوظيفة المطلوبة.
+
+https://github.com/godotengine/godot/blob/4.7.2-stable/editor/editor_interface.cpp
+
+### 3. إعداد بناء محرر Android
+
+الملف:
+platform/android/java/editor/build.gradle
+
+يبني تطبيق Android للمحرر ويحتوي على إعدادات الإصدار والتوقيع. لا يكفي تعديل ملف Gradle وحده لبناء محرر مخصص؛ تحتاج أيضًا إلى المكتبات الأصلية التي ينتجها SCons.
+
+https://github.com/godotengine/godot/blob/4.7.2-stable/platform/android/java/editor/build.gradle
+
+### 4. إعداد Android Native
+
+الملف:
+platform/android/detect.py
+
+في الوسم 4.7.2-stable الذي راجعناه:
+- إصدار NDK المطلوب: 29.0.14206865.
+- الحد الأدنى لـ Android API: 24.
+
+أما platform/android/java/app/config.gradle فيحدد:
+- compileSdk: 36.
+- targetSdk: 36.
+- buildTools: 36.1.0.
+- ndkVersion: 29.0.14206865.
+
+## لماذا بدأنا بإضافة EditorPlugin؟
+
+هناك ثلاث درجات مختلفة من التعديل:
+
+1. **إضافة داخل المحرر:** أسرع وأقل مخاطرة، وتستخدم واجهات Godot المعلنة.
+2. **تعديل واجهة المحرر الأصلية:** يغيّر تجربة المحرر نفسها، وقد يتطلب C++ أو Kotlin بحسب المكوّن.
+3. **تعديل المحرك/أنظمة التشغيل:** أعمق تغييرًا، ويجب ألا نلجأ إليه ما لم نثبت أن واجهات الإضافة غير كافية.
+
+النموذج الحالي ينفذ الدرجة الأولى فقط. هذا ليس ادعاء بأننا عدّلنا مصدر Godot؛ إنه إثبات أولي للمنهج التعليمي داخل محرر Godot الحقيقي.
+
+## ملفات مصدر أخرى يجب تشريحها قبل التعديل الأصلي
+
+- editor/editor_node.cpp — إدارة المحرر الرئيسي وتكوين الواجهات.
+- editor/editor_interface.cpp / .h — واجهة الوصول إلى المحرر.
+- editor/editor_settings.cpp — الإعدادات الافتراضية وسلوك واجهة المحرر.
+- platform/android/java/editor/ — واجهة Android وطبقة التفاعل مع النوافذ.
+- platform/android/java/editor/src/main/res/ — موارد الواجهة والأيقونات والثيمات.
+- platform/android/java/editor/build.gradle — بناء تطبيق المحرر.
+
+## سجل التعديل المقترح
+
+- لا نعدّل ملفات core إلا بوجود حاجة مثبتة.
+- لا نغيّر Renderer الافتراضي عالميًا دون اختبار.
+- كل تعديل أصلي يجب أن يكون Patch منفصلًا، مع سبب وملف متأثر واختبار رجوع.
+- لا ندمج مفاتيح API في المستودع أو APK.
+- نثبت commit المصدر بدقة عند إنتاج APK، لا نستخدم فرع master المتغير.

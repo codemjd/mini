@@ -1,9 +1,6 @@
-node_modules/
-dist/
-.DS_Store
+.godot/
+.import/
+.export/
+*.tmp
 *.log
-.env
-.env.*
-!.env.example
-coverage/
-.vite/
+.DS_Store
