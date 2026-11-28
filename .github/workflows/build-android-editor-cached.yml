@@ -13,6 +13,9 @@ on:
       - "docs/LESSON_CURRICULUM.md"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: godot-mentor-android-cached-${{ github.ref }}
   cancel-in-progress: false
@@ -137,11 +140,37 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Upload Godot Mentor Editor APK
+      - name: Verify APK signature and calculate checksum
         if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: godot-mentor-editor-arm64-4.7.2-arabic-cached
-          path: godot-source/bin/android_editor_builds/*.apk
-          if-no-files-found: error
-          retention-days: 14
+        id: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t apks < <(find godot-source/bin/android_editor_builds -maxdepth 1 -type f -name '*.apk' -print | sort)
+          if [ "${#apks[@]}" -ne 1 ]; then
+            printf 'Expected exactly one ARM64 editor APK, found %s\n' "${#apks[@]}" >&2
+            printf '%s\n' "${apks[@]}" >&2
+            exit 1
+          fi
+          apk="${apks[0]}"
+          apksigner="$ANDROID_HOME/build-tools/36.1.0/apksigner"
+          test -x "$apksigner"
+          "$apksigner" verify --verbose --print-certs "$apk"
+          sha256sum "$apk" | tee "$apk.sha256"
+          echo "apk_path=$apk" >> "$GITHUB_OUTPUT"
+          echo "apk_name=$(basename "$apk")" >> "$GITHUB_OUTPUT"
+          stat --printf='APK_SIZE_BYTES=%s\n' "$apk"
+
+      - name: Upload verified APK and checksum as direct release assets
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="godot-mentor-android-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" \
+            "${{ steps.apk.outputs.apk_path }}" \
+            "${{ steps.apk.outputs.apk_path }}.sha256" \
+            --title "Godot Mentor Android ARM64 ${GITHUB_RUN_NUMBER}" \
+            --notes "Built from commit ${GITHUB_SHA}. APK signature verified with Android apksigner; SHA-256 checksum attached."
