@@ -64,6 +64,7 @@ jobs:
       - name: Install SCons
         run: python -m pip install "scons>=4.4,<5"
 
+      # Follows the cache_path and redirect_build_objects pattern used by Godot upstream CI.
       - name: Restore SCons object cache
         uses: actions/cache@v4
         with:
