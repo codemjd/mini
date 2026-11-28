@@ -46,6 +46,7 @@ var _mode_toggle: CheckButton
 var _advanced_note: Label
 var _element_picker: OptionButton
 var _element_description: Label
+var _selected_node_label: Label
 var _recipe_picker: OptionButton
 var _recipe_description: Label
 var _recipe_code: TextEdit
@@ -83,6 +84,8 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(280, 0)
 	add_theme_constant_override("separation", 8)
 	_build_ui()
+	EditorInterface.get_selection().selection_changed.connect(_refresh_selected_node)
+	_refresh_selected_node()
 
 
 func _build_ui() -> void:
@@ -128,6 +131,11 @@ func _build_elements_tab(tabs: TabContainer) -> void:
 	note.text = "اختر عنصرًا لمعرفة وظيفته ومتى تستخدمه."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	page.add_child(note)
+
+	_selected_node_label = Label.new()
+	_selected_node_label.text = "العنصر المحدد: لم يتم تحديد عقدة."
+	_selected_node_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	page.add_child(_selected_node_label)
 
 	_element_picker = OptionButton.new()
 	_element_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -250,6 +258,24 @@ func _on_element_selected(index: int) -> void:
 	_element_description.text = str(element["name"]) + "\n\n" + str(element["purpose"])
 	if not _beginner_mode:
 		_element_description.text += "\n\nتفصيل إضافي: " + ELEMENT_DETAILS[index]
+
+
+func _refresh_selected_node() -> void:
+	if _selected_node_label == null:
+		return
+	var selected_nodes := EditorInterface.get_selection().get_selected_nodes()
+	if selected_nodes.is_empty():
+		_selected_node_label.text = "العنصر المحدد: لم يتم تحديد عقدة. اختر عقدة من شجرة المشهد."
+		return
+	var selected_node: Node = selected_nodes[0]
+	var node_type := selected_node.get_class()
+	_selected_node_label.text = "العنصر المحدد: %s (%s)" % [selected_node.name, node_type]
+	for index in range(ELEMENTS.size()):
+		if str(ELEMENTS[index]["name"]) == node_type:
+			_element_picker.select(index)
+			_on_element_selected(index)
+			return
+	_element_description.text = "هذه عقدة من نوع %s.\n\nيمكنك استخدامها بحسب دورها في شجرة المشهد، وافتح وثائق Godot لمعرفة خصائص النوع المتقدمة." % node_type
 
 
 func _on_recipe_selected(index: int) -> void:
