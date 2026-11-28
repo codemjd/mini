@@ -1,27 +1,37 @@
-# Arabic localization in the upstream Godot editor
+# تعريب Godot 4.7.2 على Android
 
-Godot 4.7.2 already ships an Arabic editor translation at:
+يحتوي مصدر Godot 4.7.2 أصلًا على قاموس واجهة محرر عربي في:
 
 `editor/translations/editor/ar.po`
 
-The editor language preference is declared in `editor/settings/editor_settings.cpp` as `interface/editor/localization/editor_language`. Its standard default is `auto`, which compares the host locale against the editor locales. The editor also exposes `interface/editor/localization/ui_layout_direction`, whose default is based on the application locale.
+كما يوفّر إعدادين منفصلين:
+- `interface/editor/localization/editor_language`: لغة نصوص المحرر.
+- `interface/editor/localization/ui_layout_direction`: اتجاه تخطيط الواجهة.
 
-The Arabic translation is substantial, but not every source string is translated. We must not claim a complete translation without auditing the PO catalog and testing the actual interface.
+القيمة الافتراضية القياسية للغة هي `auto`. أما اتجاه التخطيط الافتراضي فهو اتباع لغة التطبيق. في هذا المشروع نريد بداية عربية واضحة حتى عند استخدام هاتف لغة نظامه ليست عربية، لذلك نضبط افتراضي Android إلى:
+- اللغة: `ar`.
+- اتجاه التخطيط: `Right-to-Left` (القيمة 2 في قائمة الإعداد).
 
-## Godot Mentor policy
+تظل إعدادات اللغة والاتجاه قابلة للتغيير من إعدادات المحرر. التعديل محصور خلف `ANDROID_ENABLED`، وبالتالي لا يغيّر بناء سطح المكتب.
 
-For the Android Mentor build only, we patch the default language value from `auto` to `ar`. This is a default only; the user can still select another editor language in Editor Settings. The standard desktop Godot build remains unchanged.
+## موارد Android
 
-The Android-specific text resources are separately localized under `platform/android/java/editor/src/main/res/values-ar/strings.xml`.
+يوجد ملف ترجمة منفصل لموارد واجهة Android في:
+`platform/android/java/editor/src/main/res/values-ar/strings.xml`
 
-## Native patch
+يشمل رسائل الأذونات، وأسماء عناصر قائمة تشغيل اللعبة، ورسائل النافذة المضمنة، وخيارات الكاميرا.
 
-`native/0001-android-default-arabic-language.patch` modifies the setting default behind `ANDROID_ENABLED`. The Android build workflow applies it to the pinned 4.7.2 source before SCons compilation.
+## سكربت التعديل
 
-## Remaining verification
+`patches/godot-4.7.2/native/apply_android_arabic_default.py`
 
-- Confirm the patch applies cleanly to the selected upstream tag.
-- Build the ARM64 editor APK.
-- Install it on an Android device with Arabic and non-Arabic system locales.
-- Verify Arabic labels, text shaping, mixed Arabic/English terms, and right-to-left layout throughout the C++ editor.
-- Verify the user can change the language and that the preference persists after restart.
+- يتأكد من العثور على سطر واحد محدد للغة وسطر واحد للاتجاه.
+- يضيف القيم الافتراضية خلف `#ifdef ANDROID_ENABLED`.
+- يرفض تعديل مصدر مختلف أو تطبيق جزئي.
+- يمكن تشغيله أكثر من مرة دون تكرار التغييرات.
+
+## الاختبارات
+
+تقوم GitHub Actions بنسخ ملف المصدر إلى مسار مؤقت، وتطبيق السكربت، والتحقق من وجود قيمتي العربية وRTL، ثم تطبيقه مرة ثانية للتحقق من أنه آمن عند التكرار. كما تفحص موارد Android مقابل أسماء المفاتيح الموجودة في مصدر Godot.
+
+هذا يثبت صحة تعديل المصدر وموارد Android، لكنه لا يثبت وحده أن كل شاشة في المحرر تعرض RTL بشكل مثالي. يلزم بناء APK ومراجعة الواجهة على جهاز فعلي، خصوصًا النصوص المختلطة بين العربية والإنجليزية.
