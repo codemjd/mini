@@ -80,6 +80,9 @@ jobs:
       - name: Apply Android Arabic-first editor patch
         run: python patches/godot-4.7.2/native/apply_android_arabic_default.py godot-source/editor/settings/editor_settings.cpp
 
+      - name: Apply Godot Mentor Android application branding
+        run: python patches/godot-4.7.2/native/apply_android_editor_branding.py godot-source/platform/android/java/editor/build.gradle
+
       - name: Package Godot Mentor starter project
         run: |
           zip -r godot-mentor-project-4.7.2.zip \

@@ -6,6 +6,7 @@
 
 1. `platform/android/java/editor/src/main/res/values-ar/strings.xml`: ترجمة موارد Android الخاصة بالأذونات وقائمة تشغيل اللعبة والتلميحات وخيارات الكاميرا.
 2. `native/apply_android_arabic_default.py`: يضبط اللغة الافتراضية إلى `ar` واتجاه الواجهة إلى RTL في بناء Android فقط. يظل بإمكان المستخدم تغيير الإعدادين. يتحقق من وجود موضع واحد مطابق لكل إعداد، ويتوقف إذا تغيّر مصدر Godot، ويمكن تشغيله أكثر من مرة بأمان.
+3. `native/apply_android_editor_branding.py`: يغيّر اسم التطبيق إلى «مرشد Godot» ويستخدم معرّف حزمة مستقلًا `org.godotmentor.editor` حتى يمكن تثبيته بجانب محرر Godot الرسمي.
 
 ## الترجمة العربية الموجودة في upstream
 

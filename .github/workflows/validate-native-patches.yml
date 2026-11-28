@@ -35,6 +35,15 @@ jobs:
           grep -F 'default_ui_layout_direction = 2;' /tmp/editor_settings.cpp
           python patches/godot-4.7.2/native/apply_android_arabic_default.py /tmp/editor_settings.cpp
 
+      - name: Validate Android app branding patch
+        run: |
+          set -euo pipefail
+          cp godot-source/platform/android/java/editor/build.gradle /tmp/editor-build.gradle
+          python patches/godot-4.7.2/native/apply_android_editor_branding.py /tmp/editor-build.gradle
+          grep -F 'applicationId "org.godotmentor.editor"' /tmp/editor-build.gradle
+          grep -F 'editorAppName: "مرشد Godot",' /tmp/editor-build.gradle
+          python patches/godot-4.7.2/native/apply_android_editor_branding.py /tmp/editor-build.gradle
+
       - name: Verify Android Arabic resources match upstream identifiers
         run: |
           python - <<'PY'
