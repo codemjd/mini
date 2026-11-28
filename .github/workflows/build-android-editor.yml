@@ -76,6 +76,22 @@ jobs:
       - name: Apply Android Arabic-first editor patch
         run: python patches/godot-4.7.2/native/apply_android_arabic_default.py godot-source/editor/settings/editor_settings.cpp
 
+      - name: Package Godot Mentor starter project
+        run: |
+          zip -r godot-mentor-project-4.7.2.zip \
+            project.godot \
+            addons/godot_mentor \
+            docs/LESSON_CURRICULUM.md \
+            docs/ANDROID_STRATEGY.md \
+            README.md
+
+      - name: Upload Godot Mentor project bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: godot-mentor-project-4.7.2
+          path: godot-mentor-project-4.7.2.zip
+          retention-days: 14
+
       - name: Build ARM64 Godot Android Editor with Arabic localization and frame pacing
         working-directory: godot-source
         run: |
