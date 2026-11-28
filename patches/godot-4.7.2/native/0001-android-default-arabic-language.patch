@@ -1,0 +1,12 @@
+diff --git a/editor/settings/editor_settings.cpp b/editor/settings/editor_settings.cpp
+--- a/editor/settings/editor_settings.cpp
++++ b/editor/settings/editor_settings.cpp
+@@ -451,1 +451,7 @@
+-		EDITOR_SETTING_USAGE(Variant::STRING, PROPERTY_HINT_ENUM, "interface/editor/localization/editor_language", "auto", lang_hint, PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED | PROPERTY_USAGE_EDITOR_BASIC_SETTING);
++		// The Godot Mentor Android build starts in Arabic for a beginner-friendly first launch.
++		// The setting remains editable, so users can switch to any language supported by Godot.
++		String default_editor_language = "auto";
++#ifdef ANDROID_ENABLED
++		default_editor_language = "ar";
++#endif
++		EDITOR_SETTING_USAGE(Variant::STRING, PROPERTY_HINT_ENUM, "interface/editor/localization/editor_language", default_editor_language, lang_hint, PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED | PROPERTY_USAGE_EDITOR_BASIC_SETTING);

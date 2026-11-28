@@ -1,15 +1,30 @@
-# Native Android resource patch — Godot 4.7.2
+# تعديلات مصدر Godot 4.7.2
 
-This patch adds Android-native Arabic translations for the editor's Android-specific permission messages, game-run menu, embedded game hints, and camera controls.
+هذا المجلد يحتفظ بتعديلاتنا منفصلة عن مصدر Godot الرسمي حتى يسهل مراجعتها وإعادة تطبيقها على الإصدار المثبّت.
 
-Source file in the pinned upstream tree:
-`platform/android/java/editor/src/main/res/values/strings.xml`
+## التعديلات الحالية
 
-Overlay supplied by this repository:
-`patches/godot-4.7.2/platform/android/java/editor/src/main/res/values-ar/strings.xml`
+1. `platform/android/java/editor/src/main/res/values-ar/strings.xml`
+   ترجمات عربية للنصوص الخاصة بواجهة Android editor: رسائل الأذونات، وقائمة تشغيل اللعبة، والتلميحات، وخيارات الكاميرا.
 
-The Android resource is copied into the pinned Godot source tree before SCons starts. Android selects the `values-ar` resources when the device locale is Arabic. The original default English resources remain unchanged.
+2. `native/0001-android-default-arabic-language.patch`
+   يعدّل القيمة الافتراضية لإعداد `interface/editor/localization/editor_language` إلى `ar` في بناء Android فقط. يظل بإمكان المستخدم تغيير اللغة من إعدادات المحرر. لا يتغير بناء سطح المكتب.
 
-This is the first native Android editor modification. It does **not** translate the entire Godot C++ editor UI; that requires a separate localization and editor-UX effort. The current patch only translates the Android-hosted strings enumerated in the resource file.
+## الترجمة العربية الموجودة في upstream
 
-Validation currently checks XML well-formedness and duplicate resource names. APK packaging and on-device locale behavior still require the Android Editor build workflow and physical-device verification.
+يحتوي Godot 4.7.2 أصلًا على قاموس واجهة المحرر العربية:
+`editor/translations/editor/ar.po`
+
+لا ننسخ هذا الملف ولا نعيد ترجمته. نستفيد من كتالوج Godot الرسمي، ونضبط الإعداد لاستخدامه عند أول تشغيل في نسخة Android. بعض العبارات في الكتالوج قد تبقى غير مترجمة، ويجب تدقيق RTL والنصوص المختلطة على الجهاز.
+
+## آلية التطبيق
+
+يسحب Workflow مستودع `godotengine/godot` عند الوسم `4.7.2-stable`، ثم:
+- ينسخ مورد Android العربي إلى مجلد الموارد الموافق.
+- يتحقق من سلامة XML.
+- يطبق Patch C++ باستخدام `git apply --check` ثم `git apply`.
+- يبني محرر Android ARM64 باستخدام SCons.
+
+## حدود التحقق
+
+اجتاز المشروع فحص تحميل إضافة Godot في محرر Headless. أما APK المخصص فلم ينجح بناؤه في المحاولة الأولى لأن Action إعداد Android SDK حاول تثبيت حزمة `tools` القديمة غير المتاحة. جرى تحديث Action إلى v4 مع ترك حزم SDK الإضافية فارغة ثم تثبيتها صراحةً. لم نعتبر APK جاهزًا قبل نجاح البناء واختبار الجهاز.

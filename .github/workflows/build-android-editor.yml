@@ -69,7 +69,15 @@ jobs:
           cp patches/godot-4.7.2/platform/android/java/editor/src/main/res/values-ar/strings.xml "$target/strings.xml"
           python -c "import xml.etree.ElementTree as ET; ET.parse('$target/strings.xml')"
 
-      - name: Build ARM64 Godot Android Editor with Arabic resources
+      - name: Apply Android Arabic-first editor patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch="patches/godot-4.7.2/native/0001-android-default-arabic-language.patch"
+          git -C godot-source apply --check "../$patch"
+          git -C godot-source apply "../$patch"
+
+      - name: Build ARM64 Godot Android Editor with Arabic localization
         working-directory: godot-source
         run: |
           scons platform=android arch=arm64 production=yes target=editor generate_android_binaries=yes -j2
@@ -77,7 +85,7 @@ jobs:
       - name: Upload Godot Mentor Editor APK
         uses: actions/upload-artifact@v7
         with:
-          name: godot-mentor-editor-arm64-4.7.2-arabic-resources
+          name: godot-mentor-editor-arm64-4.7.2-arabic
           path: godot-source/bin/android_editor_builds/*.apk
           if-no-files-found: error
           retention-days: 14
