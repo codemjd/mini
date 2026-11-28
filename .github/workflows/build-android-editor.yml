@@ -74,12 +74,7 @@ jobs:
           python -c "import xml.etree.ElementTree as ET; ET.parse('$target/strings.xml')"
 
       - name: Apply Android Arabic-first editor patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          patch="patches/godot-4.7.2/native/0001-android-default-arabic-language.patch"
-          git -C godot-source apply --check "../$patch"
-          git -C godot-source apply "../$patch"
+        run: python patches/godot-4.7.2/native/apply_android_arabic_default.py godot-source/editor/settings/editor_settings.cpp
 
       - name: Build ARM64 Godot Android Editor with Arabic localization and frame pacing
         working-directory: godot-source

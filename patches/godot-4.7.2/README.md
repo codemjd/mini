@@ -4,27 +4,13 @@
 
 ## التعديلات الحالية
 
-1. `platform/android/java/editor/src/main/res/values-ar/strings.xml`
-   ترجمات عربية للنصوص الخاصة بواجهة Android editor: رسائل الأذونات، وقائمة تشغيل اللعبة، والتلميحات، وخيارات الكاميرا.
+1. `platform/android/java/editor/src/main/res/values-ar/strings.xml`: ترجمة موارد Android الخاصة بالأذونات وقائمة تشغيل اللعبة والتلميحات وخيارات الكاميرا.
+2. `native/apply_android_arabic_default.py`: يضبط القيمة الافتراضية لإعداد `interface/editor/localization/editor_language` إلى `ar` في بناء Android فقط. يظل بإمكان المستخدم تغيير اللغة. يتحقق من وجود موضع واحد مطابق، ويتوقف إذا تغيّر مصدر Godot، ويمكن تشغيله أكثر من مرة بأمان.
 
-2. `native/0001-android-default-arabic-language.patch`
-   يعدّل القيمة الافتراضية لإعداد `interface/editor/localization/editor_language` إلى `ar` في بناء Android فقط. يظل بإمكان المستخدم تغيير اللغة من إعدادات المحرر. لا يتغير بناء سطح المكتب.
-
-## الترجمة العربية الموجودة في upstream
-
-يحتوي Godot 4.7.2 أصلًا على قاموس واجهة المحرر العربية:
-`editor/translations/editor/ar.po`
-
-لا ننسخ هذا الملف ولا نعيد ترجمته. نستفيد من كتالوج Godot الرسمي، ونضبط الإعداد لاستخدامه عند أول تشغيل في نسخة Android. بعض العبارات في الكتالوج قد تبقى غير مترجمة، ويجب تدقيق RTL والنصوص المختلطة على الجهاز.
+يحتوي Godot 4.7.2 أصلًا على قاموس واجهة عربية في `editor/translations/editor/ar.po`. نستفيد من هذا الكتالوج ولا نعيد ترجمته. لا نزعم اكتمال الترجمة قبل مراجعة الواجهة على الجهاز.
 
 ## آلية التطبيق
 
-يسحب Workflow مستودع `godotengine/godot` عند الوسم `4.7.2-stable`، ثم:
-- ينسخ مورد Android العربي إلى مجلد الموارد الموافق.
-- يتحقق من سلامة XML.
-- يطبق Patch C++ باستخدام `git apply --check` ثم `git apply`.
-- يبني محرر Android ARM64 باستخدام SCons.
+يسحب Workflow مستودع Godot عند الوسم `4.7.2-stable`، ثم ينسخ موارد Android العربية، ويطبق سكربت التعديل على `editor/settings/editor_settings.cpp`، ويثبت مكتبات Swappy، ويبني محرر Android ARM64.
 
-## حدود التحقق
-
-اجتاز المشروع فحص تحميل إضافة Godot في محرر Headless. أما APK المخصص فلم ينجح بناؤه في المحاولة الأولى لأن Action إعداد Android SDK حاول تثبيت حزمة `tools` القديمة غير المتاحة. جرى تحديث Action إلى v4 مع ترك حزم SDK الإضافية فارغة ثم تثبيتها صراحةً. لم نعتبر APK جاهزًا قبل نجاح البناء واختبار الجهاز.
+لا نعلن نجاح APK قبل نجاح البناء وفحص الملف وتجربة التثبيت والتشغيل على جهاز Android فعلي.
