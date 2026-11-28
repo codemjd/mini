@@ -1,5 +1,5 @@
 @tool
-# Godot Mentor ships an interactive 15-lesson starter curriculum.
+# Godot Mentor ships an interactive 20-lesson starter curriculum.
 extends VBoxContainer
 
 const PROGRESS_FILE := "user://godot_mentor_progress.cfg"
