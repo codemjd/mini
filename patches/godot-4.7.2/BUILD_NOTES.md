@@ -8,3 +8,5 @@ The Android editor build now:
 - Builds the ARM64 editor with `swappy=yes`.
 
 See `.github/workflows/build-android-editor.yml`. A successful APK build and physical-device verification are still required before describing this artifact as ready to install.
+
+- Packages the 20-lesson Godot project separately from the editor APK. The APK is the Android editor; the ZIP is the project opened inside it.
