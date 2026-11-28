@@ -55,7 +55,7 @@ jobs:
 
           features = Path("addons/godot_mentor/feature_hub.gd").read_text(encoding="utf-8")
           plugin = Path("addons/godot_mentor/plugin.gd").read_text(encoding="utf-8")
-          for required in ("func _build_elements_tab", "func _build_recipes_tab", "func _build_lab_tab", "func _on_beginner_toggled", "func _copy_recipe"):
+          for required in ("func _build_elements_tab", "func _build_recipes_tab", "func _build_lab_tab", "func _on_beginner_toggled", "func _copy_recipe", "func _refresh_selected_node", "selection_changed.connect(_refresh_selected_node)"):
               assert required in features, f"Missing feature hub control: {required}"
           assert features.count('"name": "') >= 15, "Expected 10 element references and 5 code recipes"
           assert "FeatureHubScript" in plugin and "TabContainer.new()" in plugin
