@@ -101,8 +101,19 @@ jobs:
 
       - name: Build ARM64 Godot Android Editor with Arabic localization and frame pacing
         working-directory: godot-source
+        shell: bash
         run: |
-          scons platform=android arch=arm64 production=yes target=editor generate_android_binaries=yes swappy=yes -j2
+          set -o pipefail
+          scons platform=android arch=arm64 production=yes target=editor generate_android_binaries=yes swappy=yes -j2 2>&1 | tee "$GITHUB_WORKSPACE/godot-android-scons.log"
+
+      - name: Upload Godot Android SCons build log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: godot-mentor-scons-build-log
+          path: godot-android-scons.log
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload Godot Mentor Editor APK
         uses: actions/upload-artifact@v7
