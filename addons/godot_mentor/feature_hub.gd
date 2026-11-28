@@ -139,11 +139,24 @@ func _build_ui() -> void:
 	_build_lab_tab(tabs)
 
 
-func _build_elements_tab(tabs: TabContainer) -> void:
+func _make_scroll_page(tabs: TabContainer, page_title: String) -> VBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.name = page_title
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tabs.add_child(scroll)
+
 	var page := VBoxContainer.new()
-	page.name = "شرح العناصر"
-	page.add_theme_constant_override("separation", 8)
-	tabs.add_child(page)
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 10)
+	scroll.add_child(page)
+	return page
+
+
+func _build_elements_tab(tabs: TabContainer) -> void:
+	var page := _make_scroll_page(tabs, "شرح العناصر")
 
 	var note := Label.new()
 	note.text = "اختر عنصرًا لمعرفة وظيفته ومتى تستخدمه."
@@ -170,10 +183,7 @@ func _build_elements_tab(tabs: TabContainer) -> void:
 
 
 func _build_recipes_tab(tabs: TabContainer) -> void:
-	var page := VBoxContainer.new()
-	page.name = "قوالب الأكواد"
-	page.add_theme_constant_override("separation", 8)
-	tabs.add_child(page)
+	var page := _make_scroll_page(tabs, "قوالب الأكواد")
 
 	_recipe_picker = OptionButton.new()
 	_recipe_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -204,10 +214,7 @@ func _build_recipes_tab(tabs: TabContainer) -> void:
 
 
 func _build_lab_tab(tabs: TabContainer) -> void:
-	var page := VBoxContainer.new()
-	page.name = "مختبر التجربة"
-	page.add_theme_constant_override("separation", 8)
-	tabs.add_child(page)
+	var page := _make_scroll_page(tabs, "مختبر التجربة")
 
 	var note := Label.new()
 	note.text = "غيّر المقياس والدوران وشاهد النتيجة فورًا. هذه معاينة تعليمية معزولة لا تعدّل مشروعك تلقائيًا."
