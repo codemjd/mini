@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="godot_game_activity_name">نافذة تشغيل لعبة Godot</string>
+    <string name="denied_storage_permission_error_msg">يلزم منح إذن الوصول إلى الملفات حتى يتمكن المحرر من فتح المشاريع.</string>
+    <string name="denied_install_packages_permission_error_msg">يلزم السماح بتثبيت ملفات APK لتثبيت اللعبة المصدّرة.</string>
+    <string name="game_menu_input_event_joypad_motion_label">الإدخال</string>
+    <string name="game_menu_nodes_2d_button_label">ثنائي الأبعاد</string>
+    <string name="game_menu_node_3d_button_label">ثلاثي الأبعاد</string>
+    <string name="menu_reset_2d_camera_label">إعادة ضبط كاميرا 2D</string>
+    <string name="menu_reset_3d_camera_label">إعادة ضبط كاميرا 3D</string>
+    <string name="menu_manipulate_in_game_label">التحكم داخل اللعبة</string>
+    <string name="menu_manipulate_from_editors_label">التحكم من المحرر</string>
+    <string name="menu_embed_game_on_play_label">تشغيل اللعبة داخل المحرر</string>
+    <string name="menu_camera_label">خيارات الكاميرا</string>
+    <string name="menu_camera_override_label">التحكم بالكاميرا</string>
+    <string name="embedded_game_not_running_message">اضغط زر التشغيل لبدء اللعبة.</string>
+    <string name="running_game_not_embedded_message">اللعبة تعمل في نافذة مستقلة.</string>
+    <string name="menu_keep_embed_game_on_top_label">إبقاء نافذة اللعبة في المقدمة باستخدام صورة داخل صورة</string>
+    <string name="dont_show_again_message">لا تعرض هذه الرسالة مرة أخرى</string>
+    <string name="show_game_resume_hint">اضغط على «اللعبة» للعودة إليها</string>
+    <string name="restart_embed_game_hint">أعد تشغيل اللعبة لتضمينها داخل المحرر</string>
+    <string name="restart_non_embedded_game_hint">أعد تشغيل اللعبة لإيقاف تضمينها</string>
+    <string name="lock_aspect_ratio_btn_text">قفل نسبة العرض إلى الارتفاع (%1$d × %2$d)</string>
+</resources>

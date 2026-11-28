@@ -8,12 +8,16 @@ on:
       - "project.godot"
       - "addons/**"
       - "lessons/**"
+      - "patches/**"
+      - "docs/**"
       - ".github/workflows/validate-godot.yml"
   pull_request:
     paths:
       - "project.godot"
       - "addons/**"
       - "lessons/**"
+      - "patches/**"
+      - ".github/workflows/validate-godot.yml"
   workflow_dispatch:
 
 jobs:
@@ -22,6 +26,18 @@ jobs:
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
+
+      - name: Validate Android Arabic resources
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          path = "patches/godot-4.7.2/platform/android/java/editor/src/main/res/values-ar/strings.xml"
+          root = ET.parse(path).getroot()
+          assert root.tag == "resources"
+          names = [item.attrib["name"] for item in root.findall("string")]
+          assert len(names) == len(set(names)), "Duplicate Android resource names"
+          print(f"Validated {len(names)} translated Android resource strings.")
+          PY
 
       - name: Download Godot 4.7.2
         shell: bash

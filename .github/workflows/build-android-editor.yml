@@ -48,18 +48,24 @@ jobs:
       - name: Install SCons
         run: python -m pip install "scons>=4.4,<5"
 
-      - name: Build ARM64 Godot Android Editor baseline
+      - name: Apply Arabic Android editor resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="godot-source/platform/android/java/editor/src/main/res/values-ar"
+          mkdir -p "$target"
+          cp patches/godot-4.7.2/platform/android/java/editor/src/main/res/values-ar/strings.xml "$target/strings.xml"
+          python -c "import xml.etree.ElementTree as ET; ET.parse('$target/strings.xml')"
+
+      - name: Build ARM64 Godot Android Editor with Arabic resources
         working-directory: godot-source
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
         run: |
           scons platform=android arch=arm64 production=yes target=editor generate_android_binaries=yes
 
-      - name: Upload baseline editor APK
+      - name: Upload Godot Mentor Editor APK
         uses: actions/upload-artifact@v4
         with:
-          name: godot-mentor-editor-arm64-4.7.2-baseline
+          name: godot-mentor-editor-arm64-4.7.2-arabic-resources
           path: godot-source/bin/android_editor_builds/*.apk
           if-no-files-found: error
           retention-days: 14
