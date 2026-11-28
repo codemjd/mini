@@ -1,7 +1,17 @@
 name: Build Godot Mentor Android Editor
 
 on:
+  push:
+    branches:
+      - godot-beginner
+    paths:
+      - "patches/godot-4.7.2/**"
+      - ".github/workflows/build-android-editor.yml"
   workflow_dispatch:
+
+concurrency:
+  group: godot-mentor-android-editor-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -60,7 +70,7 @@ jobs:
       - name: Build ARM64 Godot Android Editor with Arabic resources
         working-directory: godot-source
         run: |
-          scons platform=android arch=arm64 production=yes target=editor generate_android_binaries=yes
+          scons platform=android arch=arm64 production=yes target=editor generate_android_binaries=yes -j2
 
       - name: Upload Godot Mentor Editor APK
         uses: actions/upload-artifact@v4
