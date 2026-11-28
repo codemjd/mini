@@ -317,6 +317,7 @@ var _current_lesson: int = 0
 var _completed: Dictionary = {}
 var _quiz_passed: Dictionary = {}
 
+var _lesson_picker: OptionButton
 var _progress_bar: ProgressBar
 var _step_label: Label
 var _title_label: Label
@@ -365,6 +366,13 @@ func _build_ui() -> void:
 
 	_step_label = _make_label("", 12)
 	add_child(_step_label)
+
+	_lesson_picker = OptionButton.new()
+	_lesson_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for lesson in LESSONS:
+		_lesson_picker.add_item(str(lesson["title"]))
+	_lesson_picker.item_selected.connect(_on_lesson_selected)
+	add_child(_lesson_picker)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -493,6 +501,7 @@ func _render_lesson() -> void:
 		_answers_box.add_child(answer_button)
 
 	_step_label.text = "الدرس %d من %d" % [_current_lesson + 1, LESSONS.size()]
+	_lesson_picker.select(_current_lesson)
 	_previous_button.disabled = _current_lesson == 0
 	_next_button.text = "اكتمل المنهج" if _current_lesson == LESSONS.size() - 1 else "الدرس التالي"
 	_next_button.disabled = _current_lesson == LESSONS.size() - 1
@@ -506,6 +515,12 @@ func _update_progress() -> void:
 		if bool(_completed.get(lesson_index, false)):
 			finished_count += 1
 	_progress_bar.value = float(finished_count) / float(LESSONS.size()) * 100.0
+
+
+func _on_lesson_selected(index: int) -> void:
+	_current_lesson = clampi(index, 0, LESSONS.size() - 1)
+	_save_progress()
+	_render_lesson()
 
 
 func _on_answer_selected(answer_index: int) -> void:
