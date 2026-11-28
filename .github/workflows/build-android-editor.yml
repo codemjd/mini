@@ -60,6 +60,10 @@ jobs:
       - name: Install SCons
         run: python -m pip install "scons>=4.4,<5"
 
+      - name: Install Godot Android Swappy frame-pacing libraries
+        working-directory: godot-source
+        run: python misc/scripts/install_swappy_android.py
+
       - name: Apply Arabic Android editor resources
         shell: bash
         run: |
@@ -77,10 +81,10 @@ jobs:
           git -C godot-source apply --check "../$patch"
           git -C godot-source apply "../$patch"
 
-      - name: Build ARM64 Godot Android Editor with Arabic localization
+      - name: Build ARM64 Godot Android Editor with Arabic localization and frame pacing
         working-directory: godot-source
         run: |
-          scons platform=android arch=arm64 production=yes target=editor generate_android_binaries=yes -j2
+          scons platform=android arch=arm64 production=yes target=editor generate_android_binaries=yes swappy=yes -j2
 
       - name: Upload Godot Mentor Editor APK
         uses: actions/upload-artifact@v7
