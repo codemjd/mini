@@ -39,8 +39,7 @@ const RECIPES := [
 		"name": "عدو يتبع اللاعب",
 		"description": "سلوك حتمي بسيط: يتحرك نحو عقدة اللاعب دون ذكاء اصطناعي خارجي.",
 		"code": "extends CharacterBody2D\n\n@export var speed: float = 120.0\n@export var target: Node2D\n\nfunc _physics_process(_delta: float) -> void:\n\tif not is_instance_valid(target):\n\t\tvelocity = Vector2.ZERO\n\t\treturn\n\tvelocity = global_position.direction_to(target.global_position) * speed\n\tmove_and_slide()"
-	}
-	,
+	},
 	{
 		"name": "واجهة النقاط",
 		"description": "تحديث Label عند زيادة نقاط اللاعب.",
