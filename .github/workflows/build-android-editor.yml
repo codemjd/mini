@@ -6,6 +6,10 @@ on:
       - godot-beginner
     paths:
       - "patches/godot-4.7.2/**"
+      - "addons/godot_mentor/**"
+      - "project.godot"
+      - "README.md"
+      - "docs/LESSON_CURRICULUM.md"
       - ".github/workflows/build-android-editor.yml"
   workflow_dispatch:
 
