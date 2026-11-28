@@ -23,7 +23,7 @@ jobs:
           ref: 4.7.2-stable
           path: godot-source
 
-      - name: Validate Android Arabic language patch
+      - name: Validate Android Arabic language and RTL defaults
         run: |
           set -euo pipefail
           cp godot-source/editor/settings/editor_settings.cpp /tmp/editor_settings.cpp
@@ -31,6 +31,8 @@ jobs:
           grep -F 'String default_editor_language = "auto";' /tmp/editor_settings.cpp
           grep -F '#ifdef ANDROID_ENABLED' /tmp/editor_settings.cpp
           grep -F 'default_editor_language = "ar";' /tmp/editor_settings.cpp
+          grep -F 'int default_ui_layout_direction = 0;' /tmp/editor_settings.cpp
+          grep -F 'default_ui_layout_direction = 2;' /tmp/editor_settings.cpp
           python patches/godot-4.7.2/native/apply_android_arabic_default.py /tmp/editor_settings.cpp
 
       - name: Verify Android Arabic resources match upstream identifiers
