@@ -52,6 +52,15 @@ jobs:
           assert "func _save_progress()" in source
           assert "func _on_answer_selected(answer_index: int)" in source
           print(f"Validated {len(numbers)} interactive lessons and core practice/progress controls.")
+
+          features = Path("addons/godot_mentor/feature_hub.gd").read_text(encoding="utf-8")
+          plugin = Path("addons/godot_mentor/plugin.gd").read_text(encoding="utf-8")
+          for required in ("func _build_elements_tab", "func _build_recipes_tab", "func _build_lab_tab", "func _on_beginner_toggled", "func _copy_recipe"):
+              assert required in features, f"Missing feature hub control: {required}"
+          assert features.count('"name": "') >= 15, "Expected 10 element references and 5 code recipes"
+          assert "FeatureHubScript" in plugin and "TabContainer.new()" in plugin
+          assert "HTTPRequest" not in features, "The offline feature hub must not call external AI services"
+          print("Validated beginner mode, element guide, 5 code recipes, visual lab and single-dock integration.")
           PY
 
       - name: Download Godot 4.7.2
