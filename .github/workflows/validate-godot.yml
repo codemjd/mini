@@ -18,6 +18,7 @@ on:
       - "lessons/**"
       - "patches/**"
       - ".github/workflows/validate-godot.yml"
+      - ".github/workflows/build-android-editor.yml"
   workflow_dispatch:
 
 jobs:
@@ -26,6 +27,16 @@ jobs:
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
+
+      - name: Validate Android build workflow and diagnostic logging
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruby -e 'require "yaml"; YAML.load_file(".github/workflows/build-android-editor.yml"); puts "Android build workflow YAML parsed successfully."'
+          grep -F 'tee "$GITHUB_WORKSPACE/godot-android-scons.log"' .github/workflows/build-android-editor.yml
+          grep -F 'name: Upload Godot Android SCons build log' .github/workflows/build-android-editor.yml
+          grep -F 'if: always()' .github/workflows/build-android-editor.yml
+          grep -F 'set -o pipefail' .github/workflows/build-android-editor.yml
 
       - name: Validate Android Arabic resources
         run: |
