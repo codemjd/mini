@@ -146,13 +146,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t apks < <(find godot-source/bin/android_editor_builds -maxdepth 1 -type f -name '*.apk' -print | sort)
-          if [ "${#apks[@]}" -ne 1 ]; then
-            printf 'Expected exactly one ARM64 editor APK, found %s\n' "${#apks[@]}" >&2
-            printf '%s\n' "${apks[@]}" >&2
+          apk="godot-source/bin/android_editor_builds/android_editor-android-debug.apk"
+          if [ ! -f "$apk" ]; then
+            echo "Expected Android ARM64 editor APK was not produced: $apk" >&2
+            find godot-source/bin/android_editor_builds -maxdepth 1 -type f -name '*.apk' -print >&2
             exit 1
           fi
-          apk="${apks[0]}"
           apksigner="$ANDROID_HOME/build-tools/36.1.0/apksigner"
           test -x "$apksigner"
           "$apksigner" verify --verbose --print-certs "$apk"
