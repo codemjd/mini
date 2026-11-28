@@ -45,7 +45,7 @@ jobs:
           import re
           from pathlib import Path
           source = Path("addons/godot_mentor/mentor_dock.gd").read_text(encoding="utf-8")
-          numbers = [int(value) for value in re.findall(r'"title": "(\\d+) —', source)]
+          numbers = [int(value) for value in re.findall(r'"title": "(\d+) —', source)]
           assert numbers == list(range(1, 16)), f"Expected ordered lessons 1..15, got {numbers}"
           assert "_lesson_picker.item_selected.connect(_on_lesson_selected)" in source
           assert "func _create_practice_scene()" in source
