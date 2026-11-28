@@ -310,8 +310,112 @@ func take_damage(amount: int) -> void:
 		],
 		"correct": 0,
 		"feedback": "InputMap يفصل معنى الفعل عن المفتاح الفعلي، ويسهّل دعم لوحة المفاتيح واللمس واليد."
-	}
+	},,
+	{
+		"title": "16 — بنية المشهد ثلاثي الأبعاد",
+		"explanation": "مشاهد 3D تعتمد على Node3D كأساس للتحويلات المكانية. تضيف إليها MeshInstance3D للسطح المرئي، وCamera3D للرؤية، وأضواء مثل DirectionalLight3D.",
+		"mission": "أنشئ مشهدًا جذره Node3D، ثم أضف MeshInstance3D وCamera3D وDirectionalLight3D كأبناء. راقب كيف تنظم الشجرة أجزاء العالم.",
+		"hint": "Node3D لا يرسم شكلًا بنفسه؛ إنه يوفر موضعًا ودورانًا ومقياسًا في الفضاء ثلاثي الأبعاد.",
+		"snippet": """World (Node3D)
+├── MeshInstance3D
+├── Camera3D
+└── DirectionalLight3D""",
+		"question": "ما دور Node3D غالبًا؟",
+		"options": [
+			"تنظيم عناصر ثلاثية الأبعاد وتحويلاتها",
+			"عرض نص واجهة المستخدم فقط",
+			"تشغيل ملف صوتي"
+		],
+		"correct": 0,
+		"feedback": "Node3D هو أساس التحويلات المكانية للعناصر ثلاثية الأبعاد."
+	},
+	{
+		"title": "17 — MeshInstance3D والأشكال",
+		"explanation": "MeshInstance3D يعرض Mesh في العالم. الـ Mesh يحدد الهندسة المرئية، ويمكنك استخدام أشكال جاهزة مثل BoxMesh وSphereMesh قبل استيراد نماذج خارجية.",
+		"mission": "أضف MeshInstance3D إلى المشهد، ثم عيّن له BoxMesh من Inspector. جرّب تغيير أبعاده من خصائص الـ Mesh.",
+		"hint": "العقدة MeshInstance3D هي الحاوية المرئية؛ أما BoxMesh فهو المورد الذي يحدد شكل المجسم.",
+		"snippet": """extends Node3D
 
+@onready var model: MeshInstance3D = $MeshInstance3D
+
+func _ready() -> void:
+	model.mesh = BoxMesh.new()""",
+		"question": "أين نضع مورد BoxMesh ليظهر المجسم؟",
+		"options": [
+			"داخل Timer",
+			"في خاصية mesh لعقدة MeshInstance3D",
+			"داخل ملف Project Settings"
+		],
+		"correct": 1,
+		"feedback": "MeshInstance3D يعرض مورد Mesh الذي تعيّنه له."
+	},
+	{
+		"title": "18 — الكاميرا والإضاءة 3D",
+		"explanation": "Camera3D تحدد المنظور الذي يرى اللاعب العالم من خلاله. الإضاءة، مثل DirectionalLight3D، تساعد على إظهار المجسمات وتفاصيل المواد.",
+		"mission": "أنشئ Camera3D وDirectionalLight3D في المشهد. حرّك الكاميرا حتى ترى المجسم، ثم شغّل المشهد وتأكد أن الكاميرا الصحيحة أصبحت نشطة.",
+		"hint": "من السكربت يمكنك استدعاء make_current على Camera3D لتفعيلها.",
+		"snippet": """extends Node3D
+
+@onready var camera: Camera3D = $Camera3D
+
+func _ready() -> void:
+	camera.make_current()""",
+		"question": "ما الذي يحدد زاوية رؤية العالم في اللعبة؟",
+		"options": [
+			"Camera3D",
+			"CollisionShape2D",
+			"AudioListener2D"
+		],
+		"correct": 0,
+		"feedback": "Camera3D هي عين اللاعب في المشهد ثلاثي الأبعاد."
+	},
+	{
+		"title": "19 — حركة CharacterBody3D",
+		"explanation": "CharacterBody3D يتيح تحريك شخصية ثلاثية الأبعاد مع معالجة التصادمات. عادة نحسب الاتجاه من InputMap، ونعيّن مركبتي velocity الأفقية ثم نستدعي move_and_slide.",
+		"mission": "أنشئ CharacterBody3D وأضف CollisionShape3D وMeshInstance3D. عرّف أفعال الحركة في InputMap، ثم جرّب المثال بعد إعداد الأرض.",
+		"hint": "Vector2 الناتج من Input.get_vector يتحول إلى اتجاه 3D. نستخدم المحورين X وZ للحركة على الأرض، ونترك Y للجاذبية أو القفز.",
+		"snippet": """extends CharacterBody3D
+
+@export var speed: float = 4.0
+
+func _physics_process(_delta: float) -> void:
+	var input_dir := Input.get_vector(
+		"move_left", "move_right", "move_forward", "move_back"
+	)
+	var direction := Vector3(input_dir.x, 0.0, input_dir.y).normalized()
+	velocity.x = direction.x * speed
+	velocity.z = direction.z * speed
+	move_and_slide()""",
+		"question": "أي عقدة مناسبة لشخصية تتحرك في عالم 3D وتصطدم بالأرض؟",
+		"options": [
+			"CharacterBody3D",
+			"Control",
+			"Sprite2D"
+		],
+		"correct": 0,
+		"feedback": "CharacterBody3D مخصص لحركة الشخصيات ثلاثية الأبعاد مع التصادم."
+	},
+	{
+		"title": "20 — المواد Materials",
+		"explanation": "المادة تحدد مظهر سطح المجسم: اللون، والخشونة، والمعدنية، والشفافية وغيرها. في Godot 3D يمكنك استخدام StandardMaterial3D كبداية.",
+		"mission": "أنشئ StandardMaterial3D، غيّر لونه، ثم ضعه في material_override لعقدة MeshInstance3D. لاحظ الفرق في المشهد.",
+		"hint": "المادة مورد مستقل عن المجسم؛ يمكنك استخدام المادة نفسها على أكثر من MeshInstance3D.",
+		"snippet": """extends MeshInstance3D
+
+func _ready() -> void:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.1, 0.7, 0.9)
+	material.roughness = 0.35
+	material_override = material""",
+		"question": "أي خاصية في StandardMaterial3D تغير اللون الأساسي للسطح؟",
+		"options": [
+			"albedo_color",
+			"velocity",
+			"timeout"
+		],
+		"correct": 0,
+		"feedback": "albedo_color يحدد اللون الأساسي للمادة."
+	}
 ]
 
 var _current_lesson: int = 0
