@@ -52,6 +52,28 @@ var _recipe_code: TextEdit
 var _lab_preview: ColorRect
 var _scale_slider: HSlider
 var _rotation_slider: HSlider
+var _beginner_mode := true
+
+const ELEMENT_DETAILS := [
+	"تقع في أصل شجرة المشهد، ولا تمثل صورة بحد ذاتها.",
+	"تدعم التحويلات الهرمية؛ تحويل الأب يؤثر في الأبناء.",
+	"يمكن تغيير texture و offset و flip_h و flip_v من المفتش.",
+	"تستخدم move_and_slide بعد تحديث velocity داخل _physics_process.",
+	"اضبط collision_layer و collision_mask لتحديد ما تراقبه المنطقة.",
+	"تأكد من تعيين shape ومن أن disabled غير مفعّل.",
+	"تعتمد على anchors و offsets لتناسب أحجام الشاشات المختلفة.",
+	"يمكن ضبط smoothing و limits لتلطيف حركة الكاميرا.",
+	"تستخدم Transform3D، وتتبعها عقد مكانية أخرى في المشهد.",
+	"تحتاج إلى Mesh صالح، ويمكن تخصيص مظهره عبر material_override."
+]
+
+const RECIPE_DETAILS := [
+	"ضع السكربت على CharacterBody2D، وتأكد من وجود إعدادات ui_left وui_right وui_up وui_down في Input Map.",
+	"يمكن ربط health_changed بواجهة المستخدم باستخدام connect بدل جعل مكوّن الصحة يعرف الواجهة.",
+	"أضف العقدة إلى مجموعة player من Node > Groups، واضبط طبقات التصادم لتناسب اللعبة.",
+	"عيّن direction قبل إضافة المقذوف إلى الشجرة، وأضف CollisionShape2D إلى Area2D.",
+	"اسند target من Inspector أو عبر get_node. هذا سلوك برمجي ثابت وليس تعلمًا آليًا."
+]
 
 
 func _ready() -> void:
@@ -211,12 +233,14 @@ func _build_lab_tab(tabs: TabContainer) -> void:
 
 
 func _on_beginner_toggled(enabled: bool) -> void:
-	_advanced_note.visible = enabled
+	_beginner_mode = enabled
 	if enabled:
-		_advanced_note.text = "وضع المبتدئ: شرح مختصر وخطوات أساسية. هذا الوضع لا يخفي أدوات Godot الأصلية."
+		_advanced_note.text = "وضع المبتدئ: شرح مختصر وخطوات أساسية. أدوات Godot الأصلية تبقى كما هي."
 	else:
-		_advanced_note.text = "الوضع الموسّع: يمكنك استكشاف المصطلحات التقنية مع بقاء شروحات المرشد متاحة."
-		_advanced_note.visible = true
+		_advanced_note.text = "الوضع الموسّع: أظهرنا التفاصيل التقنية الإضافية لكل عنصر وقالب."
+	_advanced_note.visible = true
+	_on_element_selected(_element_picker.selected)
+	_on_recipe_selected(_recipe_picker.selected)
 
 
 func _on_element_selected(index: int) -> void:
@@ -224,6 +248,8 @@ func _on_element_selected(index: int) -> void:
 		return
 	var element: Dictionary = ELEMENTS[index]
 	_element_description.text = str(element["name"]) + "\n\n" + str(element["purpose"])
+	if not _beginner_mode:
+		_element_description.text += "\n\nتفصيل إضافي: " + ELEMENT_DETAILS[index]
 
 
 func _on_recipe_selected(index: int) -> void:
@@ -231,6 +257,8 @@ func _on_recipe_selected(index: int) -> void:
 		return
 	var recipe: Dictionary = RECIPES[index]
 	_recipe_description.text = str(recipe["description"])
+	if not _beginner_mode:
+		_recipe_description.text += "\n\nتفصيل إضافي: " + RECIPE_DETAILS[index]
 	_recipe_code.text = str(recipe["code"])
 
 
