@@ -1,0 +1,55 @@
+name: Validate Godot Mentor Native Patches
+
+on:
+  push:
+    branches:
+      - godot-beginner
+    paths:
+      - "patches/godot-4.7.2/**"
+      - ".github/workflows/validate-native-patches.yml"
+  workflow_dispatch:
+
+jobs:
+  validate-native:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mentor project
+        uses: actions/checkout@v7
+
+      - name: Checkout pinned Godot source
+        uses: actions/checkout@v7
+        with:
+          repository: godotengine/godot
+          ref: 4.7.2-stable
+          path: godot-source
+
+      - name: Verify C++ patch applies to the pinned source
+        run: |
+          set -euo pipefail
+          git -C godot-source apply --check patches/godot-4.7.2/native/0001-android-default-arabic-language.patch
+
+      - name: Verify Android Arabic resources match upstream identifiers
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          upstream = Path("godot-source/platform/android/java/editor/src/main/res/values/strings.xml")
+          translated = Path("patches/godot-4.7.2/platform/android/java/editor/src/main/res/values-ar/strings.xml")
+          upstream_root = ET.parse(upstream).getroot()
+          translated_root = ET.parse(translated).getroot()
+
+          upstream_names = {item.attrib["name"] for item in upstream_root.findall("string")}
+          translated_items = translated_root.findall("string")
+          translated_names = [item.attrib["name"] for item in translated_items]
+
+          assert translated_names, "No translated Android strings found"
+          assert len(translated_names) == len(set(translated_names)), "Duplicate translated resource names"
+          missing = sorted(set(translated_names) - upstream_names)
+          assert not missing, f"Unknown Android resource identifiers: {missing}"
+
+          po_file = Path("godot-source/editor/translations/editor/ar.po")
+          assert po_file.is_file(), "Upstream Arabic editor translation is missing"
+          print(f"Validated {len(translated_names)} Android translations against upstream resource identifiers.")
+          print("Confirmed upstream Arabic editor catalog is present.")
+          PY
